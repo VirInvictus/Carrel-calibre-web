@@ -141,7 +141,16 @@ def adv_search_read_status(read_status):
             db_filter = coalesce(ub.ReadBook.read_status, 0) != ub.ReadBook.STATUS_FINISHED
     else:
         try:
-            if read_status == "":
+            from .smallscope import read_column_is_enum
+            if read_column_is_enum(config.config_read_column):
+                # smallscope: enumeration read column (kanagawa spec 5.2)
+                if read_status == "":
+                    db_filter = coalesce(db.cc_classes[config.config_read_column].value, "") == ""
+                elif read_status == "True":
+                    db_filter = db.cc_classes[config.config_read_column].value == "Read"
+                else:
+                    db_filter = coalesce(db.cc_classes[config.config_read_column].value, "") != "Read"
+            elif read_status == "":
                 db_filter = coalesce(db.cc_classes[config.config_read_column].value, 2) == 2
             else:
                 db_filter = db.cc_classes[config.config_read_column].value == bool(read_status == "True")

@@ -19,6 +19,7 @@
 
 import os
 import re
+from urllib.parse import quote
 import json
 from datetime import datetime, timezone
 from urllib.parse import quote
@@ -637,10 +638,10 @@ class CalibreDB:
             check_engine = create_engine('sqlite://',
                                          echo=False,
                                          isolation_level="SERIALIZABLE",
-                                         connect_args={'check_same_thread': False},
+                                         connect_args={'check_same_thread': False, 'uri': True},
                                          poolclass=StaticPool)
             with check_engine.begin() as connection:
-                connection.execute(text("attach database '{}' as calibre;".format(dbpath)))
+                connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (kanagawa spec 7)
                 connection.execute(text("attach database '{}' as app_settings;".format(app_db_path)))
                 local_session = scoped_session(sessionmaker())
                 local_session.configure(bind=connection)
@@ -690,11 +691,11 @@ class CalibreDB:
             engine = create_engine('sqlite://',
                                        echo=False,
                                        isolation_level="SERIALIZABLE",
-                                       connect_args={'check_same_thread': False},
+                                       connect_args={'check_same_thread': False, 'uri': True},
                                        poolclass=StaticPool)
             with engine.begin() as connection:
                 connection.execute(text('PRAGMA cache_size = 10000;'))
-                connection.execute(text("attach database '{}' as calibre;".format(dbpath)))
+                connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (kanagawa spec 7)
                 connection.execute(text("attach database '{}' as app_settings;".format(app_db_path)))
 
             conn = engine.connect()
@@ -732,10 +733,18 @@ class CalibreDB:
                   isouter=True))
         else:
             try:
+                read_column_id = read_column
                 read_column = cc_classes[read_column]
-                bd = (self.session.query(Books, read_column.value, ub.ArchivedBook.is_archived).select_from(Books)
-                      .join(read_column, read_column.book == book_id,
-                      isouter=True))
+                if hasattr(read_column, 'book'):
+                    bd = (self.session.query(Books, read_column.value, ub.ArchivedBook.is_archived).select_from(Books)
+                          .join(read_column, read_column.book == book_id,
+                          isouter=True))
+                else:
+                    # smallscope: enumeration read column joins via its link table
+                    link = getattr(Books, 'custom_column_' + str(read_column_id)).property.secondary
+                    bd = (self.session.query(Books, read_column.value, ub.ArchivedBook.is_archived).select_from(Books)
+                          .join(link, link.c.book == book_id, isouter=True)
+                          .join(read_column, read_column.id == link.c.value, isouter=True))
             except (KeyError, AttributeError, IndexError):
                 log.error("Custom Column No.{} does not exist in calibre database".format(read_column))
                 # Skip linking read column and return None instead of read status
@@ -817,9 +826,17 @@ class CalibreDB:
         else:
             try:
                 read_column = cc_classes[config_read_column]
-                query = (self.session.query(database, ub.ArchivedBook.is_archived, read_column.value)
-                         .select_from(Books)
-                         .outerjoin(read_column, read_column.book == Books.id))
+                if hasattr(read_column, 'book'):
+                    query = (self.session.query(database, ub.ArchivedBook.is_archived, read_column.value)
+                             .select_from(Books)
+                             .outerjoin(read_column, read_column.book == Books.id))
+                else:
+                    # smallscope: enumeration read column joins via its link table
+                    link = getattr(Books, 'custom_column_' + str(config_read_column)).property.secondary
+                    query = (self.session.query(database, ub.ArchivedBook.is_archived, read_column.value)
+                             .select_from(Books)
+                             .outerjoin(link, link.c.book == Books.id)
+                             .outerjoin(read_column, read_column.id == link.c.value))
             except (KeyError, AttributeError, IndexError):
                 log.error("Custom Column No.{} does not exist in calibre database".format(config_read_column))
                 # Skip linking read column and return None instead of read status

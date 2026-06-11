@@ -279,7 +279,8 @@ def calibreweb_alive():
 @admin_required
 def view_configuration():
     read_column = calibre_db.session.query(db.CustomColumns) \
-        .filter(and_(db.CustomColumns.datatype == 'bool', db.CustomColumns.mark_for_delete == 0)).all()
+        .filter(and_(db.CustomColumns.datatype.in_(['bool', 'enumeration']),
+                     db.CustomColumns.mark_for_delete == 0)).all()
     restrict_columns = calibre_db.session.query(db.CustomColumns) \
         .filter(and_(db.CustomColumns.datatype == 'text', db.CustomColumns.mark_for_delete == 0)).all()
     languages = calibre_db.speaking_language()
@@ -956,7 +957,8 @@ def do_full_kobo_sync(userid):
 def check_valid_read_column(column):
     if column != "0":
         if not calibre_db.session.query(db.CustomColumns).filter(db.CustomColumns.id == column) \
-          .filter(and_(db.CustomColumns.datatype == 'bool', db.CustomColumns.mark_for_delete == 0)).all():
+          .filter(and_(db.CustomColumns.datatype.in_(['bool', 'enumeration']),
+                       db.CustomColumns.mark_for_delete == 0)).all():
             return False
     return True
 

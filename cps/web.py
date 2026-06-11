@@ -743,7 +743,14 @@ def render_read_books(page, are_read, as_xml=False, order=None):
             db_filter = coalesce(ub.ReadBook.read_status, 0) != ub.ReadBook.STATUS_FINISHED
     else:
         try:
-            if are_read:
+            from .smallscope import read_column_is_enum
+            if read_column_is_enum(config.config_read_column):
+                # smallscope: enumeration read column; Read == 'Read' (kanagawa spec 5.2)
+                if are_read:
+                    db_filter = db.cc_classes[config.config_read_column].value == "Read"
+                else:
+                    db_filter = coalesce(db.cc_classes[config.config_read_column].value, "") != "Read"
+            elif are_read:
                 db_filter = db.cc_classes[config.config_read_column].value == True
             else:
                 db_filter = coalesce(db.cc_classes[config.config_read_column].value, False) != True
@@ -1641,7 +1648,14 @@ def show_book(book_id):
         read_book = entries[1]
         archived_book = entries[2]
         entry = entries[0]
-        entry.read_status = read_book == ub.ReadBook.STATUS_FINISHED
+        from .smallscope import read_column_is_enum
+        if config.config_read_column and read_column_is_enum(config.config_read_column):
+            # smallscope: enumeration read column; expose the label for the badge
+            entry.read_status = read_book == "Read"
+            entry.read_status_label = read_book or "To Read"
+        else:
+            entry.read_status = read_book == ub.ReadBook.STATUS_FINISHED
+            entry.read_status_label = None
         entry.is_archived = archived_book
         for lang_index in range(0, len(entry.languages)):
             entry.languages[lang_index].language_name = isoLanguages.get_language_name(get_locale(), entry.languages[

@@ -227,6 +227,13 @@
             {% if not current_user.is_anonymous %}
 
                 <div class="custom_columns">
+                    {% if entry.read_status_label %}
+                    {# smallscope: enumeration read column is curated in Calibre; show, don't edit (spec 5.2) #}
+                    <p>
+                        <span class="kngw-status kngw-status-{{ entry.read_status_label|lower|replace(' ', '') }}"
+                              data-toggle="tooltip" title="{{ _('Reading status (managed in Calibre)') }}">{{ entry.read_status_label }}</span>
+                    </p>
+                    {% else %}
                     <p>
                     <form id="have_read_form" action="{{ url_for('web.toggle_read', book_id=entry.id) }}"
                           method="POST">
@@ -239,6 +246,7 @@
                         </label>
                     </form>
                     </p>
+                    {% endif %}
                     {% if current_user.check_visibility(32768) %}
                         <p>
                         <form id="archived_form" action="{{ url_for('web.toggle_archived', book_id=entry.id) }}"

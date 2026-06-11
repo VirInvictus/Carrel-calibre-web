@@ -325,6 +325,10 @@ def edit_book_read_status(book_id, read_status=None):
         ub.session.merge(book)
         ub.session_commit("Book {} readbit toggled".format(book_id))
     else:
+        from .smallscope import read_column_is_enum
+        if read_column_is_enum(config.config_read_column):
+            # smallscope: reading_status is curated in Calibre; read-only here
+            return _("Read status is managed in Calibre and is read-only here")
         try:
             calibre_db.create_functions(config)
             book = calibre_db.get_filtered_book(book_id, True)
