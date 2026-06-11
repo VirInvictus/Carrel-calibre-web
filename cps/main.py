@@ -62,6 +62,11 @@ def main():
     from . import web_server
     init_errorhandler()
 
+    # smallscope: disable unused surfaces (calibre-web-kanagawa spec 6.2);
+    # must run before registration (Flask forbids setup afterwards)
+    from .smallscope import trim
+    trim(tasks, shelf, editbook, remotelogin)
+
     app.register_blueprint(search)
     app.register_blueprint(tasks)
     app.register_blueprint(web)

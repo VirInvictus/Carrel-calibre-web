@@ -18,6 +18,11 @@ The short version of the rules:
   put new code in new modules (`cps/wings.py`).
 - Upstream code style applies in upstream files (this is GPL-3.0 third-party
   code; match what's there, not the personal conventions).
+- A formatter hook reformats Python touched via Claude's Edit/Write tools,
+  which churns whole upstream files and poisons rebases. Patch upstream
+  `.py` files via shell (python heredoc) instead; templates, CSS, and our
+  own new modules (`cps/smallscope.py`, `cps/wings.py`, `tests/`) are fine
+  to edit normally.
 
 Run from source (the venv holds the dependencies; the calibreweb wheel is
 uninstalled): `CALIBRE_DBPATH=~/.calibre-web ~/calibre-web-env/bin/python cps.py`,
