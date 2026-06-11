@@ -1,0 +1,749 @@
+/*
+ * kanagawa-dragon.css — Kanagawa Dragon theme for calibre-web
+ *
+ * Loads AFTER caliBlur.css and caliBlur_override.css (the stock dark theme
+ * stays enabled as the base layer; this sheet overrides it).
+ * Canonical copy: calibre-web-kanagawa/theme/. The copy in the fork's
+ * cps/static/css/ is vendored via `just sync-theme`; do not edit it there.
+ *
+ * Palette: Dragon variant per kanagawa-dragon-nvim-emacs (follows
+ * rebelot/kanagawa.nvim). Contract: spec.md §4.
+ */
+
+:root {
+    /* Dragon palette */
+    --kngw-black0: #0d0c0c;
+    --kngw-black1: #12120f;
+    --kngw-black2: #1d1c19;
+    --kngw-black3: #181616;
+    --kngw-black4: #282727;
+    --kngw-black5: #393836;
+    --kngw-black6: #625e5a;
+    --kngw-white: #c5c9c5;
+    --kngw-old-white: #c8c093;
+    --kngw-fuji-white: #dcd7ba;
+    --kngw-gray: #a6a69c;
+    --kngw-gray2: #9e9b93;
+    --kngw-gray3: #7a8382;
+    --kngw-green: #87a987;
+    --kngw-green2: #8a9a7b;
+    --kngw-pink: #a292a3;
+    --kngw-orange: #b6927b;
+    --kngw-orange2: #b98d7b;
+    --kngw-blue: #658594;
+    --kngw-blue2: #8ba4b0;
+    --kngw-violet: #8992a7;
+    --kngw-red: #c4746e;
+    --kngw-aqua: #8ea4a2;
+    --kngw-ash: #737c73;
+    --kngw-teal: #949fb5;
+    --kngw-yellow: #c4b28a;
+    --kngw-samurai-red: #e82424;
+    --kngw-ronin-yellow: #ff9e3b;
+
+    /* caliBlur variable overrides (spec §4.3) */
+    --color-background: var(--kngw-black1);
+    --color-primary: var(--kngw-orange);
+    --color-secondary: var(--kngw-yellow);
+    --color-secondary-hover: var(--kngw-orange2);
+    --color-background-mobile: var(--kngw-black0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Mechanical recolor of caliBlur's hardcoded palette. Do not edit by  */
+/* hand; regenerate with `just regen` (scripts/recolor_caliblur.py).   */
+/* ------------------------------------------------------------------ */
+
+/* BEGIN GENERATED RECOLOR (scripts/recolor_caliblur.py) */
+#scnd-nav > li.active:hover a, .authorlist #nav_author:hover a, .catlist #nav_cat:hover a, .langlist #nav_lang:hover a, .serieslist #nav_serie:hover a {
+    color: #c5c9c5;
+}
+.navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover {
+    color: #c5c9c5;
+}
+.a-z #scnd-nav > li.dropdown:hover > a, .newest #scnd-nav > li.dropdown:hover > a, .oldest #scnd-nav > li.dropdown:hover > a, .z-a #scnd-nav > li.dropdown:hover > a {
+    color: #c5c9c5 !important;
+}
+.readbooks #scnd-nav > li.active a[href*=unreadbooks]:hover {
+    color: #c5c9c5;
+}
+.unreadbooks #scnd-nav > li.active a[href*=readbooks]:hover {
+    color: #c5c9c5;
+}
+.shelforder > .container-fluid > .row-fluid > .col-sm-10 > div.col-sm-6.col-lg-6.col-xs-6 > h2 {
+    color: #c5c9c5;
+}
+.shelforder > .container-fluid > .row-fluid > .col-sm-10 > div.col-sm-6.col-lg-6.col-xs-6 > h2 + div {
+    color: #c5c9c5;
+}
+.shelforder #sortTrue > div:hover {
+    color: #c5c9c5;
+}
+.shelforder > .container-fluid > .row-fluid > .col-sm-10 > div.col-sm-6.col-lg-6.col-xs-6 > a {
+    color: #c5c9c5;
+}
+#have_read_form:hover label:before {
+    color: #c5c9c5 !important;
+}
+#archived_form:hover label:before {
+    color: #c5c9c5 !important;
+}
+div[aria-label="Edit/Delete book"] > .btn > span:hover {
+    color: #c5c9c5;
+}
+a:hover {
+    color: #c5c9c5;
+}
+#titlebar a {
+    color: #393836;
+}
+body > div.navbar.navbar-default.navbar-static-top > div > div.home-btn > a:hover:before {
+    color: #c5c9c5;
+}
+#form-upload:hover .form-group .btn:after, #form-upload:hover .form-group .btn:before {
+    color: #c5c9c5;
+}
+#form-upload .form-group .btn:after {
+    background: #282727;
+}
+.form-control {
+    color: #c5c9c5;
+}
+.form-control:focus {
+    background: #c5c9c5 !important;
+    color: #393836;
+}
+body > div.navbar.navbar-default.navbar-static-top > div > form > div > span > button:before {
+    color: #c5c9c5;
+    background: #393836;
+}
+body > div.navbar.navbar-default.navbar-static-top > div > form:before {
+    color: #c5c9c5;
+}
+#query:focus {
+    background: #c5c9c5 !important;
+    color: #393836 !important;
+}
+body > div.navbar.navbar-default.navbar-static-top > div > form.search-focus > div > span.input-group-btn:before {
+    color: #393836;
+}
+body > div.navbar.navbar-default.navbar-static-top > div > form > div > span > button:hover {
+    color: #c5c9c5;
+}
+.author > a:hover {
+    color: #c5c9c5 !important;
+}
+.btn-default {
+    color: #c5c9c5;
+}
+.btn-default:hover {
+    color: #c5c9c5;
+}
+body > div.container-fluid > div > div.col-sm-10 > div > form > a {
+    color: #c5c9c5;
+}
+body > div.container-fluid > div > div.col-sm-10 > div > form > a:hover {
+    color: #c5c9c5;
+}
+.btn-primary {
+    color: #c5c9c5;
+}
+.btn-default.active, .btn-default.focus, .btn-default:active, .btn-default:focus, .open > .dropdown-toggle.btn-default {
+    color: #c5c9c5;
+}
+.form-group > label {
+    color: #c5c9c5;
+}
+.navigation li a:hover {
+    color: #c5c9c5;
+}
+.navigation .create-shelf a:hover {
+    color: #c5c9c5 !important;
+}
+#scnd-nav .dropdown-menu > li > a:hover {
+    color: #c5c9c5;
+}
+.container-fluid .book .meta .title {
+    color: #c5c9c5;
+}
+#books > .cover > a:before, #books_rand > .cover > a:before, .book.isotope-item > .cover > a:before, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > div.col-sm-2 > a:before {
+    color: #c5c9c5;
+}
+#books > .cover > a:after, #books_rand > .cover > a:after, .book.isotope-item > .cover > a:after {
+    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+}
+body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > div.col-sm-2 > a:after {
+    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+}
+.badge {
+    color: #c5c9c5;
+}
+app-loading-container {
+    background: #282727;
+}
+.app-loading {
+    color: #c5c9c5 !important;
+}
+#meta-info::-webkit-scrollbar-track {
+    background-color: #0d0c0c;
+}
+body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > h2 {
+    color: #c5c9c5;
+}
+body > div.container-fluid > div > div.col-sm-10 > h3:not(:first-of-type) {
+    color: #c5c9c5;
+}
+body > div.container-fluid > div > div.col-sm-10 > p > a:hover {
+    color: #c5c9c5;
+}
+.pagination > a:hover {
+    color: #c5c9c5;
+}
+.navbar-default .navbar-nav > li > a:focus, .navbar-default .navbar-nav > li > a:hover {
+    color: #c5c9c5 !important;
+}
+body > div.container-fluid > div > div.col-sm-10 > div.pagination > .page-next > a:hover:before,
+body > div.container-fluid > div > div.col-sm-10 > div.pagination > .page-previous > a:hover:before {
+    color: #c5c9c5;
+}
+body.authorlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.downloadlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.catlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.langlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.me > div.container-fluid > div > div.col-sm-10 > div.discover:before, body.serieslist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
+    color: #c5c9c5;
+}
+.well > form > .btn {
+    color: #c5c9c5;
+}
+.alert {
+    background-color: #0d0c0c;
+    color: #c5c9c5;
+}
+.alert-danger {
+    color: #c5c9c5;
+}
+body > div.container-fluid > div > div.col-sm-10 > div.col-sm-8 > form > div > span > input.form-control:focus {
+    background: #c5c9c5 !important;
+}
+.glyphicon-star, .navigation li a:hover .glyphicon-star {
+    color: #c5c9c5;
+}
+#metaModal > .modal-dialog > .modal-content > .modal-header {
+    background: #12120f;
+}
+#metaModal > .modal-dialog > .modal-content > .modal-header > h4 {
+    background: #1d1c19;
+    color: #c5c9c5;
+}
+#metaModal > .modal-dialog > .modal-content > .modal-header > h4:before {
+    color: #9e9b93;
+}
+#metaModal > .modal-dialog > .modal-content > .modal-header > .close {
+    color: #c5c9c5;
+}
+#metaModal > .modal-dialog > .modal-content > .modal-header > #meta-search > .input-group > span > button {
+    color: #c5c9c5;
+}
+#meta-info {
+    background: #12120f !important;
+}
+#meta-info #book-list .media > .media-body {
+    color: #9e9b93;
+}
+#meta-info #book-list .media > .media-body > h4 > a {
+    color: #c5c9c5;
+}
+#meta-info #book-list .media > .media-body > h4 > a:hover {
+    color: #c5c9c5;
+}
+#meta-info #book-list .media > .media-body > p > a:hover {
+    color: #c5c9c5;
+}
+.modal-content {
+    background-color: #1d1c19;
+}
+body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-8 > form > .form-group > .btn-toolbar-lg > label.btn-danger:hover {
+    background: #c4746e;
+}
+body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-8 > form > .form-group > .btn-toolbar-lg > label.btn-danger.active {
+    background: #c4746e;
+}
+body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-8 > form > .form-group > .btn-toolbar-lg > label.btn-danger.active:hover {
+    background: #c4746e;
+}
+.book-meta > .bookinfo > .comments, .book-meta > .description {
+    color: #c5c9c5;
+}
+.book-meta > .bookinfo > .languages > span:last-of-type,
+.book-meta > .bookinfo > .publishers > span:last-of-type,
+.book-meta > .bookinfo > .publishing-date > span:last-of-type,
+.real_custom_columns > span:last-of-type {
+    color: #c5c9c5;
+}
+.book-meta > .bookinfo > .languages > span > a,
+.book-meta > .bookinfo > .publishers > span > a,
+.book-meta > .bookinfo > .publishing-date > span > a,
+.real_custom_columns > span > a {
+    color: #c5c9c5;
+}
+.book-meta > h2 {
+    color: #c5c9c5;
+}
+#add-to-shelf:hover span, #btnGroupDrop1:hover > span, #readbtn:hover > span, #sendbtn:hover > span, .book-meta .btn-toolbar > .btn-group > .btn-group:nth-child(1) > a:first-of-type:hover > span, .book-meta .btn-toolbar > .btn-group > .btn-warning:hover > span, .btn-toolbar > .btn-group > #btnGroupDrop2:hover > span, .btn-toolbar > .btn-group > .btn-group > #btnGroupDrop2:hover > span {
+    color: #c5c9c5;
+}
+.btn-primary.active.focus, .btn-primary.active:focus, .btn-primary.active:hover, .btn-primary:active.focus, .btn-primary:active:focus, .btn-primary:active:hover, .open > .dropdown-toggle.btn-primary.focus, .open > .dropdown-toggle.btn-primary:focus, .open > .dropdown-toggle.btn-primary:hover {
+    color: #c5c9c5;
+}
+.dropdown-menu {
+    background-color: #0d0c0c !important;
+}
+.dropdown-menu > li > a:focus, .dropdown-menu > li > a:hover {
+    color: #c5c9c5;
+}
+.book-meta > .bookinfo .btn-info:hover,
+.book-meta > .bookinfo .btn-success:hover {
+    color: #c5c9c5;
+}
+body > div.container-fluid > div > div.col-sm-10 > div.discover > .btn-danger {
+    background: #c4746e;
+}
+body > div.container-fluid > div > div.col-sm-10 > div.discover > .btn-danger:hover {
+    background: #c4746e;
+}
+.book-meta > div.more-stuff > .btn-toolbar > .btn-group[aria-label="Remove from shelves"] > a:hover {
+    background: #c4746e;
+    color: #c5c9c5;
+}
+body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [data-target="#DeleteShelfDialog"]:hover {
+    background: #c4746e;
+}
+body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [data-target="#DeleteShelfDialog"]:hover:before {
+    color: #c5c9c5;
+}
+body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [href*=edit]:hover:before {
+    color: #c5c9c5;
+}
+body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [href*=order]:hover:before {
+    color: #c5c9c5;
+}
+body > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a:hover {
+    color: #c5c9c5 !important;
+}
+.blur-wrapper {
+    background-color: #282727;
+}
+.btn-danger {
+    color: #c5c9c5;
+    background-color: #c4746e;
+    border-color: #c4746e;
+}
+.btn-danger:hover {
+    background-color: #c4746e;
+    border-color: #393836;
+}
+.plexBack:not(.noBack):hover > a {
+    color: #c5c9c5;
+}
+body.login > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a {
+    color: #a6a69c !important;
+}
+.book-meta > .bookinfo > .comments[aria-expanded=false] + a:hover:after, .book-meta > .description[aria-expanded=false] + a:hover:after {
+    border-color: #c5c9c5;
+}
+.book-meta > .bookinfo > .comments[aria-expanded=true] + a:hover:after, .book-meta > .description[aria-expanded=true] + a:hover:after {
+    border-color: #c5c9c5;
+}
+.author > .container-fluid > .row-fluid > .col-sm-10 > h2 {
+    color: #c5c9c5;
+}
+body.author > div.container-fluid > div > div.col-sm-10 > div.discover > h3 {
+    color: #c5c9c5;
+}
+#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-header {
+    color: #c5c9c5;
+    border-bottom: 1px solid #12120f;
+    background-color: #1d1c19;
+}
+#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-header:before {
+    color: #9e9b93;
+}
+#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-body {
+    color: #c5c9c5;
+    background: #12120f;
+}
+#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-body:after {
+    background-color: #1d1c19;
+    border-top: 1px solid #12120f;
+}
+#remove-from-shelves > .btn:hover {
+    background: #c4746e;
+    color: #c5c9c5;
+}
+#remove-from-shelves > .btn:hover span:before {
+    color: #c5c9c5;
+}
+#DeleteShelfDialog:before {
+    color: #c5c9c5;
+}
+.btn-default.active:hover, .btn-default:active:hover {
+    color: #c5c9c5;
+}
+body.admin > div.container-fluid > div > div.col-sm-10 > div.container-fluid > div.row > div.col > h2, body.admin > div.container-fluid > div > div.col-sm-10 > div.discover > h2 {
+    color: #c5c9c5;
+}
+body.admin > div.container-fluid > div > div.col-sm-10 > div.container-fluid > div.row > div.col > .btn > a, body.admin > div.container-fluid > div > div.col-sm-10 > div.discover > .btn > a {
+    color: #c5c9c5;
+}
+body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > h1, body.newuser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > h1 {
+    color: #c5c9c5;
+}
+body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > h2, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > h2 {
+    color: #c5c9c5;
+}
+body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:before, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:before {
+    color: #c5c9c5;
+}
+body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:after, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:after {
+    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+}
+body.admin td > a:hover {
+    color: #c5c9c5;
+}
+.tooltip.bottom .tooltip-inner {
+    background-color: #0d0c0c;
+    color: #c5c9c5;
+}
+.tooltip.bottom .tooltip-arrow {
+    border-bottom-color: #0d0c0c;
+}
+body.search > div.container-fluid > div > div.col-sm-10 > div.discover > h2 + p:before {
+    color: #c5c9c5;
+}
+body.search > div.container-fluid > div > div.col-sm-10 > div.discover > h2 + p:after {
+    color: #c5c9c5;
+}
+body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover {
+    background: #c4746e;
+}
+body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover:before, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover:before {
+    color: #c5c9c5;
+}
+body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center.more-stuff > h4, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center.more-stuff > h4 {
+    color: #c5c9c5;
+}
+body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th:hover {
+    color: #c5c9c5;
+}
+body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th:hover .th-inner {
+    color: #c5c9c5;
+}
+body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th > .th-inner.asc, body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th > .th-inner.desc {
+    color: #c5c9c5;
+}
+.epub-back:before {
+    color: #393836;
+}
+body.login > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a:hover {
+    color: #a6a69c !important;
+}
+#btnGroupDrop1[aria-expanded=true] > span, #shelf-actions > .btn-group.open > #add-to-shelf > span {
+    color: #c5c9c5;
+}
+.admin #container > h2, body.admin > div.container-fluid > div > div.col-sm-10 > div.container-fluid > div.row > div.col > h2 {
+    color: #c5c9c5;
+}
+body.admin > div.container-fluid > div > div.col-sm-10 > div.discover .btn > a {
+    color: #c5c9c5;
+}
+body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover {
+    background: #c4746e;
+}
+body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover:before, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover:before {
+    color: #c5c9c5;
+}
+body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center.more-stuff > h4, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center.more-stuff > h4 {
+    color: #c5c9c5;
+}
+#main-nav + #scnd-nav li.open a:hover {
+    color: #c5c9c5;
+}
+#main-nav + #scnd-nav li a:hover .glyphicon-star {
+    color: #c5c9c5;
+}
+#main-nav + #scnd-nav .create-shelf a:hover {
+    color: #c5c9c5 !important;
+}
+#RestartDialog:before, #ShutdownDialog:before, #StatusDialog:before, #deleteModal:before, #cancelTaskModal:before {
+    color: #c5c9c5;
+}
+#RestartDialog > .modal-dialog > .modal-content > .modal-header, #ShutdownDialog > .modal-dialog > .modal-content > .modal-header, #StatusDialog > .modal-dialog > .modal-content > .modal-header, #deleteModal > .modal-dialog > .modal-content > .modal-header, #cancelTaskModal > .modal-dialog > .modal-content > .modal-header {
+    color: #c5c9c5;
+    border-bottom: 1px solid #12120f;
+    background-color: #1d1c19;
+}
+#RestartDialog > .modal-dialog > .modal-content > .modal-header:before, #ShutdownDialog > .modal-dialog > .modal-content > .modal-header:before, #StatusDialog > .modal-dialog > .modal-content > .modal-header:before, #deleteModal > .modal-dialog > .modal-content > .modal-header:before, #cancelTaskModal > .modal-dialog > .modal-content > .modal-header:before {
+    color: #9e9b93;
+}
+#RestartDialog > .modal-dialog > .modal-content > .modal-body {
+    color: #c5c9c5;
+    background: #12120f;
+}
+#ShutdownDialog > .modal-dialog > .modal-content > .modal-body, #StatusDialog > .modal-dialog > .modal-content > .modal-body, #deleteModal > .modal-dialog > .modal-content > .modal-body, #cancelTaskModal > .modal-dialog > .modal-content > .modal-body {
+    color: #c5c9c5;
+    background: #12120f;
+}
+#RestartDialog > .modal-dialog > .modal-content > .modal-body > p, #ShutdownDialog > .modal-dialog > .modal-content > .modal-body > p, #StatusDialog > .modal-dialog > .modal-content > .modal-body > p, #deleteModal > .modal-dialog > .modal-content > .modal-body > p, #cancelTaskModal > .modal-dialog > .modal-content > .modal-body > p {
+    color: #c5c9c5;
+    background: #12120f;
+}
+#RestartDialog > .modal-dialog > .modal-content > .modal-body:after {
+    background-color: #1d1c19;
+    border-top: 1px solid #12120f;
+}
+#ShutdownDialog > .modal-dialog > .modal-content > .modal-body:after, #StatusDialog > .modal-dialog > .modal-content > .modal-body:after {
+    background-color: #1d1c19;
+    border-top: 1px solid #12120f;
+}
+#deleteButton:hover span.glyphicon-remove {
+    color: #c5c9c5;
+}
+#loader > center > h3 {
+    color: #c5c9c5;
+}
+body.publisherlist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
+    color: #c5c9c5;
+}
+body.ratingslist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
+    color: #c5c9c5;
+}
+body.formatslist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
+    color: #c5c9c5;
+}
+#DeleteDomain:before {
+    color: #c5c9c5;
+}
+#DeleteDomain > .modal-dialog > .modal-content > .modal-header {
+    color: #c5c9c5;
+    border-bottom: 1px solid #12120f;
+    background-color: #1d1c19;
+}
+#DeleteDomain > .modal-dialog > .modal-content > .modal-header:before {
+    color: #9e9b93;
+}
+#DeleteDomain > .modal-dialog > .modal-content > .modal-body, #DeleteDomain > .modal-dialog > .modal-content > .modal-body > p {
+    color: #c5c9c5;
+    background: #12120f;
+}
+#DeleteDomain > .modal-dialog > .modal-content > .modal-body:after {
+    background-color: #1d1c19;
+    border-top: 1px solid #12120f;
+}
+#sendbtn2:focus span, #sendbtn2:hover span, #read-in-browser:focus span, #read-in-browser:hover span {
+    color: #c5c9c5;
+}
+.cover .badge {
+    color: #c5c9c5;
+    background-color: #c4b28a;
+}
+input.datepicker:focus + input {
+    color: #393836;
+}
+@media only screen and (max-width: 767px) {
+    body > div.navbar.navbar-default.navbar-static-top > div > form:hover:before {
+        color: #c5c9c5;
+    }
+    #query:focus {
+        background: #393836 !important;
+        color: #c5c9c5 !important;
+    }
+    body > div.navbar.navbar-default.navbar-static-top > div > form.search-focus > div > span.input-group-btn:before {
+        color: #c5c9c5;
+        background: #393836;
+    }
+    body > div.navbar.navbar-default.navbar-static-top > div > form > div > span.input-group-btn {
+        background: #393836;
+    }
+    body > div.navbar.navbar-default.navbar-static-top > div > form > div > span > button::before {
+        color: #393836;
+        background: #c5c9c5;
+    }
+    .navbar-collapse.collapse {
+        background: #282727;
+    }
+    body > div.navbar.navbar-default.navbar-static-top > div > div.navbar-collapse.collapse > ul > li > a.profileDrop:before {
+        color: #c5c9c5;
+    }
+    .profileDrop + span.hidden-sm {
+        color: #c5c9c5;
+    }
+    #form-upload > .form-group:before {
+        color: #c5c9c5;
+    }
+    #form-upload .form-group .btn:before {
+        color: #c5c9c5;
+    }
+    #form-upload .form-group .btn:after {
+        background: #282727;
+        color: #c5c9c5;
+    }
+    #top_admin, #top_tasks, .navigation > ul > li > a {
+        color: #c5c9c5;
+    }
+    .navigation .create-shelf a {
+        color: #c5c9c5 !important;
+    }
+    .navigation li a .glyphicon-star {
+        color: #c5c9c5;
+    }
+    .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus, .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover {
+        color: #c5c9c5;
+    }
+    .me .dropdown-menu > li > #top_user:hover {
+        color: #c5c9c5;
+    }
+    div.comments + [data-readmore-toggle]:hover, div.description + [data-readmore-toggle]:hover {
+        color: #c5c9c5;
+    }
+    #main-nav + #scnd-nav > li > a {
+        color: #c5c9c5;
+    }
+    #main-nav + #scnd-nav li.open ul.dropdown-menu a:hover {
+        color: #c5c9c5;
+    }
+    #main-nav + #scnd-nav li a .glyphicon-star {
+        color: #c5c9c5;
+    }
+    .shelforder #sortTrue > .list-group-item {
+        color: #c5c9c5;
+    }
+    .col-xs-12 > .row > .col-xs-10 > a {
+        color: #c5c9c5;
+    }
+    .col-xs-12 > .row > .col-xs-10 > a:hover {
+        color: #c5c9c5;
+    }
+    .col-xs-12 > .row > .col-xs-10:after {
+        color: #c5c9c5;
+    }
+}
+/* END GENERATED RECOLOR */
+
+/* ------------------------------------------------------------------ */
+/* Hand-curated polish: the cover-forward, warm layer (spec §4.4).     */
+/* ------------------------------------------------------------------ */
+
+/* Headings run warm; body text stays dragonWhite */
+h1, h2, h3, h4,
+.discover h2,
+.filterheader {
+    color: var(--kngw-old-white);
+}
+
+/* Book cards: covers are the saturated objects; give them presentation
+   treatment and let the chrome recede */
+.book .cover {
+    margin-bottom: 8px;
+}
+
+.book .cover .img,
+.book .cover img {
+    border-radius: 5px;
+    box-shadow: 0 3px 14px rgba(13, 12, 12, 0.65);
+    transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
+}
+
+.book .cover a:hover .img,
+.book .cover a:hover img {
+    transform: translateY(-4px);
+    box-shadow: 0 9px 22px rgba(13, 12, 12, 0.85);
+}
+
+.book .meta .title {
+    color: var(--kngw-fuji-white);
+}
+
+.book .meta .author,
+.book .meta .author a {
+    color: var(--kngw-gray3);
+}
+
+.book .meta .author a:hover {
+    color: var(--kngw-orange);
+}
+
+/* Series / rating lines under the title stay quiet */
+.book .meta .series,
+.book .meta p {
+    color: var(--kngw-gray2);
+}
+
+/* The "read" tick badge on covers: subtle, green, never competing with
+   the artwork */
+.badge.read {
+    background-color: var(--kngw-black4);
+    color: var(--kngw-green);
+}
+
+/* Ratings */
+.glyphicon-star.good,
+.rating .glyphicon-star {
+    color: var(--kngw-yellow);
+}
+
+.glyphicon-star-empty {
+    color: var(--kngw-black6);
+}
+
+/* Links and primary buttons: warm accent, calm hover */
+a {
+    color: var(--kngw-orange);
+}
+
+a:hover,
+a:focus {
+    color: var(--kngw-orange2);
+}
+
+.btn-primary {
+    background-color: var(--kngw-black4);
+    border-color: var(--kngw-black5);
+    color: var(--kngw-fuji-white);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--kngw-black5);
+    border-color: var(--kngw-black6);
+    color: var(--kngw-fuji-white);
+}
+
+/* Form focus ring in accent rather than Bootstrap blue */
+.form-control:focus {
+    border-color: var(--kngw-orange);
+    box-shadow: 0 0 6px rgba(182, 146, 123, 0.45);
+}
+
+/* Selection color */
+::selection {
+    background: var(--kngw-black5);
+    color: var(--kngw-fuji-white);
+}
+
+/* Reading-status badge states (detail page, Phase 3; spec §5.2) */
+.kngw-status {
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-size: 0.9em;
+    background-color: var(--kngw-black4);
+}
+
+.kngw-status-read { color: var(--kngw-green); }
+.kngw-status-reading { color: var(--kngw-blue2); }
+.kngw-status-toread { color: var(--kngw-ash); }
+.kngw-status-dnf { color: var(--kngw-red); }
+
