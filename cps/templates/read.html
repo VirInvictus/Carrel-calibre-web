@@ -95,6 +95,8 @@
                         id="amberSelected"> </span>{{_('Amber')}}</button>
                 <button type="button" id="blackTheme" class="blackTheme" onclick="selectTheme(this.id)"><span
                         id="blackSelected"> </span>{{_('Black')}}</button>
+                <button type="button" id="kanagawaTheme" class="kanagawaTheme" onclick="selectTheme(this.id)"><span
+                        id="kanagawaSelected"> </span>{{_('Kanagawa')}}</button>
 
           <!-- Custom theme: color input + pickr -->
           <div id="customThemeWrapper" style="display: inline-flex; align-items: center;gap: 8px;margin: 5px 8px;">Custom:
@@ -185,6 +187,11 @@
                 "bgColor": "black",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#fff"
+            },
+            "kanagawaTheme": {
+                "bgColor": "#181616",
+                "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
+                "title-color": "#c8c093"
             },
         };
 

@@ -22,3 +22,9 @@
 	background: #000;
 	color: #fff;
 }
+
+/* smallscope: Kanagawa Dragon reading theme (kanagawa spec 4.6) */
+.kanagawaTheme {
+	background: #181616;
+	color: #c5c9c5;
+}
