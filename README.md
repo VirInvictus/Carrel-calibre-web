@@ -185,3 +185,11 @@ We welcome suggestions for new features. Please create a new issue in the reposi
 ---
 
 Thank you for using Calibre-Web! We hope you enjoy managing your eBook library with our tool.
+
+## Support
+
+This is a fork of [janeczku/calibre-web](https://github.com/janeczku/calibre-web); please support upstream first. If the smallscope fork's useful to you and you'd like to chip in:
+
+```
+bc1qkge6zr45tzqfwfmvma2ylumt6mg7wlwmhr05yv
+```
