@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [smallscope]
+  pull_request:
+
+jobs:
+  check:
+    name: ruff + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # python-magic loads libmagic at import; Wand loads the ImageMagick
+        # library. cps imports both at app-creation time, which the tests
+        # exercise by building the real Flask app against a fixture DB.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libmagic1 \
+            imagemagick
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install ruff
+        run: pip install ruff==0.15.20
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: ruff check
+        # Scoped to the smallscope-owned Python only; the vendored upstream
+        # cps/ tree carries its own style and is not linted here.
+        run: ruff check tests/ cps/wings.py cps/smallscope.py
+
+      - name: ruff format --check
+        run: ruff format --check tests/ cps/wings.py cps/smallscope.py
+
+      - name: unittest
+        run: python -m unittest discover -s tests
