@@ -24,13 +24,22 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          # cquarry (the Wings evaluation engine) requires >= 3.14 and uses
+          # 3.14 exception syntax, so Wings can't import on 3.13.
+          python-version: "3.14"
 
       - name: Install ruff
         run: pip install ruff==0.15.20
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Install cquarry (Wings evaluation engine)
+        # Wings routes evaluate virtual libraries through CalibreQuarry's search
+        # port (cps/wings.py: `from cquarry.db import CalibreDB`). It lives in a
+        # sibling repo, not requirements.txt, so install it here or the Wings
+        # tests 404.
+        run: pip install "git+https://github.com/VirInvictus/CalibreQuarry.git@main"
 
       - name: ruff check
         # Scoped to the smallscope-owned Python only; the vendored upstream
