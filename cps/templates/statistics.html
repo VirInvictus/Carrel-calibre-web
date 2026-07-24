@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{# Statistics (Carrel spec 12). Magnitude is encoded on the single gold ramp
+   from spec 4.3; identity is carried by position and a direct label, never by
+   colour. The Dragon palette fails the categorical checks outright (worst
+   adjacent pair delta-E 6.7 for normal vision), so there is no categorical
+   colour anywhere on this page. #}
+
+{% macro bar(row, maximum) %}
+  {% set pct = (row.value * 100.0 / maximum) if maximum else 0 %}
+  {% set step = 5 if pct > 80 else (4 if pct > 55 else (3 if pct > 30 else (2 if pct > 12 else 1))) %}
+  <li class="stat-row">
+    <span class="stat-label">{{ row.label }}</span>
+    <span class="stat-track"><span class="stat-fill s{{ step }}" style="width: {{ '%.1f'|format(pct) }}%"></span></span>
+    <span class="stat-value">{{ row.value }}</span>
+  </li>
+{% endmacro %}
+
+{% macro ranked(title, rows, note='') %}
+  {% if rows %}
+    {% set maximum = rows|map(attribute='value')|max %}
+    <section class="stat-block">
+      <h3>{{ title }}</h3>
+      {% if note %}<p class="stat-note">{{ note }}</p>{% endif %}
+      <ul class="list-unstyled stat-list">
+        {% for row in rows %}{{ bar(row, maximum) }}{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endmacro %}
+
+{% block body %}
+<div class="discover statistics">
+
+  <h2 class="stat-h">Statistics</h2>
+
+  {% set t = stats.totals %}
+  <ul class="list-unstyled hero-row">
+    <li><span class="hero-n">{{ t.books }}</span><span class="hero-l">books</span></li>
+    <li><span class="hero-n">{{ t.authors }}</span><span class="hero-l">authors</span></li>
+    <li><span class="hero-n">{{ t.series }}</span><span class="hero-l">series</span></li>
+    <li><span class="hero-n">{{ t.tags }}</span><span class="hero-l">tags</span></li>
+    <li><span class="hero-n">{{ t.publishers }}</span><span class="hero-l">publishers</span></li>
+    <li><span class="hero-n">{{ t.formats }}</span><span class="hero-l">formats</span></li>
+  </ul>
+
+  {# Degenerate axes: one slice each, so they are readout lines not charts #}
+  <ul class="list-unstyled readouts">
+    <li><span class="ro-k">rated</span>
+        <span class="ro-v">{{ stats.readouts.rated.n }} of {{ t.books }} &middot; {{ stats.readouts.rated.pct }}%</span></li>
+    {% if stats.readouts.status %}
+      <li><span class="ro-k">status</span><span class="ro-v">
+        {% for s in stats.readouts.status %}{{ s.label }} {{ s.value }}{% if not loop.last %} &middot; {% endif %}{% endfor %}
+      </span></li>
+    {% endif %}
+    {% if stats.readouts.source %}
+      <li><span class="ro-k">source</span><span class="ro-v">
+        {% for s in stats.readouts.source %}{{ s.label }} {{ s.value }}{% if not loop.last %} &middot; {% endif %}{% endfor %}
+      </span></li>
+    {% endif %}
+    {% if stats.acquisition.days %}
+      <li><span class="ro-k">acquired</span><span class="ro-v">
+        {{ stats.acquisition.days }} days &middot; {{ stats.acquisition.first }} to {{ stats.acquisition.last }}
+        {%- if stats.acquisition.busiest %} &middot; busiest {{ stats.acquisition.busiest.label }}
+        ({{ stats.acquisition.busiest.value }}){% endif %}
+      </span></li>
+    {% endif %}
+  </ul>
+
+  {# The hour strip earns its own treatment: it is the one chart here with a
+     genuine story, and the peak is called out in words so the shape is never
+     the only encoding. #}
+  {% set hours = stats.charts.hours %}
+  {% if hours %}
+    {% set hmax = hours|map(attribute='value')|max %}
+    <section class="stat-block">
+      <h3>When books arrive</h3>
+      <p class="stat-note">Peak hour is {{ stats.peak_hour.label }}:00 with
+        {{ stats.peak_hour.value }} books.</p>
+      <ul class="list-unstyled hour-strip">
+        {% for h in hours %}
+          {% set pct = (h.value * 100.0 / hmax) if hmax else 0 %}
+          {% set step = 5 if pct > 80 else (4 if pct > 55 else (3 if pct > 30 else (2 if pct > 12 else 1))) %}
+          <li>
+            <span class="hour-bar-wrap">
+              <span class="hour-bar s{{ step }}" style="height: {{ '%.1f'|format(pct) }}%"
+                    title="{{ h.label }}:00 — {{ h.value }} books"></span>
+            </span>
+            <span class="hour-tick">{{ h.label }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {{ ranked('Publication by decade', stats.charts.decade) }}
+  {{ ranked('Genres', stats.charts.genres, 'Counted over books, by top-level tag family.') }}
+  {{ ranked('By weekday', stats.charts.weekdays) }}
+  {{ ranked('Formats', stats.charts.formats) }}
+  {{ ranked('Most-collected authors', stats.charts.authors) }}
+  {{ ranked('Largest series', stats.charts.series) }}
+  {{ ranked('Top publishers', stats.charts.publishers) }}
+
+</div>
+{% endblock %}

@@ -45,6 +45,7 @@ def main():
     from .remotelogin import remotelogin
     from .categories import categories
     from .palette import palette
+    from .stats import statistics
     from .wings import wings
 
     try:
@@ -88,6 +89,7 @@ def main():
     app.register_blueprint(wings)
     app.register_blueprint(palette)
     app.register_blueprint(categories)
+    app.register_blueprint(statistics)
     app.register_blueprint(shelf)
     app.register_blueprint(admi)
     app.register_blueprint(remotelogin)

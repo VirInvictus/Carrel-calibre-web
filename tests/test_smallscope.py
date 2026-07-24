@@ -14,6 +14,8 @@ import sys
 import tempfile
 import unittest
 
+import fixture
+
 # cps's cli parser reads sys.argv at create_app time; hide unittest's args.
 sys.argv = ["cps.py"]
 
@@ -48,6 +50,7 @@ from cps.search_metadata import meta  # noqa: E402
 from cps.shelf import shelf  # noqa: E402
 from cps.categories import categories  # noqa: E402
 from cps.palette import palette  # noqa: E402
+from cps.stats import statistics  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
 from cps.smallscope import (  # noqa: E402
     read_column_is_enum,
@@ -77,6 +80,7 @@ for blueprint in (
     editbook,
     palette,
     categories,
+    statistics,
 ):
     app.register_blueprint(blueprint)
 
@@ -230,6 +234,62 @@ class SmallscopeTestCase(unittest.TestCase):
             app.preprocess_request()
             self.assertTrue(current_user.is_authenticated)
             self.assertEqual(current_user.name, "admin")
+
+    # --- statistics (spec 12) ----------------------------------------------
+
+    def test_metrics_are_plain_data(self):
+        from cps import stats
+
+        with app.test_request_context("/"):
+            data = stats.collect()
+        self.assertEqual(data["totals"]["books"], len(fixture.BOOKS))
+        # Every metric is JSON-shaped: no objects, no formatting, no HTML
+        import json
+
+        json.dumps(data)
+
+    def test_hour_histogram_always_has_24_buckets(self):
+        from cps import stats
+
+        with app.test_request_context("/"):
+            hours = stats.collect()["charts"]["hours"]
+        self.assertEqual(len(hours), 24)
+        self.assertEqual([h["label"] for h in hours][:3], ["00", "01", "02"])
+
+    def test_decades_bucket_the_pre_1900_tail(self):
+        from cps import stats
+
+        with app.test_request_context("/"):
+            rows = stats.collect()["charts"]["decade"]
+        labels = [r["label"] for r in rows]
+        # the fixture publishes in 2013, so no pre-1900 bucket should appear
+        self.assertNotIn("pre-1900", labels)
+        self.assertTrue(all(lbl.endswith("s") for lbl in labels))
+
+    def test_rated_percentage_survives_an_empty_library(self):
+        # books or 1: the percentage must not divide by zero on a fresh library
+        from cps import stats
+
+        with app.test_request_context("/"):
+            real = stats._totals()
+        self.assertGreater(real["books"], 0)
+        saved = stats._cache.copy()
+        try:
+            stats._cache["mtime"] = None
+            orig = stats._totals
+            stats._totals = lambda: dict(real, books=0)
+            with app.test_request_context("/"):
+                data = stats.collect()
+            self.assertEqual(data["readouts"]["rated"]["pct"], 0.0)
+        finally:
+            stats._totals = orig
+            stats._cache.clear()
+            stats._cache.update(saved)
+
+    def test_statistics_page_renders(self):
+        rv = self.client.get("/statistics")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn("Statistics", rv.get_data(as_text=True))
 
     # --- search parity (spec 13) -------------------------------------------
 

@@ -355,6 +355,161 @@ hr { border-color: var(--rule); }
 }
 
 /* ------------------------------------------------------------------ */
+/* Statistics (spec 12)                                               */
+/* ------------------------------------------------------------------ */
+
+/* Magnitude rides the single gold ramp from spec 4.3. Identity is position
+   plus a direct label. There is no categorical colour on these surfaces:
+   the Dragon accents fail the categorical checks outright. */
+.stat-fill.s1, .hour-bar.s1 { background: var(--gold-1); }
+.stat-fill.s2, .hour-bar.s2 { background: var(--gold-2); }
+.stat-fill.s3, .hour-bar.s3 { background: var(--gold-3); }
+.stat-fill.s4, .hour-bar.s4 { background: var(--gold-4); }
+.stat-fill.s5, .hour-bar.s5 { background: var(--gold-5); }
+
+.statistics .stat-h {
+    font-family: var(--mono);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--kngw-gray3);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+    margin: 24px 0 26px;
+}
+
+/* Hero numbers: serif, because they are the reading-room voice */
+.hero-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 34px;
+    margin: 0 0 26px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+}
+.hero-row li { display: flex; flex-direction: column; gap: 2px; }
+.hero-n {
+    font-family: var(--serif);
+    font-size: 30px;
+    line-height: 1;
+    color: var(--kngw-old-white);
+    font-feature-settings: "onum" 0;   /* lining figures read better as data */
+}
+.hero-l {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--kngw-black6);
+}
+
+/* Readout rows: the degenerate axes, stated rather than charted */
+.readouts { margin: 0 0 30px; border-top: 1px solid var(--rule); }
+.readouts li {
+    display: flex;
+    gap: 18px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 11.5px;
+}
+.ro-k {
+    color: var(--kngw-black6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    min-width: 82px;
+}
+.ro-v { color: var(--kngw-gray); }
+
+.stat-block { margin: 0 0 32px; max-width: 760px; }
+.statistics h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--kngw-gray3);
+    margin: 0 0 4px;
+}
+.stat-note {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--kngw-gray3);
+    margin: 0 0 12px;
+}
+
+/* Ranked ledger: shared hairlines, label left, magnitude centre, value right */
+.stat-list { margin: 0; }
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--rule);
+}
+.stat-label {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--kngw-gray);
+    flex: 0 0 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.stat-track { flex: 1; height: 8px; background: var(--kngw-black2); border-radius: 2px; }
+.stat-fill { display: block; height: 100%; border-radius: 2px; min-width: 2px; }
+.stat-value {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--kngw-gray3);
+    flex: 0 0 56px;
+    text-align: right;
+}
+
+/* Hour strip: 24 columns, the one chart with a real story */
+.hour-strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 128px;
+    margin: 0;
+    padding-top: 8px;
+    border-bottom: 1px solid var(--rule-strong);
+}
+.hour-strip li { flex: 1; display: flex; flex-direction: column; align-items: stretch; height: 100%; }
+.hour-bar-wrap { flex: 1; display: flex; align-items: flex-end; }
+.hour-bar { display: block; width: 100%; border-radius: 2px 2px 0 0; min-height: 2px; }
+.hour-tick {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--kngw-black6);
+    text-align: center;
+    padding-top: 5px;
+}
+
+/* Front-page strip: the same readout voice, one line */
+.masthead {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    align-items: baseline;
+    padding: 0 0 14px;
+    margin: 18px 0 0;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--kngw-black6);
+}
+.masthead b { color: var(--kngw-old-white); font-weight: 400; }
+.masthead a { color: var(--kngw-black6); }
+.masthead a:hover { color: var(--kngw-orange); }
+
+@media (max-width: 767px) {
+    .hero-row { gap: 20px; }
+    .hero-n { font-size: 24px; }
+    .stat-label { flex-basis: 120px; }
+}
+
+/* ------------------------------------------------------------------ */
 /* Buttons and controls                                               */
 /* ------------------------------------------------------------------ */
 
