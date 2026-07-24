@@ -1,195 +1,155 @@
-# Calibre-Web
+# Carrel (calibre-web fork)
 
-Calibre-Web is a web app that offers a clean and intuitive interface for browsing, reading, and downloading eBooks using a valid [Calibre](https://calibre-ebook.com) database.
+A fork of [calibre-web](https://github.com/janeczku/calibre-web) turned into a
+single-user reading room for one curated Calibre library.
 
-[![License](https://img.shields.io/github/license/janeczku/calibre-web?style=flat-square)](https://github.com/janeczku/calibre-web/blob/master/LICENSE)
-![Commit Activity](https://img.shields.io/github/commit-activity/w/janeczku/calibre-web?logo=github&style=flat-square&label=commits)
-[![All Releases](https://img.shields.io/github/downloads/janeczku/calibre-web/total?logo=github&style=flat-square)](https://github.com/janeczku/calibre-web/releases)
-[![PyPI](https://img.shields.io/pypi/v/calibreweb?logo=pypi&logoColor=fff&style=flat-square)](https://pypi.org/project/calibreweb/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/calibreweb?logo=pypi&logoColor=fff&style=flat-square)](https://pypi.org/project/calibreweb/)
-[![Discord](https://img.shields.io/discord/838810113564344381?label=Discord&logo=discord&style=flat-square)](https://discord.gg/h2VsJ2NEfB)
+A carrel is a private desk in a library. That is the whole design brief: no
+accounts, no sharing, no dashboard. One reader, 7,000 books, and an interface
+that gets out of the way.
 
-<details>
-<summary><strong>Table of Contents</strong> (click to expand)</summary>
+**This repository holds the code.** The contract, the theme source, and the
+roadmap live in the companion repo,
+[Carrel](https://github.com/VirInvictus/Carrel). Read its `spec.md` before
+changing semantics here.
 
-1. [About](#calibre-web)
-2. [Features](#features)
-3. [Installation](#installation)
-   - [Installation via pip (recommended)](#installation-via-pip-recommended)
-   - [Quick start](#quick-start)
-   - [Requirements](#requirements)
-4. [Docker Images](#docker-images)
-5. [Troubleshooting](#troubleshooting)
-6. [Contributor Recognition](#contributor-recognition)
-7. [Contact](#contact)
-8. [Contributing to Calibre-Web](#contributing-to-calibre-web)
+![The library grid](docs/screenshots/browse.png)
 
-</details>
+## What is different from upstream
 
-*This software is a fork of [library](https://github.com/mutschler/calibreserver) and licensed under the GPL v3 License.*
+**No login.** `cps/single_user.py` authenticates the owner on every request, so
+upstream's 154 `@login_required` decorators pass untouched and rebases onto new
+tags stay clean. `/login`, `/logout`, `/register` and user management answer
+404. Deleting that one module restores stock behaviour exactly.
 
-![Main screen](https://github.com/janeczku/calibre-web/wiki/images/main_screen.png)
+**The library is read-only, structurally.** `metadata.db` is attached with
+`?mode=ro` at every connection site and the read-status toggle refuses writes.
+No code path can modify the library, and the tests prove it by checksumming the
+database around the attempts.
 
-## Features
+**Calibre's search grammar.** Upstream has none: it lowercases the term and
+hands it to FTS5 as a phrase, so every field-prefixed query matches as literal
+text and finds nothing. Carrel evaluates through
+[CalibreQuarry](https://github.com/VirInvictus/CalibreQuarry)'s stdlib port of
+Calibre's expression parser. Measured against the live library:
 
-- Modern and responsive Bootstrap 3 HTML5 interface
-- Full graphical setup
-- Comprehensive user management with fine-grained per-user permissions
-- Admin interface
-- Multilingual user interface supporting 20+ languages ([supported languages](https://github.com/janeczku/calibre-web/wiki/Translation-Status))
-- OPDS feed for eBook reader apps
-- Advanced search and filtering options
-- Custom book collection (shelves) creation
-- eBook metadata editing and deletion support
-- Metadata download from various sources (extensible via plugins)
-- eBook conversion through Calibre binaries
-- eBook download restriction to logged-in users
-- Public user registration support
-- Send eBooks to E-Readers with a single click
-- Sync Kobo devices with your Calibre library
-- In-browser eBook reading support for multiple formats
-- Upload new books in various formats, including audio formats
-- Calibre Custom Columns support
-- Content hiding based on categories and Custom Column content per user
-- Self-update capability
-- "Magic Link" login for easy access on eReaders
-- LDAP, Google/GitHub OAuth, and proxy authentication support
+| query | upstream | Carrel |
+| --- | --- | --- |
+| `author:"King"` | 0 | 55 |
+| `title:Dune` | 0 | 11 |
+| `tags:Fic.Fantasy` | 0 | 1368 |
+| `rating:>=4` | 0 | 130 |
+| `#audience:Rin` | 0 | 244 |
+| `author:King AND title:Tower` | 0 | 1 |
 
-## Installation
+Field prefixes, boolean logic, grouping, hierarchical tags, custom columns and
+`vl:` references all behave as they do in Calibre. A malformed query reports
+the grammar's own message rather than quietly returning nothing.
 
-### Installation via pip (recommended)
+**Wings.** Calibre virtual libraries surfaced as browse sections, evaluated
+through the same engine, so a wing in the sidebar and a `vl:` search agree by
+construction.
 
-1. **Create a virtual environment**: It’s essential to isolate your Calibre-Web installation to avoid dependency conflicts. You can create a virtual environment by running:
-   ```
-   python3 -m venv calibre-web-env
-   ```
-2. **Activate the virtual environment**:
-   ```
-   source calibre-web-env/bin/activate
-   ```
-3. **Install Calibre-Web**: Use pip to install the application:
-   ```
-   pip install calibreweb
-   ```
-4. **Install optional features**: For additional functionality, you may need to install optional features. Refer to [this page](https://github.com/janeczku/calibre-web/wiki/Dependencies-in-Calibre-Web-Linux-and-Windows) for details on what can be installed.
-5. **Start Calibre-Web**: After installation, you can start the application with:
-   ```
-   cps
-   ```
+**A category browser over the dot taxonomy.** Only leaf tags are assigned in
+this library (`Fic.Fantasy.Epic.Gods` exists; `Fic.Fantasy` does not), so every
+path prefix becomes a browsable node that accumulates its descendants. The
+counts match the search engine exactly: Fic 3440, Fic.Fantasy 1368, NonFic
+3004.
 
-*Note: Users of Raspberry Pi OS may encounter installation issues. If you do, try upgrading pip and/or installing cargo as follows:*
-   ```
-   ./venv/bin/python3 -m pip install --upgrade pip
-   sudo apt install cargo
-   ```
+<img src="docs/screenshots/categories.png" width="300" alt="The category tree">
 
-### Important Links
-- For additional installation examples, check the following:
-   - [Manual installation](https://github.com/janeczku/calibre-web/wiki/Manual-installation)
-   - [Linux Mint installation](https://github.com/janeczku/calibre-web/wiki/How-To:-Install-Calibre-Web-in-Linux-Mint-19-or-20)
-   - [Cloud Provider setup](https://github.com/janeczku/calibre-web/wiki/How-To:-Install-Calibre-Web-on-a-Cloud-Provider)
+**Ctrl-K.** A fuzzy jumper over every wing, author, series, category and page,
+6,975 destinations for this library, cached on the database's mtime. Type
+something that is not a destination and it offers to search for it instead, so
+one keystroke reaches both.
 
-## Quick Start
+![The command palette](docs/screenshots/palette.png)
 
-1. **Access Calibre-Web**: Open your browser and navigate to:
-   ```
-   http://localhost:8083
-   ```
-   or for the OPDS catalog:
-   ```
-   http://localhost:8083/opds
-   ```
-2. **Log in**: Use the default admin credentials:
-   - **Username:** admin
-   - **Password:** admin123
-3. **Database Setup**: If you do not have a Calibre database, download a sample from:
-   ```
-   https://github.com/janeczku/calibre-web/raw/master/library/metadata.db
-   ```
-   Move it out of the Calibre-Web folder to avoid overwriting during updates.
-4. **Configure Calibre Database**: In the admin interface, set the `Location of Calibre database` to the path of the folder containing your Calibre library (where `metadata.db` is located) and click "Save".
-5. **Google Drive Integration**: For hosting your Calibre library on Google Drive, refer to the [Google Drive integration guide](https://github.com/janeczku/calibre-web/wiki/G-Drive-Setup#using-google-drive-integration).
-6. **Admin Configuration**: Configure your instance via the admin page, referring to the [Basic Configuration](https://github.com/janeczku/calibre-web/wiki/Configuration#basic-configuration) and [UI Configuration](https://github.com/janeczku/calibre-web/wiki/Configuration#ui-configuration) guides.
+**Statistics** computed live from `metadata.db`. Axes with a real distribution
+get ranked ledgers; degenerate ones (2% rated, 98% unread, 96% one source) get
+a single readout line each, because a chart of one slice looks broken.
 
-## Requirements
+![Statistics](docs/screenshots/stats.png)
 
-- **Python Version**: Ensure you have Python 3.7 or newer.
-- **Imagemagick**: Required for cover extraction from EPUBs. Windows users may also need to install [Ghostscript](https://ghostscript.com/releases/gsdnld.html) for PDF cover extraction.
-- **Optional Tools**:
-   - **Calibre desktop program**: Recommended for on-the-fly conversion and metadata editing. Set the path to Calibre’s converter tool on the setup page.
-   - **Kepubify tool**: Needed for Kobo device support. Download the tool and place the binary in `/opt/kepubify` on Linux or `C:\Program Files\kepubify` on Windows.
+**Series awareness.** The detail page states where a book sits, how many of the
+series you hold, and which numbers are missing. It never claims how long a
+series is, because the library cannot know that.
 
-## Docker Images
+<img src="docs/screenshots/mobile.png" width="330" align="right" alt="Carrel on a phone">
 
-Pre-built Docker images are available:
+**Keyboard.** `j`/`k` walk the grid, `g`/`G` jump to the ends, Enter opens, `/`
+focuses search, Ctrl-K opens the palette.
 
-### **LinuxServer - x64, aarch64**
-- **Docker Hub**: [linuxserver/calibre-web](https://hub.docker.com/r/linuxserver/calibre-web)
-- **GitHub**: [linuxserver/docker-calibre-web](https://github.com/linuxserver/docker-calibre-web)
-- **Optional Calibre layer**: [linuxserver/docker-mods](https://github.com/linuxserver/docker-mods/tree/universal-calibre)
+**Removed:** uploads, shelves, metadata editing, Kobo sync, Goodreads, email,
+registration, public sharing, the task queue, advanced search, Discover, Hot
+Books and Top Rated. Routes are disabled rather than deleted, so the diff
+against upstream stays small and rebase-friendly.
 
-To include the Calibre `ebook-convert` binary (x64 only), add the environment variable:
-``` 
-DOCKER_MODS=linuxserver/mods:universal-calibre
+## Running it
+
+The venv holds the dependencies; the `calibreweb` wheel is uninstalled and the
+fork runs from source (the 0.6.26 tree has no `src/` layout, so an editable
+install is not possible).
+
+```sh
+CALIBRE_DBPATH=~/.calibre-web ~/calibre-web-env/bin/python cps.py -i 0.0.0.0
 ```
-in your Docker run/compose file. Omit this variable for a lightweight image.
 
-- **Paths Configuration**:
-   - Set **Path to Calibre Binaries** to `/usr/bin`.
-   - Set **Path to Unrar** to `/usr/bin/unrar`.
+or `just serve` from the Carrel repo, which is the same command.
 
-## Troubleshooting
+> **The bind address matters.** There is no authentication. Binding anything
+> other than `127.0.0.1` means every device on the network can read the whole
+> library and reach the admin pane. That is a deliberate choice for a trusted
+> home network run on demand, and the wrong one for an always-on host. See
+> spec §11.3.
 
-- **Common Issues**: 
-   - If you experience issues starting the application, check the log files located in the `logs` directory for error messages.
-   - If eBooks fail to load, verify that the `Location of Calibre database` is correctly set and that the database file is accessible.
-   - You need to enable uploads under `Basic settings` for this option to appear
+## Tests
 
-- **Configuration Errors**: Ensure that your Calibre database is compatible and properly formatted. Refer to the Calibre documentation for guidance on maintaining the database.
-
-- **Performance Problems**: 
-   - If the application is slow, consider increasing the allocated resources (CPU/RAM) to your server or optimizing the Calibre database by removing duplicates and unnecessary entries.
-   - Regularly clear the cache in your web browser to improve loading times.
-
-- **User Management Issues**: If users are unable to log in or register, check the user permission settings in the admin interface. Ensure that registration is enabled and that users are being assigned appropriate roles.
-
-- **Support Resources**: For additional help, consider visiting the [FAQ section](https://github.com/janeczku/calibre-web/wiki/FAQ) of the wiki or posting your questions in the [Discord community](https://discord.gg/h2VsJ2NEfB).
-
-## Contributor Recognition
-
-We would like to thank all the [contributors](https://github.com/janeczku/calibre-web/graphs/contributors) and maintainers of Calibre-Web for their valuable input and dedication to the project. Your contributions are greatly appreciated.
-
-## Contact
-
-Join us on [Discord](https://discord.gg/h2VsJ2NEfB)
-
-For more information, How To's, and FAQs, please visit the [Wiki](https://github.com/janeczku/calibre-web/wiki)
-
-## Contributing to Calibre-Web
-
-To contribute, please check our [Contributing Guidelines](https://github.com/janeczku/calibre-web/blob/master/CONTRIBUTING.md). We welcome issues, feature requests, and pull requests from the community.
-
-### Reporting Bugs
-
-If you encounter bugs or issues, please report them in the [issues section](https://github.com/janeczku/calibre-web/issues) of the repository. Be sure to include detailed information about your setup and the problem encountered.
-
-### Feature Requests
-
-We welcome suggestions for new features. Please create a new issue in the repository to discuss your ideas.
-
-## Additional Resources
-
-- **Documentation**: Comprehensive documentation is available on the [Calibre-Web wiki](https://github.com/janeczku/calibre-web/wiki).
-- **Community Contributions**: Explore the [community contributions](https://github.com/janeczku/calibre-web/pulls) to see ongoing work and how you can get involved.
-
----
-
-Thank you for using Calibre-Web! We hope you enjoy managing your eBook library with our tool.
-
-## Support
-
-This is a fork of [janeczku/calibre-web](https://github.com/janeczku/calibre-web); please support upstream first. If the smallscope fork's useful to you and you'd like to chip in:
-
+```sh
+~/calibre-web-env/bin/python -m unittest discover -s tests
 ```
-bc1qkge6zr45tzqfwfmvma2ylumt6mg7wlwmhr05yv
-```
+
+33 tests in about a second, against a fixture library built from a real Calibre
+schema dump. They cover the enum read column and all four status badges, write
+refusal with checksum proof, the read-only attachment, the disabled routes,
+wing membership, category roll-up, the search grammar, the statistics metrics,
+and that every palette destination lands on the thing it names.
+
+The harness does not log in. That is deliberate: every assertion doubles as a
+regression guard on the single-user shim.
+
+## Layout
+
+New code lives in new modules, so the diff against upstream stays legible.
+
+| file | what it does |
+| --- | --- |
+| `cps/single_user.py` | authenticates the owner; seals the credential routes |
+| `cps/smallscope.py` | disables blueprints and the cut browse surfaces |
+| `cps/carrel_search.py` | resolves a query through cquarry's engine |
+| `cps/wings.py` | virtual libraries as browse sections |
+| `cps/categories.py` | the dot-taxonomy tree and its roll-up |
+| `cps/palette.py` | the Ctrl-K index |
+| `cps/series_info.py` | series position, holdings and gaps |
+| `cps/stats.py` | headless metrics for the statistics surfaces |
+| `cps/static/js/` | `palette.js`, `cattree.js`, `keynav.js`, all vanilla |
+
+`cps/static/css/kanagawa-dragon.css` is **vendored** from the Carrel repo via
+`just sync-theme`. Never edit it here.
+
+## Working on this fork
+
+Work only on the `smallscope` branch, cut from upstream tag `0.6.26`. `master`
+tracks upstream and is never committed to. Rebases onto new upstream tags are
+deliberate events, not routine pulls.
+
+Upstream code style applies inside upstream files: this is GPL-3.0 third-party
+code, so match what is there rather than imposing personal conventions.
+
+![A book](docs/screenshots/detail.png)
+
+## Licence
+
+GPL-3.0, inherited from calibre-web. Upstream's documentation, issue tracker
+and community live at
+[janeczku/calibre-web](https://github.com/janeczku/calibre-web). This fork is a
+personal instance and is not a place to report upstream bugs.
