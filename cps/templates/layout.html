@@ -1,6 +1,6 @@
 {% from 'modal_dialogs.html' import restrict_modal, delete_book, filechooser_modal, delete_confirm_modal, change_confirm_modal %}
 {% import 'image.html' as image %}
-{% import '_category_tree.html' as cat %}
+{% import '_category_tree.html' as cat with context %}
 <!DOCTYPE html>
 <html lang="{{ current_user.locale }}">
   <head>
@@ -229,6 +229,7 @@
        script degrades to nothing if it is missing. #}
     <script src="{{ url_for('palette.palette_data', c=palette_version) }}"></script>
     <script src="{{ url_for('static', filename='js/palette.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cattree.js') }}"></script>
     {% block js %}{% endblock %}
   </body>
 </html>

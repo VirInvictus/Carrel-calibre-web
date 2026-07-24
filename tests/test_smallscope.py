@@ -241,6 +241,21 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertTrue(set(counts["Fic.SciFi.Space"]) <= set(counts["Fic.SciFi"]))
         self.assertTrue(set(counts["Fic.SciFi"]) <= set(counts["Fic"]))
 
+    def test_active_category_path_is_expanded(self):
+        # The macro must be imported "with context" or category_active is
+        # invisible inside it and nothing ever auto-expands.
+        import re
+
+        page = self.client.get("/categories/Fic.SciFi.Space").get_data(as_text=True)
+        opened = {
+            m.group(1)
+            for m in re.finditer(r'<details data-cat="([^"]*)"[^>]*\sopen>', page, re.S)
+        }
+        self.assertIn("Fic", opened)
+        self.assertIn("Fic.SciFi", opened)
+        home = self.client.get("/").get_data(as_text=True)
+        self.assertNotIn(" open>", home.split("WINGS")[0])
+
     def test_category_page_renders_and_unknown_404s(self):
         self.assertEqual(self.client.get("/categories/Fic").status_code, 200)
         self.assertEqual(self.client.get("/categories/Nope.Nope").status_code, 404)
