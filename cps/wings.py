@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Wings: Calibre virtual libraries as read-only browse sections
-# (calibre-web-kanagawa spec 8). Wing expressions live in metadata.db's
+# (Carrel spec 8). Wing expressions live in metadata.db's
 # preferences table and are evaluated by CalibreQuarry's stdlib port of
 # Calibre's search grammar (including vl: cross-references, so the
 # self-referential Unsorted wing parses). cquarry opens its own mode=ro

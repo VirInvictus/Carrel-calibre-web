@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Tests for the smallscope adaptations (calibre-web-kanagawa spec 5-8):
+# Tests for the smallscope adaptations (Carrel spec 5-8):
 # enum read column (read-only), mode=ro library guarantee, trimmed routes,
 # and Wings. Runs the real Flask app against a fixture metadata.db in a
 # throwaway CALIBRE_DBPATH; never touches a real library.

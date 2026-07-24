@@ -3,7 +3,7 @@
  *
  * Loads AFTER caliBlur.css and caliBlur_override.css (the stock dark theme
  * stays enabled as the base layer; this sheet overrides it).
- * Canonical copy: calibre-web-kanagawa/theme/. The copy in the fork's
+ * Canonical copy: Carrel/theme/. The copy in the fork's
  * cps/static/css/ is vendored via `just sync-theme`; do not edit it there.
  *
  * Palette: Dragon variant per kanagawa-dragon-nvim-emacs (follows

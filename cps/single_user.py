@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Single-user operation (calibre-web-kanagawa spec 11).
+# Single-user operation (Carrel spec 11).
 #
 # This instance has exactly one reader, so authentication is removed as a
 # concept rather than merely bypassed: no credential is ever requested and the

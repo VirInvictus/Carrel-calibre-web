@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Route trimming for the smallscope instance (calibre-web-kanagawa spec 6.2).
+# Route trimming for the smallscope instance (Carrel spec 6.2).
 # Blueprints stay registered so url_for() keeps resolving wherever a template
 # or script still references them; their routes simply answer 404. This keeps
 # the diff against upstream small and rebase-friendly.
