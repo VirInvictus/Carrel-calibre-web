@@ -222,6 +222,73 @@ hr { border-color: var(--rule); }
 .navigation li a:hover .badge { color: var(--kngw-gray3); }
 
 /* ------------------------------------------------------------------ */
+/* Category tree: the dot taxonomy as a collapsible ledger            */
+/* ------------------------------------------------------------------ */
+
+/* <details>/<summary> gives collapse with no JavaScript. The marker is
+   replaced with a typographic caret so the row stays in the mono register. */
+.cat-node > details > summary {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding: 5px 16px 5px 16px;
+    cursor: pointer;
+    list-style: none;
+    color: var(--kngw-gray);
+    font-family: var(--mono);
+    font-size: 12px;
+    border-left: 2px solid transparent;
+}
+.cat-node > details > summary::-webkit-details-marker { display: none; }
+.cat-node > details > summary::before {
+    content: "\203A";               /* single right angle quote */
+    color: var(--kngw-black6);
+    font-size: 13px;
+    line-height: 1;
+    transition: transform 0.12s ease-out;
+    display: inline-block;
+}
+.cat-node > details[open] > summary::before { transform: rotate(90deg); }
+.cat-node > details > summary:hover {
+    color: var(--kngw-fuji-white);
+    background: var(--kngw-black2);
+}
+.cat-node > details > summary:hover::before { color: var(--kngw-orange); }
+
+/* Depth is carried by indentation on the nested list, not by a new idiom */
+.cat-children { padding-left: 13px; border-left: 1px solid var(--rule); margin-left: 21px; }
+
+.cat-leaf a {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding: 4px 16px 4px 6px;
+    color: var(--kngw-gray3);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    border-left: 2px solid transparent;
+}
+.cat-leaf a:hover { color: var(--kngw-fuji-white); background: var(--kngw-black2); }
+.cat-leaf.active a {
+    color: var(--kngw-old-white);
+    border-left-color: var(--kngw-orange);
+    background: var(--kngw-black2);
+}
+
+/* "All Fic.Fantasy": the roll-up row that includes every descendant */
+.cat-all { font-style: italic; color: var(--kngw-black6); }
+.cat-leaf a:hover .cat-all { color: var(--kngw-orange); }
+
+.cat-node .badge, .cat-leaf .badge {
+    margin-left: auto;
+    background: transparent;
+    color: var(--kngw-black6);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 0;
+}
+
+/* ------------------------------------------------------------------ */
 /* The book grid: a ledger of covers                                  */
 /* ------------------------------------------------------------------ */
 

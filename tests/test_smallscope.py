@@ -46,6 +46,7 @@ from cps.remotelogin import remotelogin  # noqa: E402
 from cps.search import search  # noqa: E402
 from cps.search_metadata import meta  # noqa: E402
 from cps.shelf import shelf  # noqa: E402
+from cps.categories import categories  # noqa: E402
 from cps.palette import palette  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
 from cps.smallscope import read_column_is_enum, trim  # noqa: E402
@@ -70,6 +71,7 @@ for blueprint in (
     meta,
     editbook,
     palette,
+    categories,
 ):
     app.register_blueprint(blueprint)
 
@@ -223,6 +225,25 @@ class SmallscopeTestCase(unittest.TestCase):
             app.preprocess_request()
             self.assertTrue(current_user.is_authenticated)
             self.assertEqual(current_user.name, "admin")
+
+    # --- category browser (spec 4.4) ---------------------------------------
+
+    def test_category_rollup_includes_descendants(self):
+        # Only leaf tags are assigned; intermediate nodes are implied by the
+        # dot path and must accumulate everything beneath them.
+        from cps.categories import _build
+
+        with app.test_request_context("/"):
+            _tree, counts = _build()
+        self.assertIn("Fic", counts)
+        self.assertIn("Fic.SciFi", counts)
+        # Fic.SciFi.Space is a child of Fic.SciFi in the fixture
+        self.assertTrue(set(counts["Fic.SciFi.Space"]) <= set(counts["Fic.SciFi"]))
+        self.assertTrue(set(counts["Fic.SciFi"]) <= set(counts["Fic"]))
+
+    def test_category_page_renders_and_unknown_404s(self):
+        self.assertEqual(self.client.get("/categories/Fic").status_code, 200)
+        self.assertEqual(self.client.get("/categories/Nope.Nope").status_code, 404)
 
     # --- command palette (spec 4.4) ----------------------------------------
 

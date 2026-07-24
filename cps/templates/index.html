@@ -65,8 +65,9 @@
 {% endif %}
 <div class="discover load-more">
   <h2 class="{{title}}">{{title}}</h2>
-   {# smallscope: wings have a fixed title-sort order, no sort header #}
-   {% if page != 'discover' and page != 'wings' %}
+   {# smallscope: wings and categories have a fixed title-sort order and no
+      books_list route to build sort URLs against, so no sort header #}
+   {% if page != 'discover' and page != 'wings' and page != 'categories' %}
     <div class="filterheader hidden-xs">
     {% if page == 'hot' %}
       <a data-toggle="tooltip" title="{{_('Sort ascending according to download count')}}" id="hot_asc" class="btn btn-primary{% if order == "hotasc" %} active{% endif%}" href="{{url_for('web.books_list', data=page, book_id=id, sort_param='hotasc')}}"><span class="glyphicon glyphicon-sort-by-order"></span></a>

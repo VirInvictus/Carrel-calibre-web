@@ -1,5 +1,6 @@
 {% from 'modal_dialogs.html' import restrict_modal, delete_book, filechooser_modal, delete_confirm_modal, change_confirm_modal %}
 {% import 'image.html' as image %}
+{% import '_category_tree.html' as cat %}
 <!DOCTYPE html>
 <html lang="{{ current_user.locale }}">
   <head>
@@ -143,6 +144,13 @@
                  read/unread) is a Ctrl-K palette destination instead, and the
                  brand link returns to the whole library. The `sidebar` context
                  variable is still populated upstream if this is ever restored. #}
+              {# Carrel: category browser over the dot taxonomy (spec 4.4).
+                 Counts and membership roll descendants up, so Fic.Fantasy
+                 includes Fic.Fantasy.Epic. #}
+              {% if category_tree %}
+                <li class="nav-head hidden-xs">{{_('Categories')}}</li>
+                {% for item in category_tree %}{{ cat.node(item, 0) }}{% endfor %}
+              {% endif %}
               {# smallscope: shelves UI removed; Wings live here (kanagawa spec 8) #}
               {% if current_user.is_authenticated and wings_list %}
                 <li class="nav-head hidden-xs">{{_('Wings')}}</li>

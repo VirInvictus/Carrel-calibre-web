@@ -1,0 +1,32 @@
+{# Recursive category tree (Carrel spec 4.4). <details> gives collapse with
+   no JavaScript and keeps it keyboard-navigable. Nodes with children are
+   expandable; the summary itself is a link to the rolled-up view. #}
+{% macro node(item, depth) %}
+  {% if item.children %}
+    <li class="cat-node">
+      <details>
+        <summary>
+          <span class="cat-label">{{ item.label }}</span>
+          {% if item.count %}<span class="badge">{{ item.count }}</span>{% endif %}
+        </summary>
+        <ul class="list-unstyled cat-children">
+          {% if item.name %}
+            <li class="cat-leaf{% if category_active == item.name %} active{% endif %}">
+              <a href="{{ url_for('categories.show_category', name=item.name) }}">
+                <span class="cat-all">All {{ item.label }}</span>
+              </a>
+            </li>
+          {% endif %}
+          {% for child in item.children %}{{ node(child, depth + 1) }}{% endfor %}
+        </ul>
+      </details>
+    </li>
+  {% elif item.name %}
+    <li class="cat-leaf{% if category_active == item.name %} active{% endif %}">
+      <a href="{{ url_for('categories.show_category', name=item.name) }}">
+        <span class="cat-label">{{ item.label }}</span>
+        {% if item.count %}<span class="badge">{{ item.count }}</span>{% endif %}
+      </a>
+    </li>
+  {% endif %}
+{% endmacro %}
