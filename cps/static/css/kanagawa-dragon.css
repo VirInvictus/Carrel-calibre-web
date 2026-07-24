@@ -97,6 +97,9 @@ a:hover {
 #titlebar a {
     color: #393836;
 }
+.home-btn > a {
+    color: rgba(197, 201, 197, .7);
+}
 body > div.navbar.navbar-default.navbar-static-top > div > div.home-btn > a:hover:before {
     color: #c5c9c5;
 }
@@ -170,14 +173,14 @@ body > div.container-fluid > div > div.col-sm-10 > div > form > a:hover {
     color: #c5c9c5;
 }
 #books > .cover > a:after, #books_rand > .cover > a:after, .book.isotope-item > .cover > a:after {
-    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
-    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
-    background: radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
+    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
+    background: radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
 }
 body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > div.col-sm-2 > a:after {
-    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
-    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
-    background: radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
+    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
+    background: radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
 }
 .badge {
     color: #c5c9c5;
@@ -221,6 +224,7 @@ body.authorlist > div.container-fluid > div > div.col-sm-10 > div.container1:bef
     color: #c5c9c5;
 }
 .alert-danger {
+    background-color: rgba(196, 116, 110, .3);
     color: #c5c9c5;
 }
 body > div.container-fluid > div > div.col-sm-10 > div.col-sm-8 > form > div > span > input.form-control:focus {
@@ -343,6 +347,9 @@ body > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a
     background-color: #c4746e;
     border-color: #393836;
 }
+.plexBack > a {
+    color: rgba(197, 201, 197, .7);
+}
 .plexBack:not(.noBack):hover > a {
     color: #c5c9c5;
 }
@@ -406,9 +413,9 @@ body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.
     color: #c5c9c5;
 }
 body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:after, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:after {
-    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
-    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
-    background: radial-gradient(farthest-corner at 50% 50%, rgba(50, 50, 50, .5) 50%, #1d1c19 100%);
+    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
+    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
+    background: radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
 }
 body.admin td > a:hover {
     color: #c5c9c5;
@@ -636,6 +643,18 @@ input.datepicker:focus + input {
 /* Hand-curated polish: the cover-forward, warm layer (spec §4.4).     */
 /* ------------------------------------------------------------------ */
 
+/* caliBlur paints every page with its own blur raster at !important
+   (blur-light.png averages #3a4853, a cool slate). Being an image, no amount
+   of color recoloring reaches it, and it overpaints the Dragon background on
+   every desktop page: the mobile breakpoint renders black0 correctly while
+   desktop renders #3d464f. Keep the noise grain, drop the slate plate, and
+   let the palette through. The detail page's blurred-cover backdrop lives on
+   .blur-wrapper and is deliberately left alone. */
+body:not(.read-frame) {
+    background-image: url(images/caliblur/blur-noise.png) !important;
+    background-color: var(--kngw-black1) !important;
+}
+
 /* Headings run warm; body text stays dragonWhite */
 h1, h2, h3, h4,
 .discover h2,
@@ -662,7 +681,11 @@ h1, h2, h3, h4,
     box-shadow: 0 9px 22px rgba(13, 12, 12, 0.85);
 }
 
-.book .meta .title {
+/* Matches the generated block's own selector: caliBlur writes this as
+   `.container-fluid .book .meta .title` (0,4,0), which outranks a plain
+   `.book .meta .title` (0,3,0) no matter that this layer loads later.
+   Specificity beats source order, so this has to meet it to take effect. */
+.container-fluid .book .meta .title {
     color: var(--kngw-fuji-white);
 }
 
@@ -720,6 +743,16 @@ a:focus {
     background-color: var(--kngw-black5);
     border-color: var(--kngw-black6);
     color: var(--kngw-fuji-white);
+}
+
+/* Destructive buttons: caliBlur pairs its light text with the fill, which on
+   dragonRed lands at 2.06:1. Keep the red fill as the destructive signal and
+   put near-black on it instead (5.65:1). */
+.btn-danger,
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-danger:active {
+    color: var(--kngw-black0);
 }
 
 /* Form focus ring in accent rather than Bootstrap blue */
