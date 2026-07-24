@@ -2,6 +2,10 @@
 {% extends "layout.html" %}
 {% block body %}
 <div class="discover">
+    {# Carrel: the syntax legend appears exactly where it is needed, on a
+       miss or a parse failure. Advanced Search is gone (spec 13.2a), so this
+       is the only place the grammar is discoverable. #}
+    {% set show_syntax = search_error or entries|length < 1 %}
     {% if search_error %}
       {# Carrel: a malformed query is a user error, not a 500. Show what the
          grammar objected to so the query can be fixed in place. #}
@@ -123,4 +127,19 @@
     {% endfor %}
   </div>
 </div>
+  {% if show_syntax %}
+    <div class="syntax-legend">
+      <h3>{{_('Search syntax')}}</h3>
+      <ul class="list-unstyled">
+        <li><code>author:King</code><span>a field prefix; quote it for phrases, <code>author:"Le Guin"</code></span></li>
+        <li><code>tags:Fic.Fantasy</code><span>hierarchical, so it sweeps in everything beneath it</span></li>
+        <li><code>#audience:Rin</code><span>a custom column, by its label</span></li>
+        <li><code>rating:&gt;=4</code><span>numeric comparison</span></li>
+        <li><code>author:King AND title:Tower</code><span>AND, OR, NOT and ( ) all work</span></li>
+        <li><code>vl:"Epic Fantasy Wing"</code><span>a virtual library by name</span></li>
+      </ul>
+      <p class="stat-note">A bare word searches title, author, series, publisher, tags
+        and comments as a substring, which is why it matches broadly.</p>
+    </div>
+  {% endif %}
 {% endblock %}

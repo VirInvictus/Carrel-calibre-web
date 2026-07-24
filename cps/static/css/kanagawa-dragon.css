@@ -355,6 +355,62 @@ hr { border-color: var(--rule); }
 }
 
 /* ------------------------------------------------------------------ */
+/* Search syntax legend (spec 13)                                     */
+/* ------------------------------------------------------------------ */
+
+/* Shown only on a miss or a parse failure. With Advanced Search gone this is
+   the one place the grammar is discoverable, so it reads as a reference card
+   rather than an error decoration. */
+.syntax-legend {
+    max-width: 720px;
+    margin: 30px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+}
+.syntax-legend h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--kngw-gray3);
+    margin: 0 0 14px;
+}
+.syntax-legend li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 14px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
+}
+.syntax-legend code {
+    font-family: var(--mono);
+    /* JetBrains Mono ligates >= into a single glyph. Charming in prose,
+       wrong in a reference card: this is the one place the reader is being
+       told exactly what to type. */
+    font-variant-ligatures: none;
+    font-size: 12px;
+    color: var(--kngw-old-white);
+    background: var(--kngw-black2);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 2px 7px;
+    flex: 0 0 auto;
+}
+.syntax-legend li > span {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--kngw-gray3);
+}
+.syntax-legend .stat-note { margin-top: 14px; }
+
+.search-error {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--kngw-red);
+}
+
+/* ------------------------------------------------------------------ */
 /* Statistics (spec 12)                                               */
 /* ------------------------------------------------------------------ */
 
