@@ -49,13 +49,18 @@ from cps.shelf import shelf  # noqa: E402
 from cps.categories import categories  # noqa: E402
 from cps.palette import palette  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
-from cps.smallscope import read_column_is_enum, trim  # noqa: E402
+from cps.smallscope import (  # noqa: E402
+    read_column_is_enum,
+    seal_browse_surfaces,
+    trim,
+)
 from cps.tasks_status import tasks  # noqa: E402
 from cps.web import web  # noqa: E402
 from cps.wings import wings  # noqa: E402
 
 trim(tasks, shelf, editbook, remotelogin)
 install_single_user(app)
+seal_browse_surfaces(app)
 for blueprint in (
     search,
     tasks,
@@ -225,6 +230,57 @@ class SmallscopeTestCase(unittest.TestCase):
             app.preprocess_request()
             self.assertTrue(current_user.is_authenticated)
             self.assertEqual(current_user.name, "admin")
+
+    # --- search parity (spec 13) -------------------------------------------
+
+    def _results(self, query):
+        import re
+        from urllib.parse import quote
+
+        page = self.client.get(
+            "/search?query=" + quote(query), follow_redirects=True
+        ).get_data(as_text=True)
+        m = re.search(r"<h2>(\d+) ", page)
+        if m:
+            return int(m.group(1))
+        return 0 if "No Results Found" in page else -1
+
+    def test_field_prefixes_resolve(self):
+        # The whole point of the phase: upstream returned 0 for every one of
+        # these because it matched the query as literal FTS text.
+        self.assertGreater(self._results('title:"Ancillary Justice"'), 0)
+        self.assertGreater(self._results("authors:Leckie"), 0)
+        self.assertGreater(self._results("title:Dune"), 0)
+
+    def test_hierarchical_tags_include_descendants(self):
+        # Fic.SciFi must sweep in Fic.SciFi.Space, the anchored tags: rule
+        broad = self._results("tags:Fic.SciFi")
+        narrow = self._results("tags:Fic.SciFi.Space")
+        self.assertGreater(broad, 0)
+        self.assertGreaterEqual(broad, narrow)
+
+    def test_boolean_and_grouping(self):
+        both = self._results("tags:Fic.SciFi AND tags:Award.Hugo")
+        either = self._results("tags:Fic.SciFi OR tags:Award.Hugo")
+        self.assertGreaterEqual(either, both)
+        self.assertGreaterEqual(self._results("(tags:Fic.SciFi)"), both)
+
+    def test_custom_column_prefix(self):
+        # #<label> is Calibre's custom-column syntax; cc2 is the enum column
+        self.assertGreaterEqual(self._results("#reading_status:Read"), 0)
+
+    def test_malformed_query_is_reported_not_500(self):
+        from urllib.parse import quote
+
+        rv = self.client.get("/search?query=" + quote("author:(King"),
+                             follow_redirects=True)
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn("Could not parse", rv.get_data(as_text=True))
+
+    def test_advanced_search_and_cut_surfaces_are_sealed(self):
+        # One grammar or none (spec 13); the browse cuts are Phase 8 (spec 4.4)
+        for url in ("/advsearch", "/hot/stored", "/rated/stored", "/discover/stored"):
+            self.assertEqual(self.client.get(url).status_code, 404, url)
 
     # --- category browser (spec 4.4) ---------------------------------------
 

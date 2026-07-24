@@ -48,7 +48,6 @@ def _entries():
         ("Unread Books", "/unread/stored"),
         ("Archived Books", "/archived/stored"),
         ("Books List", "/table"),
-        ("Advanced Search", "/advsearch"),
     ):
         rows.append({"t": title, "g": "page", "h": href})
 

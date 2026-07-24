@@ -2,7 +2,13 @@
 {% extends "layout.html" %}
 {% block body %}
 <div class="discover">
-    {% if entries|length < 1 %}
+    {% if search_error %}
+      {# Carrel: a malformed query is a user error, not a 500. Show what the
+         grammar objected to so the query can be fixed in place. #}
+      <h2>{{_('Could not parse that search')}}</h2>
+      <p class="search-error">{{ search_error }}</p>
+      <p>{{_('Search Term:')}} {{adv_searchterm}}</p>
+    {% elif entries|length < 1 %}
       <h2>{{_('No Results Found')}}</h2>
       <p>{{_('Search Term:')}} {{adv_searchterm}}</p>
     {% else %}

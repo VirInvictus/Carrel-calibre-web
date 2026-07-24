@@ -11,7 +11,12 @@ from flask import abort, request
 # blueprints: web.py registers them dynamically as /<data>/<sort_param>, so
 # they are sealed by path prefix rather than by trim(). Hot ranks by download
 # count, which is meaningless on a single-user instance.
-_SEALED_PREFIXES = ("/hot", "/rated", "/discover")
+# /advsearch goes too (spec 13): its form builds SQLAlchemy filters with
+# ilike substring semantics, which disagree with the engine the search bar
+# now uses. One grammar or none. The bar strictly subsumes the form:
+# `tags:Fic.Fantasy AND rating:>=4 AND #audience:Rin` is not expressible
+# in it at all.
+_SEALED_PREFIXES = ("/hot", "/rated", "/discover", "/advsearch")
 
 
 def _disable(blueprint):

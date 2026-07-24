@@ -427,20 +427,35 @@ def render_prepare_search_form(cc):
 
 
 def render_search_results(term, offset=None, order=None, limit=None):
+    # Carrel (spec 13): the bar evaluates through cquarry's Calibre-parity
+    # engine instead of upstream's FTS5 phrase match, which had no grammar and
+    # returned nothing for every field-prefixed query.
+    from .carrel_search import SearchError, resolve
+
+    search_error = None
     if term:
-        join = db.books_series_link, db.Books.id == db.books_series_link.c.book, db.Series
-        entries, result_count, pagination = calibre_db.get_search_results(term,
-                                                                          config,
-                                                                          offset,
-                                                                          order,
-                                                                          limit,
-                                                                          *join)
+        try:
+            ids = resolve(term)
+        except SearchError as ex:
+            ids, search_error = [], str(ex)
+        result_count = len(ids)
+        page = (int(offset) // int(limit) + 1) if (offset and limit) else 1
+        entries, __, pagination = calibre_db.fill_indexpage(
+            page,
+            0,
+            db.Books,
+            db.Books.id.in_(ids),
+            [db.Books.sort],
+            True,
+            config.config_read_column,
+        )
     else:
         entries = list()
         order = [None, None]
         pagination = result_count = None
 
     return render_title_template('search.html',
+                                 search_error=search_error,
                                  searchterm=term,
                                  pagination=pagination,
                                  query=term,
