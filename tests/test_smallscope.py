@@ -90,7 +90,7 @@ for blueprint in (
 # the caliBlur theme and the Read/Unread sidebar sections for admin.
 config.config_calibre_dir = LIB
 config.config_read_column = 2
-config.config_theme = 1
+config.config_theme = 0  # Carrel owns the sheet since Phase 8; caliBlur is off
 config.save()
 # Bind the config to the library; sessions connect lazily per request.
 calibre_db.update_config(config, LIB, ub.app_DB_path)
@@ -406,6 +406,39 @@ class SmallscopeTestCase(unittest.TestCase):
             self.assertIn(kind, kinds)
         # every entry must be jumpable
         self.assertTrue(all(r["h"].startswith("/") for r in rows))
+
+    def test_every_palette_href_reaches_its_own_target(self):
+        """Each entry must land on the thing it names, not merely return 200.
+
+        The original index used /author/<id>, which does not 404: the id is
+        parsed as sort_param and book_id silently defaults to 1, so every
+        author link opened author 1. Status codes would have passed, and so
+        would checking author 1, which is why this deliberately picks an
+        entity whose id is not 1.
+        """
+        import json
+        import re
+
+        body = self.client.get("/palette-data.js").get_data(as_text=True)
+        rows = json.loads(re.sub(r"^window\.PALETTE=|;$", "", body.strip()))
+
+        checked = 0
+        for kind in ("author", "series", "category"):
+            for row in [r for r in rows if r["g"] == kind]:
+                ident = re.search(r"/(\d+)$", row["h"])
+                if not ident or ident.group(1) == "1":
+                    continue  # id 1 is the fallback; it cannot detect the bug
+                rv = self.client.get(row["h"], follow_redirects=True)
+                self.assertEqual(rv.status_code, 200, row["h"])
+                name = row["t"].split(",")[0].strip()
+                self.assertIn(name, rv.get_data(as_text=True), row["h"])
+                checked += 1
+                break
+        self.assertGreaterEqual(checked, 2, "fixture must expose non-id-1 entities")
+
+        for row in [r for r in rows if r["g"] == "page"]:
+            rv = self.client.get(row["h"], follow_redirects=True)
+            self.assertNotEqual(rv.status_code, 500, row["h"])
 
     def test_palette_index_is_cacheable(self):
         rv = self.client.get("/palette-data.js")

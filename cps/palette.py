@@ -35,15 +35,20 @@ def _entries():
     rows = []
 
     # Fixed destinations first: they are few and should rank early on ties.
+    # calibre-web has two shapes and they are easy to confuse. The overview
+    # pages are bare (/author, /series), while an individual entity is
+    # /<data>/<sort_param>/<id>. Getting that wrong does not 404: the id lands
+    # in sort_param and book_id silently defaults to 1, so every author link
+    # opened whoever author 1 happens to be.
     for title, href in (
         ("Books", "/"),
-        ("Authors", "/author/stored"),
-        ("Series", "/series/stored"),
-        ("Categories", "/category/stored"),
-        ("Publishers", "/publisher/stored"),
-        ("Languages", "/language/stored"),
-        ("Ratings", "/rating/stored"),
-        ("File formats", "/format/stored"),
+        ("Authors", "/author"),
+        ("Series", "/series"),
+        ("Categories", "/category"),
+        ("Publishers", "/publisher"),
+        ("Languages", "/language"),
+        ("Ratings", "/ratings"),
+        ("File formats", "/formats"),
         ("Read Books", "/read/stored"),
         ("Unread Books", "/unread/stored"),
         ("Archived Books", "/archived/stored"),
@@ -65,13 +70,13 @@ def _entries():
             {
                 "t": author.name.replace("|", ","),
                 "g": "author",
-                "h": "/author/%d" % author.id,
+                "h": "/author/stored/%d" % author.id,
             }
         )
     for series in session.query(db.Series).all():
-        rows.append({"t": series.name, "g": "series", "h": "/series/%d" % series.id})
+        rows.append({"t": series.name, "g": "series", "h": "/series/stored/%d" % series.id})
     for tag in session.query(db.Tags).all():
-        rows.append({"t": tag.name, "g": "category", "h": "/category/%d" % tag.id})
+        rows.append({"t": tag.name, "g": "category", "h": "/category/stored/%d" % tag.id})
 
     return rows
 
