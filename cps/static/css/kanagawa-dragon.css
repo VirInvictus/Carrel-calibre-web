@@ -1,17 +1,21 @@
 /*
- * kanagawa-dragon.css — Kanagawa Dragon theme for calibre-web
+ * kanagawa-dragon.css — Carrel
  *
- * Loads AFTER caliBlur.css and caliBlur_override.css (the stock dark theme
- * stays enabled as the base layer; this sheet overrides it).
- * Canonical copy: Carrel/theme/. The copy in the fork's
- * cps/static/css/ is vendored via `just sync-theme`; do not edit it there.
+ * An owned stylesheet over STOCK calibre-web templates (spec §4.1).
+ * caliBlur is not loaded; config_theme is 0. This sheet loads last, after
+ * bootstrap.min.css and style.css, and is the only thing styling the app.
+ * Canonical copy: Carrel/theme/. The fork's cps/static/css/ copy is
+ * vendored via `just sync-theme`; never hand-edit it there.
  *
- * Palette: Dragon variant per kanagawa-dragon-nvim-emacs (follows
- * rebelot/kanagawa.nvim). Contract: spec.md §4.
+ * Register: a dark reading room wired into a terminal. Prose in serif,
+ * every label and count in mono. Ledgers with hairline rules, never cards.
+ *
+ * Palette: Dragon, per kanagawa-dragon-nvim-emacs (follows rebelot/kanagawa.nvim).
+ * Contract: spec.md §4.
  */
 
 :root {
-    /* Dragon palette */
+    /* Dragon palette (spec §4.2) */
     --kngw-black0: #0d0c0c;
     --kngw-black1: #12120f;
     --kngw-black2: #1d1c19;
@@ -26,757 +30,407 @@
     --kngw-gray2: #9e9b93;
     --kngw-gray3: #7a8382;
     --kngw-green: #87a987;
-    --kngw-green2: #8a9a7b;
-    --kngw-pink: #a292a3;
     --kngw-orange: #b6927b;
     --kngw-orange2: #b98d7b;
-    --kngw-blue: #658594;
     --kngw-blue2: #8ba4b0;
-    --kngw-violet: #8992a7;
     --kngw-red: #c4746e;
-    --kngw-aqua: #8ea4a2;
     --kngw-ash: #737c73;
-    --kngw-teal: #949fb5;
     --kngw-yellow: #c4b28a;
-    --kngw-samurai-red: #e82424;
-    --kngw-ronin-yellow: #ff9e3b;
 
-    /* caliBlur variable overrides (spec §4.3) */
-    --color-background: var(--kngw-black1);
-    --color-primary: var(--kngw-orange);
-    --color-secondary: var(--kngw-yellow);
-    --color-secondary-hover: var(--kngw-orange2);
-    --color-background-mobile: var(--kngw-black0);
+    /* Sequential ramp for magnitude (spec §4.3). Monotonic in OKLab.
+       Steps 3-5 clear 4.5:1 on black1 and may carry a label on the fill. */
+    --gold-1: #3a3222;
+    --gold-2: #5d5039;
+    --gold-3: #8a7853;
+    --gold-4: #a89571;
+    --gold-5: #c4b28a;
+
+    /* Type. Exact installed families lead, generics close the stack.
+       "EB Garamond" must NOT lead: it resolves to Söhne, a sans. */
+    --serif: "EB Garamond Absinthe", "IBM Plex Serif", "Source Serif 4", Georgia, serif;
+    --mono: "JetBrains Mono", "JetBrainsMono Nerd Font", ui-monospace, Menlo, Consolas, monospace;
+
+    --radius: 3px;
+    --rule: var(--kngw-black4);
+    --rule-strong: var(--kngw-black5);
 }
 
 /* ------------------------------------------------------------------ */
-/* Mechanical recolor of caliBlur's hardcoded palette. Do not edit by  */
-/* hand; regenerate with `just regen` (scripts/recolor_caliblur.py).   */
+/* Grounds                                                            */
 /* ------------------------------------------------------------------ */
 
-/* BEGIN GENERATED RECOLOR (scripts/recolor_caliblur.py) */
-#scnd-nav > li.active:hover a, .authorlist #nav_author:hover a, .catlist #nav_cat:hover a, .langlist #nav_lang:hover a, .serieslist #nav_serie:hover a {
-    color: #c5c9c5;
+html, body {
+    background: var(--kngw-black1);
+    color: var(--kngw-white);
 }
-.navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover {
-    color: #c5c9c5;
+
+body {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.6;
+    font-feature-settings: "onum" 1, "liga" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
-.a-z #scnd-nav > li.dropdown:hover > a, .newest #scnd-nav > li.dropdown:hover > a, .oldest #scnd-nav > li.dropdown:hover > a, .z-a #scnd-nav > li.dropdown:hover > a {
-    color: #c5c9c5 !important;
+
+/* The terminal register: everything that is a label, count, control, or
+   piece of chrome goes mono. This split is what makes the instrumentation
+   read as instrumentation (spec §4.4). */
+.navbar, .navigation, #scnd-nav, .badge, .btn, label, th,
+.pagination, .filterheader, .nav-head, footer, .modal-title,
+input, select, textarea, .book .meta .series {
+    font-family: var(--mono);
 }
-.readbooks #scnd-nav > li.active a[href*=unreadbooks]:hover {
-    color: #c5c9c5;
+
+a { color: var(--kngw-orange); text-decoration: none; }
+a:hover, a:focus { color: var(--kngw-orange2); text-decoration: none; }
+
+:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--kngw-orange), 0 0 10px -3px var(--kngw-orange);
+    border-radius: var(--radius);
 }
-.unreadbooks #scnd-nav > li.active a[href*=readbooks]:hover {
-    color: #c5c9c5;
+
+::selection { background: var(--kngw-black5); color: var(--kngw-fuji-white); }
+
+h1, h2, h3, h4, h5 {
+    font-family: var(--serif);
+    color: var(--kngw-old-white);
+    font-weight: 400;
+    letter-spacing: 0.01em;
 }
-.shelforder > .container-fluid > .row-fluid > .col-sm-10 > div.col-sm-6.col-lg-6.col-xs-6 > h2 {
-    color: #c5c9c5;
+
+hr { border-color: var(--rule); }
+
+/* ------------------------------------------------------------------ */
+/* Topbar: a status line, not a chrome bar                            */
+/* ------------------------------------------------------------------ */
+
+.navbar-default {
+    background: var(--kngw-black0);
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    border-radius: 0;
+    margin-bottom: 0;
+    min-height: 52px;
 }
-.shelforder > .container-fluid > .row-fluid > .col-sm-10 > div.col-sm-6.col-lg-6.col-xs-6 > h2 + div {
-    color: #c5c9c5;
+
+.navbar-default .navbar-brand {
+    font-family: var(--serif);
+    color: var(--kngw-old-white);
+    font-size: 20px;
+    letter-spacing: 0.02em;
+    height: auto;
+    padding: 14px 18px;
 }
-.shelforder #sortTrue > div:hover {
-    color: #c5c9c5;
+.navbar-default .navbar-brand:hover { color: var(--kngw-fuji-white); }
+
+.navbar-default .navbar-nav > li > a {
+    color: var(--kngw-gray);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    padding: 18px 14px;
 }
-.shelforder > .container-fluid > .row-fluid > .col-sm-10 > div.col-sm-6.col-lg-6.col-xs-6 > a {
-    color: #c5c9c5;
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+    color: var(--kngw-orange);
+    background: transparent;
 }
-#have_read_form:hover label:before {
-    color: #c5c9c5 !important;
-}
-#archived_form:hover label:before {
-    color: #c5c9c5 !important;
-}
-div[aria-label="Edit/Delete book"] > .btn > span:hover {
-    color: #c5c9c5;
-}
-a:hover {
-    color: #c5c9c5;
-}
-#titlebar a {
-    color: #393836;
-}
-.home-btn > a {
-    color: rgba(197, 201, 197, .7);
-}
-body > div.navbar.navbar-default.navbar-static-top > div > div.home-btn > a:hover:before {
-    color: #c5c9c5;
-}
-#form-upload:hover .form-group .btn:after, #form-upload:hover .form-group .btn:before {
-    color: #c5c9c5;
-}
-#form-upload .form-group .btn:after {
-    background: #282727;
-}
+
+.navbar-default .navbar-toggle { border-color: var(--rule-strong); }
+.navbar-default .navbar-toggle .icon-bar { background: var(--kngw-gray); }
+.navbar-default .navbar-toggle:hover,
+.navbar-default .navbar-toggle:focus { background: var(--kngw-black4); }
+.navbar-default .navbar-collapse { border-color: var(--rule); }
+
+/* Search: a terminal prompt rather than a form control */
+.navbar-form { margin: 9px 0; }
 .form-control {
-    color: #c5c9c5;
+    background: var(--kngw-black2);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    color: var(--kngw-fuji-white);
+    font-family: var(--mono);
+    font-size: 12px;
+    box-shadow: none;
 }
 .form-control:focus {
-    background: #c5c9c5 !important;
-    color: #393836;
+    background: var(--kngw-black2);
+    border-color: var(--kngw-orange);
+    color: var(--kngw-fuji-white);
+    box-shadow: 0 0 6px -1px var(--kngw-orange);
 }
-body > div.navbar.navbar-default.navbar-static-top > div > form > div > span > button:before {
-    color: #c5c9c5;
-    background: #393836;
+.form-control::placeholder { color: var(--kngw-black6); }
+
+/* ------------------------------------------------------------------ */
+/* Sidebar: the wings ledger                                          */
+/* ------------------------------------------------------------------ */
+
+.navigation { padding-top: 18px; }
+
+.navigation .nav-head {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--kngw-black6);
+    padding: 18px 16px 8px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 6px;
 }
-body > div.navbar.navbar-default.navbar-static-top > div > form:before {
-    color: #c5c9c5;
-}
-#query:focus {
-    background: #c5c9c5 !important;
-    color: #393836 !important;
-}
-body > div.navbar.navbar-default.navbar-static-top > div > form.search-focus > div > span.input-group-btn:before {
-    color: #393836;
-}
-body > div.navbar.navbar-default.navbar-static-top > div > form > div > span > button:hover {
-    color: #c5c9c5;
-}
-.author > a:hover {
-    color: #c5c9c5 !important;
-}
-.btn-default {
-    color: #c5c9c5;
-}
-.btn-default:hover {
-    color: #c5c9c5;
-}
-body > div.container-fluid > div > div.col-sm-10 > div > form > a {
-    color: #c5c9c5;
-}
-body > div.container-fluid > div > div.col-sm-10 > div > form > a:hover {
-    color: #c5c9c5;
-}
-.btn-primary {
-    color: #c5c9c5;
-}
-.btn-default.active, .btn-default.focus, .btn-default:active, .btn-default:focus, .open > .dropdown-toggle.btn-default {
-    color: #c5c9c5;
-}
-.form-group > label {
-    color: #c5c9c5;
+
+.navigation li a {
+    color: var(--kngw-gray);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    border-left: 2px solid transparent;
 }
 .navigation li a:hover {
-    color: #c5c9c5;
-}
-.navigation .create-shelf a:hover {
-    color: #c5c9c5 !important;
-}
-#scnd-nav .dropdown-menu > li > a:hover {
-    color: #c5c9c5;
-}
-.container-fluid .book .meta .title {
-    color: #c5c9c5;
-}
-#books > .cover > a:before, #books_rand > .cover > a:before, .book.isotope-item > .cover > a:before, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > div.col-sm-2 > a:before {
-    color: #c5c9c5;
-}
-#books > .cover > a:after, #books_rand > .cover > a:after, .book.isotope-item > .cover > a:after {
-    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-    background: radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-}
-body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > div.col-sm-2 > a:after {
-    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-    background: radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-}
-.badge {
-    color: #c5c9c5;
-}
-app-loading-container {
-    background: #282727;
-}
-.app-loading {
-    color: #c5c9c5 !important;
-}
-#meta-info::-webkit-scrollbar-track {
-    background-color: #0d0c0c;
-}
-body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > form > div.col-sm-12 > div.col-sm-12 > h2 {
-    color: #c5c9c5;
-}
-body > div.container-fluid > div > div.col-sm-10 > h3:not(:first-of-type) {
-    color: #c5c9c5;
-}
-body > div.container-fluid > div > div.col-sm-10 > p > a:hover {
-    color: #c5c9c5;
-}
-.pagination > a:hover {
-    color: #c5c9c5;
-}
-.navbar-default .navbar-nav > li > a:focus, .navbar-default .navbar-nav > li > a:hover {
-    color: #c5c9c5 !important;
-}
-body > div.container-fluid > div > div.col-sm-10 > div.pagination > .page-next > a:hover:before,
-body > div.container-fluid > div > div.col-sm-10 > div.pagination > .page-previous > a:hover:before {
-    color: #c5c9c5;
-}
-body.authorlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.downloadlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.catlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.langlist > div.container-fluid > div > div.col-sm-10 > div.container1:before, body.me > div.container-fluid > div > div.col-sm-10 > div.discover:before, body.serieslist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
-    color: #c5c9c5;
-}
-.well > form > .btn {
-    color: #c5c9c5;
-}
-.alert {
-    background-color: #0d0c0c;
-    color: #c5c9c5;
-}
-.alert-danger {
-    background-color: rgba(196, 116, 110, .3);
-    color: #c5c9c5;
-}
-body > div.container-fluid > div > div.col-sm-10 > div.col-sm-8 > form > div > span > input.form-control:focus {
-    background: #c5c9c5 !important;
-}
-.glyphicon-star, .navigation li a:hover .glyphicon-star {
-    color: #c5c9c5;
-}
-#metaModal > .modal-dialog > .modal-content > .modal-header {
-    background: #12120f;
-}
-#metaModal > .modal-dialog > .modal-content > .modal-header > h4 {
-    background: #1d1c19;
-    color: #c5c9c5;
-}
-#metaModal > .modal-dialog > .modal-content > .modal-header > h4:before {
-    color: #9e9b93;
-}
-#metaModal > .modal-dialog > .modal-content > .modal-header > .close {
-    color: #c5c9c5;
-}
-#metaModal > .modal-dialog > .modal-content > .modal-header > #meta-search > .input-group > span > button {
-    color: #c5c9c5;
-}
-#meta-info {
-    background: #12120f !important;
-}
-#meta-info #book-list .media > .media-body {
-    color: #9e9b93;
-}
-#meta-info #book-list .media > .media-body > h4 > a {
-    color: #c5c9c5;
-}
-#meta-info #book-list .media > .media-body > h4 > a:hover {
-    color: #c5c9c5;
-}
-#meta-info #book-list .media > .media-body > p > a:hover {
-    color: #c5c9c5;
-}
-.modal-content {
-    background-color: #1d1c19;
-}
-body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-8 > form > .form-group > .btn-toolbar-lg > label.btn-danger:hover {
-    background: #c4746e;
-}
-body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-8 > form > .form-group > .btn-toolbar-lg > label.btn-danger.active {
-    background: #c4746e;
-}
-body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-8 > form > .form-group > .btn-toolbar-lg > label.btn-danger.active:hover {
-    background: #c4746e;
-}
-.book-meta > .bookinfo > .comments, .book-meta > .description {
-    color: #c5c9c5;
-}
-.book-meta > .bookinfo > .languages > span:last-of-type,
-.book-meta > .bookinfo > .publishers > span:last-of-type,
-.book-meta > .bookinfo > .publishing-date > span:last-of-type,
-.real_custom_columns > span:last-of-type {
-    color: #c5c9c5;
-}
-.book-meta > .bookinfo > .languages > span > a,
-.book-meta > .bookinfo > .publishers > span > a,
-.book-meta > .bookinfo > .publishing-date > span > a,
-.real_custom_columns > span > a {
-    color: #c5c9c5;
-}
-.book-meta > h2 {
-    color: #c5c9c5;
-}
-#add-to-shelf:hover span, #btnGroupDrop1:hover > span, #readbtn:hover > span, #sendbtn:hover > span, .book-meta .btn-toolbar > .btn-group > .btn-group:nth-child(1) > a:first-of-type:hover > span, .book-meta .btn-toolbar > .btn-group > .btn-warning:hover > span, .btn-toolbar > .btn-group > #btnGroupDrop2:hover > span, .btn-toolbar > .btn-group > .btn-group > #btnGroupDrop2:hover > span {
-    color: #c5c9c5;
-}
-.btn-primary.active.focus, .btn-primary.active:focus, .btn-primary.active:hover, .btn-primary:active.focus, .btn-primary:active:focus, .btn-primary:active:hover, .open > .dropdown-toggle.btn-primary.focus, .open > .dropdown-toggle.btn-primary:focus, .open > .dropdown-toggle.btn-primary:hover {
-    color: #c5c9c5;
-}
-.dropdown-menu {
-    background-color: #0d0c0c !important;
-}
-.dropdown-menu > li > a:focus, .dropdown-menu > li > a:hover {
-    color: #c5c9c5;
-}
-.book-meta > .bookinfo .btn-info:hover,
-.book-meta > .bookinfo .btn-success:hover {
-    color: #c5c9c5;
-}
-body > div.container-fluid > div > div.col-sm-10 > div.discover > .btn-danger {
-    background: #c4746e;
-}
-body > div.container-fluid > div > div.col-sm-10 > div.discover > .btn-danger:hover {
-    background: #c4746e;
-}
-.book-meta > div.more-stuff > .btn-toolbar > .btn-group[aria-label="Remove from shelves"] > a:hover {
-    background: #c4746e;
-    color: #c5c9c5;
-}
-body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [data-target="#DeleteShelfDialog"]:hover {
-    background: #c4746e;
-}
-body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [data-target="#DeleteShelfDialog"]:hover:before {
-    color: #c5c9c5;
-}
-body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [href*=edit]:hover:before {
-    color: #c5c9c5;
-}
-body.shelf > div.container-fluid > div > div.col-sm-10 > div.discover > .shelf-btn-group > [href*=order]:hover:before {
-    color: #c5c9c5;
-}
-body > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a:hover {
-    color: #c5c9c5 !important;
-}
-.blur-wrapper {
-    background-color: #282727;
-}
-.btn-danger {
-    color: #c5c9c5;
-    background-color: #c4746e;
-    border-color: #c4746e;
-}
-.btn-danger:hover {
-    background-color: #c4746e;
-    border-color: #393836;
-}
-.plexBack > a {
-    color: rgba(197, 201, 197, .7);
-}
-.plexBack:not(.noBack):hover > a {
-    color: #c5c9c5;
-}
-body.login > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a {
-    color: #a6a69c !important;
-}
-.book-meta > .bookinfo > .comments[aria-expanded=false] + a:hover:after, .book-meta > .description[aria-expanded=false] + a:hover:after {
-    border-color: #c5c9c5;
-}
-.book-meta > .bookinfo > .comments[aria-expanded=true] + a:hover:after, .book-meta > .description[aria-expanded=true] + a:hover:after {
-    border-color: #c5c9c5;
-}
-.author > .container-fluid > .row-fluid > .col-sm-10 > h2 {
-    color: #c5c9c5;
-}
-body.author > div.container-fluid > div > div.col-sm-10 > div.discover > h3 {
-    color: #c5c9c5;
-}
-#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-header {
-    color: #c5c9c5;
-    border-bottom: 1px solid #12120f;
-    background-color: #1d1c19;
-}
-#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-header:before {
-    color: #9e9b93;
-}
-#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-body {
-    color: #c5c9c5;
-    background: #12120f;
-}
-#DeleteShelfDialog > .modal-dialog > .modal-content > .modal-body:after {
-    background-color: #1d1c19;
-    border-top: 1px solid #12120f;
-}
-#remove-from-shelves > .btn:hover {
-    background: #c4746e;
-    color: #c5c9c5;
-}
-#remove-from-shelves > .btn:hover span:before {
-    color: #c5c9c5;
-}
-#DeleteShelfDialog:before {
-    color: #c5c9c5;
-}
-.btn-default.active:hover, .btn-default:active:hover {
-    color: #c5c9c5;
-}
-body.admin > div.container-fluid > div > div.col-sm-10 > div.container-fluid > div.row > div.col > h2, body.admin > div.container-fluid > div > div.col-sm-10 > div.discover > h2 {
-    color: #c5c9c5;
-}
-body.admin > div.container-fluid > div > div.col-sm-10 > div.container-fluid > div.row > div.col > .btn > a, body.admin > div.container-fluid > div > div.col-sm-10 > div.discover > .btn > a {
-    color: #c5c9c5;
-}
-body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > h1, body.newuser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > h1 {
-    color: #c5c9c5;
-}
-body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > h2, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > h2 {
-    color: #c5c9c5;
-}
-body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:before, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:before {
-    color: #c5c9c5;
-}
-body.edituser.admin > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:after, body > div.container-fluid > div.row-fluid > div.col-sm-10 > div.discover > div.col-sm-12 > div.col-sm-2 > a:after {
-    background: -webkit-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-    background: -o-radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-    background: radial-gradient(farthest-corner at 50% 50%, rgba(29, 28, 25, .5) 50%, #1d1c19 100%);
-}
-body.admin td > a:hover {
-    color: #c5c9c5;
-}
-.tooltip.bottom .tooltip-inner {
-    background-color: #0d0c0c;
-    color: #c5c9c5;
-}
-.tooltip.bottom .tooltip-arrow {
-    border-bottom-color: #0d0c0c;
-}
-body.search > div.container-fluid > div > div.col-sm-10 > div.discover > h2 + p:before {
-    color: #c5c9c5;
-}
-body.search > div.container-fluid > div > div.col-sm-10 > div.discover > h2 + p:after {
-    color: #c5c9c5;
-}
-body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover {
-    background: #c4746e;
-}
-body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover:before, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center > #delete:hover:before {
-    color: #c5c9c5;
-}
-body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center.more-stuff > h4, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > form > div.col-sm-3 > div.text-center.more-stuff > h4 {
-    color: #c5c9c5;
-}
-body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th:hover {
-    color: #c5c9c5;
-}
-body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th:hover .th-inner {
-    color: #c5c9c5;
-}
-body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th > .th-inner.asc, body.tasks > div.container-fluid > div > div.col-sm-10 > div.discover > div.bootstrap-table > div.fixed-table-container > div.fixed-table-body > #table > thead > tr > th > .th-inner.desc {
-    color: #c5c9c5;
-}
-.epub-back:before {
-    color: #393836;
-}
-body.login > div.navbar.navbar-default.navbar-static-top > div > div.navbar-header > a:hover {
-    color: #a6a69c !important;
-}
-#btnGroupDrop1[aria-expanded=true] > span, #shelf-actions > .btn-group.open > #add-to-shelf > span {
-    color: #c5c9c5;
-}
-.admin #container > h2, body.admin > div.container-fluid > div > div.col-sm-10 > div.container-fluid > div.row > div.col > h2 {
-    color: #c5c9c5;
-}
-body.admin > div.container-fluid > div > div.col-sm-10 > div.discover .btn > a {
-    color: #c5c9c5;
-}
-body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover {
-    background: #c4746e;
-}
-body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover:before, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center > #delete:hover:before {
-    color: #c5c9c5;
-}
-body.editbook > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center.more-stuff > h4, body.upload > div.container-fluid > div.row-fluid > div.col-sm-10 > div.col-sm-3 > div.text-center.more-stuff > h4 {
-    color: #c5c9c5;
-}
-#main-nav + #scnd-nav li.open a:hover {
-    color: #c5c9c5;
-}
-#main-nav + #scnd-nav li a:hover .glyphicon-star {
-    color: #c5c9c5;
-}
-#main-nav + #scnd-nav .create-shelf a:hover {
-    color: #c5c9c5 !important;
-}
-#RestartDialog:before, #ShutdownDialog:before, #StatusDialog:before, #deleteModal:before, #cancelTaskModal:before {
-    color: #c5c9c5;
-}
-#RestartDialog > .modal-dialog > .modal-content > .modal-header, #ShutdownDialog > .modal-dialog > .modal-content > .modal-header, #StatusDialog > .modal-dialog > .modal-content > .modal-header, #deleteModal > .modal-dialog > .modal-content > .modal-header, #cancelTaskModal > .modal-dialog > .modal-content > .modal-header {
-    color: #c5c9c5;
-    border-bottom: 1px solid #12120f;
-    background-color: #1d1c19;
-}
-#RestartDialog > .modal-dialog > .modal-content > .modal-header:before, #ShutdownDialog > .modal-dialog > .modal-content > .modal-header:before, #StatusDialog > .modal-dialog > .modal-content > .modal-header:before, #deleteModal > .modal-dialog > .modal-content > .modal-header:before, #cancelTaskModal > .modal-dialog > .modal-content > .modal-header:before {
-    color: #9e9b93;
-}
-#RestartDialog > .modal-dialog > .modal-content > .modal-body {
-    color: #c5c9c5;
-    background: #12120f;
-}
-#ShutdownDialog > .modal-dialog > .modal-content > .modal-body, #StatusDialog > .modal-dialog > .modal-content > .modal-body, #deleteModal > .modal-dialog > .modal-content > .modal-body, #cancelTaskModal > .modal-dialog > .modal-content > .modal-body {
-    color: #c5c9c5;
-    background: #12120f;
-}
-#RestartDialog > .modal-dialog > .modal-content > .modal-body > p, #ShutdownDialog > .modal-dialog > .modal-content > .modal-body > p, #StatusDialog > .modal-dialog > .modal-content > .modal-body > p, #deleteModal > .modal-dialog > .modal-content > .modal-body > p, #cancelTaskModal > .modal-dialog > .modal-content > .modal-body > p {
-    color: #c5c9c5;
-    background: #12120f;
-}
-#RestartDialog > .modal-dialog > .modal-content > .modal-body:after {
-    background-color: #1d1c19;
-    border-top: 1px solid #12120f;
-}
-#ShutdownDialog > .modal-dialog > .modal-content > .modal-body:after, #StatusDialog > .modal-dialog > .modal-content > .modal-body:after {
-    background-color: #1d1c19;
-    border-top: 1px solid #12120f;
-}
-#deleteButton:hover span.glyphicon-remove {
-    color: #c5c9c5;
-}
-#loader > center > h3 {
-    color: #c5c9c5;
-}
-body.publisherlist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
-    color: #c5c9c5;
-}
-body.ratingslist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
-    color: #c5c9c5;
-}
-body.formatslist > div.container-fluid > div > div.col-sm-10 > div.container1:before {
-    color: #c5c9c5;
-}
-#DeleteDomain:before {
-    color: #c5c9c5;
-}
-#DeleteDomain > .modal-dialog > .modal-content > .modal-header {
-    color: #c5c9c5;
-    border-bottom: 1px solid #12120f;
-    background-color: #1d1c19;
-}
-#DeleteDomain > .modal-dialog > .modal-content > .modal-header:before {
-    color: #9e9b93;
-}
-#DeleteDomain > .modal-dialog > .modal-content > .modal-body, #DeleteDomain > .modal-dialog > .modal-content > .modal-body > p {
-    color: #c5c9c5;
-    background: #12120f;
-}
-#DeleteDomain > .modal-dialog > .modal-content > .modal-body:after {
-    background-color: #1d1c19;
-    border-top: 1px solid #12120f;
-}
-#sendbtn2:focus span, #sendbtn2:hover span, #read-in-browser:focus span, #read-in-browser:hover span {
-    color: #c5c9c5;
-}
-.cover .badge {
-    color: #c5c9c5;
-    background-color: #c4b28a;
-}
-input.datepicker:focus + input {
-    color: #393836;
-}
-@media only screen and (max-width: 767px) {
-    body > div.navbar.navbar-default.navbar-static-top > div > form:hover:before {
-        color: #c5c9c5;
-    }
-    #query:focus {
-        background: #393836 !important;
-        color: #c5c9c5 !important;
-    }
-    body > div.navbar.navbar-default.navbar-static-top > div > form.search-focus > div > span.input-group-btn:before {
-        color: #c5c9c5;
-        background: #393836;
-    }
-    body > div.navbar.navbar-default.navbar-static-top > div > form > div > span.input-group-btn {
-        background: #393836;
-    }
-    body > div.navbar.navbar-default.navbar-static-top > div > form > div > span > button::before {
-        color: #393836;
-        background: #c5c9c5;
-    }
-    .navbar-collapse.collapse {
-        background: #282727;
-    }
-    body > div.navbar.navbar-default.navbar-static-top > div > div.navbar-collapse.collapse > ul > li > a.profileDrop:before {
-        color: #c5c9c5;
-    }
-    .profileDrop + span.hidden-sm {
-        color: #c5c9c5;
-    }
-    #form-upload > .form-group:before {
-        color: #c5c9c5;
-    }
-    #form-upload .form-group .btn:before {
-        color: #c5c9c5;
-    }
-    #form-upload .form-group .btn:after {
-        background: #282727;
-        color: #c5c9c5;
-    }
-    #top_admin, #top_tasks, .navigation > ul > li > a {
-        color: #c5c9c5;
-    }
-    .navigation .create-shelf a {
-        color: #c5c9c5 !important;
-    }
-    .navigation li a .glyphicon-star {
-        color: #c5c9c5;
-    }
-    .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus, .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover {
-        color: #c5c9c5;
-    }
-    .me .dropdown-menu > li > #top_user:hover {
-        color: #c5c9c5;
-    }
-    div.comments + [data-readmore-toggle]:hover, div.description + [data-readmore-toggle]:hover {
-        color: #c5c9c5;
-    }
-    #main-nav + #scnd-nav > li > a {
-        color: #c5c9c5;
-    }
-    #main-nav + #scnd-nav li.open ul.dropdown-menu a:hover {
-        color: #c5c9c5;
-    }
-    #main-nav + #scnd-nav li a .glyphicon-star {
-        color: #c5c9c5;
-    }
-    .shelforder #sortTrue > .list-group-item {
-        color: #c5c9c5;
-    }
-    .col-xs-12 > .row > .col-xs-10 > a {
-        color: #c5c9c5;
-    }
-    .col-xs-12 > .row > .col-xs-10 > a:hover {
-        color: #c5c9c5;
-    }
-    .col-xs-12 > .row > .col-xs-10:after {
-        color: #c5c9c5;
-    }
-}
-/* END GENERATED RECOLOR */
-
-/* ------------------------------------------------------------------ */
-/* Hand-curated polish: the cover-forward, warm layer (spec §4.4).     */
-/* ------------------------------------------------------------------ */
-
-/* caliBlur paints every page with its own blur raster at !important
-   (blur-light.png averages #3a4853, a cool slate). Being an image, no amount
-   of color recoloring reaches it, and it overpaints the Dragon background on
-   every desktop page: the mobile breakpoint renders black0 correctly while
-   desktop renders #3d464f. Keep the noise grain, drop the slate plate, and
-   let the palette through. The detail page's blurred-cover backdrop lives on
-   .blur-wrapper and is deliberately left alone. */
-body:not(.read-frame) {
-    background-image: url(images/caliblur/blur-noise.png) !important;
-    background-color: var(--kngw-black1) !important;
-}
-
-/* Headings run warm; body text stays dragonWhite */
-h1, h2, h3, h4,
-.discover h2,
-.filterheader {
-    color: var(--kngw-old-white);
-}
-
-/* Book cards: covers are the saturated objects; give them presentation
-   treatment and let the chrome recede */
-.book .cover {
-    margin-bottom: 8px;
-}
-
-.book .cover .img,
-.book .cover img {
-    border-radius: 5px;
-    box-shadow: 0 3px 14px rgba(13, 12, 12, 0.65);
-    transition: transform 0.16s ease-out, box-shadow 0.16s ease-out;
-}
-
-.book .cover a:hover .img,
-.book .cover a:hover img {
-    transform: translateY(-4px);
-    box-shadow: 0 9px 22px rgba(13, 12, 12, 0.85);
-}
-
-/* Matches the generated block's own selector: caliBlur writes this as
-   `.container-fluid .book .meta .title` (0,4,0), which outranks a plain
-   `.book .meta .title` (0,3,0) no matter that this layer loads later.
-   Specificity beats source order, so this has to meet it to take effect. */
-.container-fluid .book .meta .title {
     color: var(--kngw-fuji-white);
+    background: var(--kngw-black2);
+}
+.navigation li.active a {
+    color: var(--kngw-old-white);
+    border-left-color: var(--kngw-orange);
+    background: var(--kngw-black2);
+}
+.navigation .glyphicon { color: var(--kngw-black6); font-size: 11px; }
+.navigation li a:hover .glyphicon,
+.navigation li.active a .glyphicon { color: var(--kngw-orange); }
+
+/* Wing counts sit right, quiet, and never wrap */
+.navigation .badge {
+    margin-left: auto;
+    background: transparent;
+    color: var(--kngw-black6);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 0;
+    white-space: nowrap;
+}
+.navigation li a:hover .badge { color: var(--kngw-gray3); }
+
+/* ------------------------------------------------------------------ */
+/* The book grid: a ledger of covers                                  */
+/* ------------------------------------------------------------------ */
+
+.discover h2, .discover h3 {
+    font-family: var(--mono);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--kngw-gray3);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+    margin: 24px 0 22px;
 }
 
-.book .meta .author,
-.book .meta .author a {
+.book { padding-bottom: 26px; }
+
+/* Covers are the saturated objects. No shadow, no lift, no raised card:
+   presentation comes from alignment and space (spec §4.4.3).
+   Stock style.css sets a white border and a drop shadow at
+   `.container-fluid .book .cover span img` (0-3-2), which outranks a plain
+   `.cover img`, so these selectors have to meet it rather than assume
+   source order wins. Same lesson as the caliBlur era (spec §4.7). */
+.book .cover { margin-bottom: 10px; }
+
+.container-fluid .book .cover span img,
+.container-fluid .single .cover img,
+.cover img {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    box-shadow: none;
+    transition: border-color 0.14s ease-out;
+}
+.container-fluid .book .cover a:hover span img,
+.cover a:hover img { border-color: var(--kngw-orange); }
+
+.book .meta .title,
+.container-fluid .book .meta .title {
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.3;
+    color: var(--kngw-fuji-white);
+    margin-bottom: 3px;
+}
+
+.book .meta .author, .book .meta .author a {
+    font-family: var(--serif);
+    font-size: 14px;
     color: var(--kngw-gray3);
 }
+.book .meta .author a:hover { color: var(--kngw-orange); }
 
-.book .meta .author a:hover {
-    color: var(--kngw-orange);
-}
-
-/* Series / rating lines under the title stay quiet */
-.book .meta .series,
-.book .meta p {
+.book .meta .series, .book .meta p {
+    font-size: 11px;
     color: var(--kngw-gray2);
 }
 
-/* The "read" tick badge on covers: subtle, green, never competing with
-   the artwork */
-.badge.read {
-    background-color: var(--kngw-black4);
+/* Read tick on a cover: quiet, green, never competing with artwork */
+.badge.read, .cover .badge {
+    background: var(--kngw-black4);
     color: var(--kngw-green);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 10px;
 }
 
-/* Ratings */
-.glyphicon-star.good,
-.rating .glyphicon-star {
-    color: var(--kngw-yellow);
-}
+/* ------------------------------------------------------------------ */
+/* Buttons and controls                                               */
+/* ------------------------------------------------------------------ */
 
-.glyphicon-star-empty {
-    color: var(--kngw-black6);
+.btn {
+    border-radius: var(--radius);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--rule-strong);
+    background: var(--kngw-black3);
+    color: var(--kngw-gray);
+    box-shadow: none;
 }
-
-/* Links and primary buttons: warm accent, calm hover */
-a {
-    color: var(--kngw-orange);
-}
-
-a:hover,
-a:focus {
-    color: var(--kngw-orange2);
-}
-
-.btn-primary {
-    background-color: var(--kngw-black4);
-    border-color: var(--kngw-black5);
-    color: var(--kngw-fuji-white);
-}
-
-.btn-primary:hover,
-.btn-primary:focus,
-.btn-primary:active {
-    background-color: var(--kngw-black5);
+.btn:hover, .btn:focus {
+    background: var(--kngw-black4);
     border-color: var(--kngw-black6);
     color: var(--kngw-fuji-white);
 }
 
-/* Destructive buttons: caliBlur pairs its light text with the fill, which on
-   dragonRed lands at 2.06:1. Keep the red fill as the destructive signal and
-   put near-black on it instead (5.65:1). */
-.btn-danger,
-.btn-danger:hover,
-.btn-danger:focus,
-.btn-danger:active {
-    color: var(--kngw-black0);
-}
-
-/* Form focus ring in accent rather than Bootstrap blue */
-.form-control:focus {
-    border-color: var(--kngw-orange);
-    box-shadow: 0 0 6px rgba(182, 146, 123, 0.45);
-}
-
-/* Selection color */
-::selection {
-    background: var(--kngw-black5);
+.btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background: var(--kngw-black4);
+    border-color: var(--kngw-black5);
     color: var(--kngw-fuji-white);
 }
 
-/* Reading-status badge states (detail page, Phase 3; spec §5.2) */
-.kngw-status {
-    border-radius: 4px;
-    padding: 2px 10px;
-    font-size: 0.9em;
-    background-color: var(--kngw-black4);
+/* The sort row marks the current order with .active. Bootstrap styles
+   `.btn-primary.active` (0-2-0) which outranks a plain `.btn-primary`, so
+   without this the selected sort stays Bootstrap blue. */
+.btn-primary.active,
+.btn-primary.active:hover,
+.btn-primary.active:focus,
+.open > .dropdown-toggle.btn-primary {
+    background: var(--kngw-black5);
+    border-color: var(--kngw-orange);
+    color: var(--kngw-old-white);
+    box-shadow: none;
 }
 
+/* Destructive keeps the red fill; near-black on it clears AA at 5.65:1 */
+.btn-danger, .btn-danger:hover, .btn-danger:focus, .btn-danger:active {
+    background: var(--kngw-red);
+    border-color: var(--kngw-red);
+    color: var(--kngw-black0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Detail page                                                        */
+/* ------------------------------------------------------------------ */
+
+.book-meta h2 {
+    font-family: var(--serif);
+    font-size: 30px;
+    line-height: 1.2;
+    color: var(--kngw-old-white);
+    border: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0;
+}
+
+.book-meta .author a { font-family: var(--serif); font-size: 17px; }
+
+.book-meta p, #description p {
+    font-family: var(--serif);
+    color: var(--kngw-white);
+    max-width: 68ch;
+}
+
+/* Metadata rows as a ledger: mono labels, hairline separation */
+.book-meta .identifiers, .publishing-date, .real_custom_columns {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--kngw-gray3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Reading-status badge states (spec §5.2) */
+.kngw-status {
+    border-radius: var(--radius);
+    padding: 2px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    background: var(--kngw-black4);
+}
 .kngw-status-read { color: var(--kngw-green); }
 .kngw-status-reading { color: var(--kngw-blue2); }
 .kngw-status-toread { color: var(--kngw-ash); }
 .kngw-status-dnf { color: var(--kngw-red); }
 
+/* Ratings */
+.glyphicon-star, .rating .glyphicon-star { color: var(--kngw-yellow); }
+.glyphicon-star-empty { color: var(--kngw-black6); }
+
+/* ------------------------------------------------------------------ */
+/* Tables, panels, modals, alerts                                     */
+/* ------------------------------------------------------------------ */
+
+table { color: var(--kngw-white); }
+table thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--kngw-gray3);
+    border-bottom: 1px solid var(--rule-strong);
+}
+table td, table th { border-color: var(--rule); }
+.table-striped > tbody > tr:nth-of-type(odd) { background: var(--kngw-black2); }
+
+.panel, .well, .modal-content {
+    background: var(--kngw-black2);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    box-shadow: none;
+}
+.modal-header, .modal-footer { border-color: var(--rule); }
+.modal-title { color: var(--kngw-old-white); }
+
+.alert {
+    border-radius: var(--radius);
+    border: 1px solid var(--rule-strong);
+    background: var(--kngw-black2);
+    color: var(--kngw-white);
+    font-family: var(--mono);
+    font-size: 12px;
+}
+.alert-danger { border-color: var(--kngw-red); color: var(--kngw-red); }
+.alert-success { border-color: var(--kngw-green); color: var(--kngw-green); }
+
+.pagination > li > a, .pagination > li > span {
+    background: var(--kngw-black3);
+    border-color: var(--rule);
+    color: var(--kngw-gray);
+    font-family: var(--mono);
+    font-size: 11px;
+}
+.pagination > .active > a, .pagination > .active > span {
+    background: var(--kngw-black4);
+    border-color: var(--kngw-black6);
+    color: var(--kngw-fuji-white);
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile                                                             */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 767px) {
+    body { font-size: 16px; }
+    .navigation .nav-head { padding-top: 12px; }
+}

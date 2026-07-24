@@ -5,7 +5,13 @@
 # or script still references them; their routes simply answer 404. This keeps
 # the diff against upstream small and rebase-friendly.
 
-from flask import abort
+from flask import abort, request
+
+# Browse surfaces cut in Phase 8 (Carrel spec 4.4). These are not separate
+# blueprints: web.py registers them dynamically as /<data>/<sort_param>, so
+# they are sealed by path prefix rather than by trim(). Hot ranks by download
+# count, which is meaningless on a single-user instance.
+_SEALED_PREFIXES = ("/hot", "/rated", "/discover")
 
 
 def _disable(blueprint):
@@ -18,6 +24,15 @@ def trim(*blueprints):
     for blueprint in blueprints:
         if blueprint is not None:
             _disable(blueprint)
+
+
+def seal_browse_surfaces(app):
+    @app.before_request
+    def _sealed():
+        path = request.path.rstrip("/")
+        for prefix in _SEALED_PREFIXES:
+            if path == prefix or path.startswith(prefix + "/"):
+                abort(404)
 
 
 def read_column_is_enum(column_id):

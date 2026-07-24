@@ -21,8 +21,13 @@
     {% if g.current_theme == 1 %}
        <link href="{{ url_for('static', filename='css/caliBlur.css') }}" rel="stylesheet" media="screen">
        <link href="{{ url_for('static', filename='css/caliBlur_override.css') }}" rel="stylesheet" media="screen">
-       <link href="{{ url_for('static', filename='css/kanagawa-dragon.css') }}" rel="stylesheet" media="screen">
     {% endif %}
+    {# Carrel owns the surface (spec 4.1): loaded unconditionally, over stock
+       templates. config_theme is 0, so the caliBlur block above is inert and
+       stays only to keep the diff against upstream small. #}
+    <link href="{{ url_for('static', filename='css/kanagawa-dragon.css') }}" rel="stylesheet" media="screen">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#12120f">
   </head>
   <body class="{{ page }} {{ bodyClass }}{% if g.current_theme == 1 %} blur{% endif %}" data-text="{{_('Home')}}" data-textback="{{_('Back')}}">
     <!-- Static navbar -->
@@ -66,11 +71,6 @@
                 <ul class="dropdown-menu profileDropli">
                     <li><a id="top_user" data-text="{{_('Account')}}" href="{{url_for('web.profile')}}" ><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{current_user.name}}</span></a></li>
                     {% if g.allow_registration and not current_user.is_authenticated %}
-                    <li><a id="login" href="{{url_for('web.login')}}"><span class="glyphicon glyphicon-log-in"></span> {{_('Login')}}</a></li>
-                    <li><a id="register" href="{{url_for('web.register')}}"><span class="glyphicon glyphicon-user"></span> {{_('Register')}}</a></li>
-                    {% endif %}
-                    {% if not current_user.is_anonymous %}
-                    <li><a id="logout" href="{{url_for('web.logout', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}"><span class="glyphicon glyphicon-log-out"></span> <span class="hidden-sm">{{_('Logout')}}</span></a></li>
                     {% endif %}
                 </ul>
               </li>
@@ -92,14 +92,9 @@
               {% endif %}
               {% if g.current_theme == 0 %}
               <li><a id="top_user" data-text="{{_('Account')}}" href="{% if not current_user.is_anonymous %}{{url_for('web.profile')}}{% else %}{{url_for('web.login', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}{% endif %}"><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{current_user.name}}</span></a></li>
-                {% if not current_user.is_anonymous %}
-                <li><a id="logout" href="{{url_for('web.logout', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}"><span class="glyphicon glyphicon-log-out"></span> <span class="hidden-sm">{{_('Logout')}}</span></a></li>
-                {% endif %}
               {% endif %}
             {% endif %}
             {% if g.allow_registration and not current_user.is_authenticated and g.current_theme == 0 %}
-            <li><a id="login" href="{{url_for('web.login')}}"><span class="glyphicon glyphicon-log-in"></span> {{_('Login')}}</a></li>
-            <li><a id="register" href="{{url_for('web.register')}}"><span class="glyphicon glyphicon-user"></span> {{_('Register')}}</a></li>
             {% endif %}
           </ul>
         </div><!--/.nav-collapse -->

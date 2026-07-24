@@ -66,8 +66,9 @@ def main():
 
     # smallscope: disable unused surfaces (Carrel spec 6.2);
     # must run before registration (Flask forbids setup afterwards)
-    from .smallscope import trim
+    from .smallscope import seal_browse_surfaces, trim
     trim(tasks, shelf, editbook, remotelogin)
+    seal_browse_surfaces(app)
 
     # smallscope: single-user operation (spec 11); no login, owner on every
     # request. Must also be installed before the first request is handled.
