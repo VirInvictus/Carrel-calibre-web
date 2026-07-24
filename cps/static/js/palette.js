@@ -86,8 +86,28 @@
       .map(function (r) { return r.e; });
     sel = 0;
     list.innerHTML = "";
+    var hits = results.length;
+    // Fall through to the search grammar: the palette jumps to things that
+    // exist, but a query is often the actual intent, and the parity engine is
+    // the most capable thing in the app. Always last, so it never displaces a
+    // real destination.
+    if (q) {
+      results.push({
+        t: input.value.trim(),
+        g: "search",
+        h: "/search?query=" + encodeURIComponent(input.value.trim()),
+      });
+    }
     if (!results.length) {
       list.innerHTML = '<div class="cp-none">nothing shelved under that name</div>';
+    }
+    if (q && !hits) {
+      // No destination matched, so say so above the search row rather than
+      // leaving it looking like a match.
+      var none = document.createElement("div");
+      none.className = "cp-none";
+      none.textContent = "nothing shelved under that name \u2014 search instead?";
+      list.appendChild(none);
     }
     results.forEach(function (e, i) {
       var row = document.createElement("div");
@@ -104,7 +124,7 @@
       row.addEventListener("pointermove", function () { setSel(i); });
       list.appendChild(row);
     });
-    nEl.textContent = results.length + " of " + DATA.length;
+    nEl.textContent = hits + " of " + DATA.length;
   }
 
   function setSel(i) {

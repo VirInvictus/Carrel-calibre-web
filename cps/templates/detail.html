@@ -170,6 +170,20 @@
                 </div>
             {% endif %}
 
+            {# Carrel: a book is usually part of something. Say where it sits,
+               how much of the series is held, and what is missing. #}
+            {% set cs = carrel_series(entry) %}
+            {% if cs %}
+                <div class="series">
+                    <p>
+                        <a href="{{ url_for('web.books_list', data='series', sort_param='stored', book_id=cs.id) }}">{{ cs.name }}</a>{% if cs.index %} &middot; #{{ cs.index }}{% endif %}
+                        {#- No "of N": the library only knows what it holds, never how long
+                            a series actually is, so a total would be a guess stated as fact. -#}
+                        <span class="series-held">{{ cs.held }} held{% if cs.gaps %} &middot; gap at {% for g in cs.gaps %}#{{ g }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</span>
+                    </p>
+                </div>
+            {% endif %}
+
             {% if entry.publishers|length > 0 %}
                 <div class="publishers">
                     <p>

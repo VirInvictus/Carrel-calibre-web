@@ -50,6 +50,7 @@ from cps.search_metadata import meta  # noqa: E402
 from cps.shelf import shelf  # noqa: E402
 from cps.categories import categories  # noqa: E402
 from cps.palette import palette  # noqa: E402
+from cps.series_info import series_info  # noqa: E402
 from cps.stats import statistics  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
 from cps.smallscope import (  # noqa: E402
@@ -81,6 +82,7 @@ for blueprint in (
     palette,
     categories,
     statistics,
+    series_info,
 ):
     app.register_blueprint(blueprint)
 
@@ -234,6 +236,21 @@ class SmallscopeTestCase(unittest.TestCase):
             app.preprocess_request()
             self.assertTrue(current_user.is_authenticated)
             self.assertEqual(current_user.name, "admin")
+
+    # --- series awareness --------------------------------------------------
+
+    def test_series_reports_holdings_not_a_guessed_total(self):
+        from cps.series_info import _build
+
+        with app.test_request_context("/"):
+            info = _build()
+        self.assertTrue(info, "fixture has a series")
+        entry = list(info.values())[0]
+        # held is what the library actually has. max is the highest index held,
+        # never the length of the series, and must not reach the template as a
+        # total: the library cannot know how long a series is.
+        self.assertEqual(entry["held"], 2)
+        self.assertIn("gaps", entry)
 
     # --- statistics (spec 12) ----------------------------------------------
 

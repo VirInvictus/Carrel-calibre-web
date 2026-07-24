@@ -355,6 +355,19 @@ hr { border-color: var(--rule); }
 }
 
 /* ------------------------------------------------------------------ */
+/* Keyboard navigation                                                */
+/* ------------------------------------------------------------------ */
+
+/* j/k walk the grid, Enter opens. The selected book is marked the same way
+   the sidebar marks an active row: an accent rule, not a highlight box. */
+.book.kn-sel { position: relative; }
+.book.kn-sel .cover img {
+    border-color: var(--kngw-orange);
+    box-shadow: 0 0 0 1px var(--kngw-orange);
+}
+.book.kn-sel .meta .title { color: var(--kngw-old-white); }
+
+/* ------------------------------------------------------------------ */
 /* Search syntax legend (spec 13)                                     */
 /* ------------------------------------------------------------------ */
 
@@ -615,6 +628,31 @@ hr { border-color: var(--rule); }
 /* Detail page                                                        */
 /* ------------------------------------------------------------------ */
 
+/* Stock puts the download toolbar above the title, so you land on a book and
+   read a file size before you read what it is. Reordered with flexbox rather
+   than by moving the markup: same result, no diff against upstream. */
+.book-meta { display: flex; flex-direction: column; }
+.book-meta > * { order: 5; }
+.book-meta > h2#title { order: 1; }
+.book-meta > .author { order: 2; }
+.book-meta > .languages,
+.book-meta > .identifiers,
+.book-meta > .tags,
+.book-meta > .publishers,
+.book-meta > .publishing-date,
+.book-meta > .real_custom_columns,
+.book-meta > .series { order: 3; }
+.book-meta > .btn-toolbar { order: 4; margin: 20px 0 8px; }
+
+/* The metadata ledger is one block: give every row the same measure so the
+   hairlines line up instead of ending at three different widths. */
+.book-meta > .languages,
+.book-meta > .identifiers,
+.book-meta > .tags,
+.book-meta > .publishers,
+.book-meta > .publishing-date,
+.book-meta > .real_custom_columns { max-width: 620px; }
+
 .book-meta h2 {
     font-family: var(--serif);
     font-size: 30px;
@@ -624,9 +662,93 @@ hr { border-color: var(--rule); }
     text-transform: none;
     letter-spacing: 0;
     padding: 0;
+    margin: 0 0 6px;
 }
 
+.book-meta .author { margin-bottom: 16px; }
 .book-meta .author a { font-family: var(--serif); font-size: 17px; }
+
+/* One treatment for metadata, not three. Everything that states a fact about
+   the book reads as a ledger line: mono, quiet, same size. */
+.book-meta .languages p,
+.book-meta .publishing-date,
+.book-meta .real_custom_columns,
+.book-meta .publishers,
+.book-meta .identifiers p,
+.book-meta .tags p {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--kngw-gray3);
+    margin: 0;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--rule);
+}
+.book-meta .publishers span,
+.book-meta .publishing-date span { font-size: 11px; }
+.book-meta .publishers a { font-family: var(--mono); font-size: 11px; }
+
+/* Kill the filled pills: a language is a fact, not a button */
+.book-meta .label,
+.book-meta .label-default {
+    background: transparent;
+    color: var(--kngw-gray3);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    padding: 0;
+    letter-spacing: 0.06em;
+}
+
+/* Identifier chips stay tappable but lose the success-green button look */
+.book-meta .identifiers .btn-success {
+    background: var(--kngw-black2);
+    border: 1px solid var(--rule);
+    color: var(--kngw-gray);
+}
+.book-meta .identifiers .btn-success:hover {
+    border-color: var(--kngw-orange);
+    color: var(--kngw-fuji-white);
+}
+
+/* Section heads match the rest of the site: quiet mono, no trailing colon
+   shouting in serif */
+.book-meta h3, #decription {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--kngw-gray3);
+    margin: 22px 0 10px;
+}
+
+/* Archive is a control, not a heading */
+#archived_form, #archived_form span {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--kngw-black6);
+}
+#archived_form:hover span { color: var(--kngw-gray); }
+
+/* Series line: a book is usually part of something */
+.book-meta > .series { max-width: 620px; padding: 5px 0; border-bottom: 1px solid var(--rule); }
+.book-meta .series p { margin: 0; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.book-meta .series, .book-meta .series a {
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--kngw-gray2);
+}
+.book-meta .series a { color: var(--kngw-orange); }
+.series-held {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--kngw-black6);
+    white-space: nowrap;
+}
 
 .book-meta p, #description p {
     font-family: var(--serif);
