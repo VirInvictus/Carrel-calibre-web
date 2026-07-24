@@ -69,6 +69,11 @@ def main():
     from .smallscope import trim
     trim(tasks, shelf, editbook, remotelogin)
 
+    # smallscope: single-user operation (spec 11); no login, owner on every
+    # request. Must also be installed before the first request is handled.
+    from .single_user import install as install_single_user
+    install_single_user(app)
+
     app.register_blueprint(search)
     app.register_blueprint(tasks)
     app.register_blueprint(web)

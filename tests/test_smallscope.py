@@ -46,12 +46,14 @@ from cps.remotelogin import remotelogin  # noqa: E402
 from cps.search import search  # noqa: E402
 from cps.search_metadata import meta  # noqa: E402
 from cps.shelf import shelf  # noqa: E402
+from cps.single_user import install as install_single_user  # noqa: E402
 from cps.smallscope import read_column_is_enum, trim  # noqa: E402
 from cps.tasks_status import tasks  # noqa: E402
 from cps.web import web  # noqa: E402
 from cps.wings import wings  # noqa: E402
 
 trim(tasks, shelf, editbook, remotelogin)
+install_single_user(app)
 for blueprint in (
     search,
     tasks,
@@ -117,13 +119,10 @@ def tearDownModule():
 class SmallscopeTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # No login: spec 11 authenticates the owner on every request. If the
+        # shim regressed, every assertion below would fail on a redirect to a
+        # login page that no longer exists.
         cls.client = app.test_client()
-        rv = cls.client.post(
-            "/login",
-            data={"username": "admin", "password": "admin123", "submit": ""},
-            follow_redirects=False,
-        )
-        assert rv.status_code == 302, "login failed: %s" % rv.status_code
 
     # --- enum read column ------------------------------------------------
 
@@ -195,6 +194,33 @@ class SmallscopeTestCase(unittest.TestCase):
     def test_trimmed_routes_404(self):
         for url in ("/tasks", "/shelf/1", "/admin/book/1"):
             self.assertEqual(self.client.get(url).status_code, 404, url)
+
+    # --- single user (spec 11) ---------------------------------------------
+
+    def test_library_renders_without_any_credential(self):
+        # A client that has never seen a cookie, let alone a login form.
+        fresh = app.test_client()
+        rv = fresh.get("/")
+        self.assertEqual(rv.status_code, 200)
+        self.assertIn("/book/", rv.get_data(as_text=True))
+
+    def test_credential_paths_are_sealed(self):
+        for url in ("/login", "/logout", "/register", "/login/",
+                    "/admin/user/new", "/admin/usertable"):
+            self.assertEqual(self.client.get(url).status_code, 404, url)
+
+    def test_login_required_pages_pass_through(self):
+        # /me carries @login_required upstream. 200 here proves the decorator
+        # is satisfied rather than removed.
+        self.assertEqual(self.client.get("/me").status_code, 200)
+
+    def test_request_runs_as_the_owning_admin(self):
+        from cps.cw_login import current_user
+
+        with app.test_request_context("/"):
+            app.preprocess_request()
+            self.assertTrue(current_user.is_authenticated)
+            self.assertEqual(current_user.name, "admin")
 
     # --- wings -------------------------------------------------------------
 
