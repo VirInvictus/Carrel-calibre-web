@@ -115,15 +115,21 @@ hr { border-color: var(--rule); }
     min-height: 52px;
 }
 
-.navbar-default .navbar-brand {
-    font-family: var(--serif);
-    color: var(--kngw-old-white);
-    font-size: 20px;
+/* Stock style.css sets `.navbar-brand` to Grand Hotel cursive at
+   `color: #45b29d !important`. The teal is the only off-palette colour left
+   on the page and !important beats specificity, so this has to answer in
+   kind. The cursive goes with it: the brand belongs in the serif register. */
+.navbar-default .navbar-brand,
+.navbar-brand {
+    font-family: var(--serif) !important;
+    color: var(--kngw-old-white) !important;
+    font-size: 21px !important;
     letter-spacing: 0.02em;
     height: auto;
-    padding: 14px 18px;
+    padding: 13px 18px;
 }
-.navbar-default .navbar-brand:hover { color: var(--kngw-fuji-white); }
+.navbar-default .navbar-brand:hover,
+.navbar-brand:hover { color: var(--kngw-fuji-white) !important; }
 
 .navbar-default .navbar-nav > li > a {
     color: var(--kngw-gray);
