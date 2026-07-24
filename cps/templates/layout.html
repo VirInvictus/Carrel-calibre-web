@@ -157,6 +157,12 @@
                   <li {% if page == 'wings' and wing_active is defined and wing_active == wing.name %}class="active"{% endif %}><a href="{{ url_for('wings.show_wing', name=wing.name) }}"><span class="glyphicon glyphicon-tower"></span> {{ wing.name|shortentitle(40) }} <span class="badge badge-sm">{{ wing.count }}</span></a></li>
                 {% endfor %}
               {% endif %}
+              {# Carrel: surfaces with no other permanent home. /statistics was
+                 reachable only from the front-page strip. #}
+              <li class="nav-head hidden-xs">{{_('Library')}}</li>
+              <li id="nav_statistics" {% if page == 'statistics' %}class="active"{% endif %}><a href="{{url_for('statistics.show_statistics')}}"><span class="glyphicon glyphicon-stats"></span> {{_('Statistics')}}</a></li>
+              <li id="nav_read" {% if page == 'read' %}class="active"{% endif %}><a href="{{url_for('web.books_list', data='read', sort_param='stored')}}"><span class="glyphicon glyphicon-eye-open"></span> {{_('Read')}}</a></li>
+              <li id="nav_unread" {% if page == 'unread' %}class="active"{% endif %}><a href="{{url_for('web.books_list', data='unread', sort_param='stored')}}"><span class="glyphicon glyphicon-eye-close"></span> {{_('Unread')}}</a></li>
               {% if not current_user.is_anonymous %}
                 <li id="nav_about" {% if page == 'stat' %}class="active"{% endif %}><a href="{{url_for('about.stats')}}"><span class="glyphicon glyphicon-info-sign"></span> {{_('About')}}</a></li>
               {% endif %}
