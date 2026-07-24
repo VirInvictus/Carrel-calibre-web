@@ -46,6 +46,7 @@ from cps.remotelogin import remotelogin  # noqa: E402
 from cps.search import search  # noqa: E402
 from cps.search_metadata import meta  # noqa: E402
 from cps.shelf import shelf  # noqa: E402
+from cps.palette import palette  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
 from cps.smallscope import read_column_is_enum, trim  # noqa: E402
 from cps.tasks_status import tasks  # noqa: E402
@@ -68,6 +69,7 @@ for blueprint in (
     remotelogin,
     meta,
     editbook,
+    palette,
 ):
     app.register_blueprint(blueprint)
 
@@ -221,6 +223,24 @@ class SmallscopeTestCase(unittest.TestCase):
             app.preprocess_request()
             self.assertTrue(current_user.is_authenticated)
             self.assertEqual(current_user.name, "admin")
+
+    # --- command palette (spec 4.4) ----------------------------------------
+
+    def test_palette_index_covers_every_navigable_kind(self):
+        import json, re
+
+        body = self.client.get("/palette-data.js").get_data(as_text=True)
+        self.assertTrue(body.startswith("window.PALETTE="))
+        rows = json.loads(re.sub(r"^window\.PALETTE=|;$", "", body.strip()))
+        kinds = {r["g"] for r in rows}
+        for kind in ("page", "wing", "author", "series", "category"):
+            self.assertIn(kind, kinds)
+        # every entry must be jumpable
+        self.assertTrue(all(r["h"].startswith("/") for r in rows))
+
+    def test_palette_index_is_cacheable(self):
+        rv = self.client.get("/palette-data.js")
+        self.assertIn("immutable", rv.headers.get("Cache-Control", ""))
 
     # --- wings -------------------------------------------------------------
 

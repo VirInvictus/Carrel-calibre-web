@@ -43,6 +43,7 @@ def main():
     from .tasks_status import tasks
     from .error_handler import init_errorhandler
     from .remotelogin import remotelogin
+    from .palette import palette
     from .wings import wings
 
     try:
@@ -84,6 +85,7 @@ def main():
     app.register_blueprint(jinjia)
     app.register_blueprint(about)
     app.register_blueprint(wings)
+    app.register_blueprint(palette)
     app.register_blueprint(shelf)
     app.register_blueprint(admi)
     app.register_blueprint(remotelogin)

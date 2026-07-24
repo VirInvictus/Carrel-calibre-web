@@ -83,6 +83,16 @@ def build_fixture(path, extra_wings=None):
         "INSERT INTO books_tags_link (book,tag) VALUES (?,?)",
         [(1, 2), (1, 3), (2, 2), (3, 1), (4, 4)],
     )
+    # A series so the palette index and series browse have something real to
+    # exercise; without one, whole code paths look covered but never run.
+    cur.executemany(
+        "INSERT INTO series (id,name,sort) VALUES (?,?,?)",
+        [(1, "The Broken Earth", "Broken Earth, The")],
+    )
+    cur.executemany(
+        "INSERT INTO books_series_link (book,series) VALUES (?,?)",
+        [(1, 1), (2, 1)],
+    )
     cur.execute("INSERT INTO languages (id,lang_code) VALUES (1,'eng')")
     cur.executemany(
         "INSERT INTO books_languages_link (book,lang_code) VALUES (?,1)",

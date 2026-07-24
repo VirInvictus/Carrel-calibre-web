@@ -91,7 +91,7 @@
                 <li><a id="top_admin" data-text="{{_('Settings')}}" href="{{url_for('admin.admin')}}"><span class="glyphicon glyphicon-dashboard"></span> <span class="hidden-sm">{{_('Admin')}}</span></a></li>
               {% endif %}
               {% if g.current_theme == 0 %}
-              <li><a id="top_user" data-text="{{_('Account')}}" href="{% if not current_user.is_anonymous %}{{url_for('web.profile')}}{% else %}{{url_for('web.login', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}{% endif %}"><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{current_user.name}}</span></a></li>
+              <li><a id="top_user" data-text="{{_('Account')}}" href="{{url_for('web.profile')}}"><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{_('Account')}}</span></a></li>
               {% endif %}
             {% endif %}
             {% if g.allow_registration and not current_user.is_authenticated and g.current_theme == 0 %}
@@ -216,6 +216,11 @@
       <script src="{{ url_for('static', filename='js/libs/readmore.min.js') }}"></script>
       <script src="{{ url_for('static', filename='js/caliBlur.js') }}"></script>
     {% endif %}
+    {# Carrel command palette (spec 4.4): Ctrl-K jumps to any wing, author,
+       series, or category. The index is emitted by /palette-data.js and the
+       script degrades to nothing if it is missing. #}
+    <script src="{{ url_for('palette.palette_data', c=palette_version) }}"></script>
+    <script src="{{ url_for('static', filename='js/palette.js') }}"></script>
     {% block js %}{% endblock %}
   </body>
 </html>
