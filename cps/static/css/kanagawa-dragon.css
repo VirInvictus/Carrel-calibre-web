@@ -62,7 +62,24 @@
 html, body {
     background: var(--kngw-black1);
     color: var(--kngw-white);
+    /* Without this the browser paints native scrollbars in its light theme,
+       which puts a bright strip down the right edge of every page. The
+       <meta name="color-scheme"> in layout.html is not sufficient on its own. */
+    color-scheme: dark;
 }
+
+/* Scrollbars in the palette rather than the browser's default grey */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--kngw-black5) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: var(--kngw-black5);
+    border-radius: var(--radius);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--kngw-black6); }
 
 body {
     font-family: var(--serif);
