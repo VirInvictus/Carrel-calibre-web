@@ -55,8 +55,6 @@ path prefix becomes a browsable node that accumulates its descendants. The
 counts match the search engine exactly: Fic 3440, Fic.Fantasy 1368, NonFic
 3004.
 
-<img src="docs/screenshots/categories.png" width="300" alt="The category tree">
-
 **Ctrl-K.** A fuzzy jumper over every wing, author, series, category and page,
 6,975 destinations for this library, cached on the database's mtime. Type
 something that is not a destination and it offers to search for it instead, so
@@ -74,10 +72,12 @@ a single readout line each, because a chart of one slice looks broken.
 series you hold, and which numbers are missing. It never claims how long a
 series is, because the library cannot know that.
 
-<img src="docs/screenshots/mobile.png" width="330" align="right" alt="Carrel on a phone">
-
 **Keyboard.** `j`/`k` walk the grid, `g`/`G` jump to the ends, Enter opens, `/`
 focuses search, Ctrl-K opens the palette.
+
+| The category tree | On a phone |
+| :---: | :---: |
+| <img src="docs/screenshots/categories.png" width="290" alt="The category tree, expanded"> | <img src="docs/screenshots/mobile.png" width="290" alt="Carrel on a phone"> |
 
 **Removed:** uploads, shelves, metadata editing, Kobo sync, Goodreads, email,
 registration, public sharing, the task queue, advanced search, Discover, Hot
