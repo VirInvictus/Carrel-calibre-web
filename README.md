@@ -56,7 +56,7 @@ counts match the search engine exactly: Fic 3440, Fic.Fantasy 1368, NonFic
 3004.
 
 <img src="https://github.com/user-attachments/assets/e08006d4-0d7f-49d4-b8b2-9a0e4b8c810c" 
-" width="300" alt="The category tree">
+ width="300" alt="The category tree">
 
 **Ctrl-K.** A fuzzy jumper over every wing, author, series, category and page,
 6,975 destinations for this library, cached on the database's mtime. Type
