@@ -220,8 +220,14 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertIn("/book/", rv.get_data(as_text=True))
 
     def test_credential_paths_are_sealed(self):
-        for url in ("/login", "/logout", "/register", "/login/",
-                    "/admin/user/new", "/admin/usertable"):
+        for url in (
+            "/login",
+            "/logout",
+            "/register",
+            "/login/",
+            "/admin/user/new",
+            "/admin/usertable",
+        ):
             self.assertEqual(self.client.get(url).status_code, 404, url)
 
     def test_login_required_pages_pass_through(self):
@@ -349,8 +355,9 @@ class SmallscopeTestCase(unittest.TestCase):
     def test_malformed_query_is_reported_not_500(self):
         from urllib.parse import quote
 
-        rv = self.client.get("/search?query=" + quote("author:(King"),
-                             follow_redirects=True)
+        rv = self.client.get(
+            "/search?query=" + quote("author:(King"), follow_redirects=True
+        )
         self.assertEqual(rv.status_code, 200)
         self.assertIn("Could not parse", rv.get_data(as_text=True))
 
@@ -396,7 +403,8 @@ class SmallscopeTestCase(unittest.TestCase):
     # --- command palette (spec 4.4) ----------------------------------------
 
     def test_palette_index_covers_every_navigable_kind(self):
-        import json, re
+        import json
+        import re
 
         body = self.client.get("/palette-data.js").get_data(as_text=True)
         self.assertTrue(body.startswith("window.PALETTE="))
