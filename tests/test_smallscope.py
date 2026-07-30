@@ -5,7 +5,7 @@
 # and Wings. Runs the real Flask app against a fixture metadata.db in a
 # throwaway CALIBRE_DBPATH; never touches a real library.
 #
-# Run from the repo root:  ~/calibre-web-env/bin/python -m unittest discover -s tests
+# Run from the repo root:  ~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 
 import hashlib
 import os

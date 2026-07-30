@@ -73,10 +73,10 @@ All of them cache on `metadata.db`'s mtime, the idiom `wings.py` established.
 
 ```sh
 # run (no login; -i binds the LAN deliberately, see spec 11.3)
-CALIBRE_DBPATH=~/.calibre-web ~/calibre-web-env/bin/python cps.py -i 0.0.0.0
+CALIBRE_DBPATH=~/.calibre-web ~/.local/share/carrel/venv/bin/python cps.py -i 0.0.0.0
 # or: just serve   (from the Carrel repo)
 
-~/calibre-web-env/bin/python -m unittest discover -s tests
+~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
 The test harness mirrors `main()`'s blueprint registration and **must be kept

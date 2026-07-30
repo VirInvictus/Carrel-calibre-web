@@ -91,7 +91,7 @@ fork runs from source (the 0.6.26 tree has no `src/` layout, so an editable
 install is not possible).
 
 ```sh
-CALIBRE_DBPATH=~/.calibre-web ~/calibre-web-env/bin/python cps.py -i 0.0.0.0
+CALIBRE_DBPATH=~/.calibre-web ~/.local/share/carrel/venv/bin/python cps.py -i 0.0.0.0
 ```
 
 or `just serve` from the Carrel repo, which is the same command.
@@ -105,7 +105,7 @@ or `just serve` from the Carrel repo, which is the same command.
 ## Tests
 
 ```sh
-~/calibre-web-env/bin/python -m unittest discover -s tests
+~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
 33 tests in about a second, against a fixture library built from a real Calibre
