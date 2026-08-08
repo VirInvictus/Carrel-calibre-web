@@ -165,31 +165,37 @@
         window.themes = {
             "darkTheme": {
                 "bgColor": "#202124",
+                "fgColor": "#ffffff",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#fff"
             },
             "lightTheme": {
                 "bgColor": "white",
+                "fgColor": "#000000",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#4f4f4f"
             },
             "sepiaTheme": {
                 "bgColor": "#ece1ca",
+                "fgColor": "#000000",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#4f4f4f"
             },
             "amberTheme": {
                 "bgColor": "#e8bf5e",
+                "fgColor": "#2f2f2f",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#2f2f2f"
-            },            
+            },
             "blackTheme": {
                 "bgColor": "black",
+                "fgColor": "#ffffff",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#fff"
             },
             "kanagawaTheme": {
                 "bgColor": "#181616",
+                "fgColor": "#c5c9c5",
                 "css_path": "{{ url_for('static', filename='css/epub_themes.css') }}",
                 "title-color": "#c8c093"
             },
@@ -237,6 +243,30 @@
                     reader.rendition.themes.select(id);
                 } catch (e) {}
              }
+
+            // smallscope: the class themes style the iframe's <html>, but a
+            // book's own stylesheet (body background, per-element text color;
+            // Tor EPUBs do exactly this) paints over them, so dark themes
+            // rendered a white page. themes.override() sets inline !important
+            // on the content, the same mechanism fontSize already rides, and
+            // epubjs re-applies stored overrides to every newly rendered
+            // section, so it wins regardless of the book CSS.
+            try {
+                if (reader && reader.rendition && reader.rendition.themes) {
+                    let bg = themes[id] ? themes[id].bgColor : null;
+                    let fg = themes[id] ? themes[id].fgColor : null;
+                    if (!fg && bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+                        // Custom theme: no declared text color, so pick a
+                        // readable one from the background's luminance.
+                        let r = parseInt(bg.slice(1, 3), 16);
+                        let g = parseInt(bg.slice(3, 5), 16);
+                        let b = parseInt(bg.slice(5, 7), 16);
+                        fg = (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? "#000000" : "#ffffff";
+                    }
+                    if (bg) reader.rendition.themes.override("background", bg, true);
+                    if (fg) reader.rendition.themes.override("color", fg, true);
+                }
+            } catch (e) {}
 
             // Apply theme to rest of the page.
             document.getElementById("main").style.backgroundColor = themes[id]["bgColor"];
