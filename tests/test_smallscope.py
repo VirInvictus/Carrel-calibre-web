@@ -14,8 +14,6 @@ import sys
 import tempfile
 import unittest
 
-import fixture
-
 # cps's cli parser reads sys.argv at create_app time; hide unittest's args.
 sys.argv = ["cps.py"]
 
@@ -27,9 +25,11 @@ LIB = os.path.join(_TMP, "library")
 os.makedirs(LIB)
 DBPATH = os.path.join(LIB, "metadata.db")
 
-from tests.fixture import build_fixture  # noqa: E402
+# One import of one module: importing it both bare (`import fixture`, resolved
+# via the tests dir) and package-qualified loaded it twice under two names.
+from tests import fixture  # noqa: E402
 
-build_fixture(DBPATH)
+fixture.build_fixture(DBPATH)
 
 from cps import calibre_db, config, create_app, ub  # noqa: E402
 
@@ -251,12 +251,16 @@ class SmallscopeTestCase(unittest.TestCase):
         with app.test_request_context("/"):
             info = _build()
         self.assertTrue(info, "fixture has a series")
-        entry = list(info.values())[0]
+        # Keyed by series id rather than taking values()[0]: the fixture holds
+        # more than one series and dict order would decide what is asserted.
+        entry = info[1]
+        self.assertEqual(entry["name"], "The Broken Earth")
         # held is what the library actually has. max is the highest index held,
         # never the length of the series, and must not reach the template as a
         # total: the library cannot know how long a series is.
         self.assertEqual(entry["held"], 2)
         self.assertIn("gaps", entry)
+        self.assertEqual(info[2]["held"], 1)
 
     # --- statistics (spec 12) ----------------------------------------------
 
@@ -296,18 +300,40 @@ class SmallscopeTestCase(unittest.TestCase):
         with app.test_request_context("/"):
             real = stats._totals()
         self.assertGreater(real["books"], 0)
-        saved = stats._cache.copy()
+        orig = stats._totals
         try:
-            stats._cache["mtime"] = None
-            orig = stats._totals
+            stats._cache.invalidate()
             stats._totals = lambda: dict(real, books=0)
             with app.test_request_context("/"):
                 data = stats.collect()
             self.assertEqual(data["readouts"]["rated"]["pct"], 0.0)
         finally:
             stats._totals = orig
-            stats._cache.clear()
-            stats._cache.update(saved)
+            # Drop the doctored figures so later tests see the real library.
+            stats._cache.invalidate()
+
+    def test_surfaces_degrade_when_the_library_vanishes(self):
+        """An unreadable metadata.db must not 500 anything.
+
+        /statistics and /palette-data.js both called getmtime outside any try,
+        unlike every sibling surface, so a library that went away took them
+        down with a traceback instead of an answer.
+        """
+        from cps import library_cache
+
+        orig = library_cache.library_path
+        library_cache.library_path = lambda: os.path.join(_TMP, "gone", "metadata.db")
+        try:
+            # The page exists, the store behind it does not.
+            self.assertEqual(self.client.get("/statistics").status_code, 503)
+            # palette.js stands down on an empty index, so serve it one.
+            rv = self.client.get("/palette-data.js")
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(rv.get_data(as_text=True), "window.PALETTE=[];")
+            # Browsing still works; the sidebar just goes quiet.
+            self.assertEqual(self.client.get("/").status_code, 200)
+        finally:
+            library_cache.library_path = orig
 
     def test_statistics_page_renders(self):
         rv = self.client.get("/statistics")
@@ -327,6 +353,31 @@ class SmallscopeTestCase(unittest.TestCase):
         if m:
             return int(m.group(1))
         return 0 if "No Results Found" in page else -1
+
+    def _result_titles(self, query, sort_param):
+        import re
+        from urllib.parse import quote
+
+        page = self.client.get(
+            "/search/%s?query=%s" % (sort_param, quote(query)), follow_redirects=True
+        ).get_data(as_text=True)
+        return re.findall(r'<p title="([^"]+)"', page)
+
+    def test_search_results_honour_the_sort_header(self):
+        """search.html's sort buttons must actually sort.
+
+        The parity rewrite took an order argument and dropped it, pinning every
+        search to Books.sort. The buttons still rendered as active when
+        clicked, so the page looked sorted and was not.
+        """
+        az = self._result_titles("tags:Fic", "abc")
+        za = self._result_titles("tags:Fic", "zyx")
+        self.assertGreater(len(az), 1, "need several results to observe an order")
+        self.assertEqual(az, sorted(az))
+        self.assertEqual(za, list(reversed(az)))
+        # authaz orders on db.Series.name, so it only resolves if the series
+        # join travels with the order; without it this raises rather than sorts.
+        self.assertEqual(sorted(self._result_titles("tags:Fic", "authaz")), sorted(az))
 
     def test_field_prefixes_resolve(self):
         # The whole point of the phase: upstream returned 0 for every one of
@@ -393,8 +444,17 @@ class SmallscopeTestCase(unittest.TestCase):
         }
         self.assertIn("Fic", opened)
         self.assertIn("Fic.SciFi", opened)
+        # With no active category nothing should be pre-expanded. Asserted
+        # against the same data-cat regex rather than a bare " open>" scan:
+        # the previous form sliced on the literal "WINGS", which the page never
+        # contains (the heading renders "Wings" and CSS uppercases it), so the
+        # split was a no-op and the assertion was not the one it described.
         home = self.client.get("/").get_data(as_text=True)
-        self.assertNotIn(" open>", home.split("WINGS")[0])
+        opened_home = {
+            m.group(1)
+            for m in re.finditer(r'<details data-cat="([^"]*)"[^>]*\sopen>', home, re.S)
+        }
+        self.assertEqual(opened_home, set(), "home must not pre-expand a category")
 
     def test_category_page_renders_and_unknown_404s(self):
         self.assertEqual(self.client.get("/categories/Fic").status_code, 200)
@@ -430,8 +490,10 @@ class SmallscopeTestCase(unittest.TestCase):
         body = self.client.get("/palette-data.js").get_data(as_text=True)
         rows = json.loads(re.sub(r"^window\.PALETTE=|;$", "", body.strip()))
 
+        # Entities addressed by id (/<data>/<sort_param>/<id>) are where the
+        # shape bug lives, so each kind is checked against an id that is not 1.
         checked = 0
-        for kind in ("author", "series", "category"):
+        for kind in ("author", "series"):
             for row in [r for r in rows if r["g"] == kind]:
                 ident = re.search(r"/(\d+)$", row["h"])
                 if not ident or ident.group(1) == "1":
@@ -442,7 +504,20 @@ class SmallscopeTestCase(unittest.TestCase):
                 self.assertIn(name, rv.get_data(as_text=True), row["h"])
                 checked += 1
                 break
-        self.assertGreaterEqual(checked, 2, "fixture must expose non-id-1 entities")
+        self.assertEqual(checked, 2, "fixture must expose non-id-1 author and series")
+
+        # Categories are addressed by name through Carrel's roll-up browser,
+        # so they cannot land on a numeric fallback; assert instead that the
+        # name in the row is the category the page actually renders.
+        cats = [r for r in rows if r["g"] == "category"]
+        self.assertTrue(cats, "fixture must expose categories")
+        for row in cats:
+            self.assertTrue(row["h"].startswith("/categories/"), row["h"])
+            rv = self.client.get(row["h"], follow_redirects=True)
+            self.assertEqual(rv.status_code, 200, row["h"])
+            self.assertIn(
+                "Category: %s" % row["t"], rv.get_data(as_text=True), row["h"]
+            )
 
         for row in [r for r in rows if r["g"] == "page"]:
             rv = self.client.get(row["h"], follow_redirects=True)

@@ -20,17 +20,26 @@
 # "King" matches "sorcerer-king" and equally "making" inside a description.
 # It is faithful, and it is the cost of parity.
 
-import os
-
-from . import config, logger
+from . import logger
+from .library_cache import LibraryCache, library_path
 
 log = logger.create()
-
-_cache = {"mtime": None, "db": None}
 
 
 class SearchError(Exception):
     """A query the grammar could not parse. Carries the engine's own message."""
+
+
+def _open_quarry():
+    from cquarry.db import CalibreDB
+
+    log.info("Search engine rebound to metadata.db")
+    return CalibreDB(library_path())
+
+
+# The superseded connection is closed only once its replacement exists, so a
+# failed rebuild leaves the working engine in place rather than a closed one.
+_cache = LibraryCache(_open_quarry, dispose=lambda quarry: quarry.close())
 
 
 def _quarry():
@@ -39,21 +48,7 @@ def _quarry():
     cquarry opens its own mode=ro connection, so this never widens the
     read-only guarantee in spec 7.
     """
-    dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-    mtime = os.path.getmtime(dbpath)
-    if _cache["mtime"] != mtime:
-        from cquarry.db import CalibreDB
-
-        old = _cache.get("db")
-        if old is not None:
-            try:
-                old.close()
-            except Exception:
-                pass
-        _cache["db"] = CalibreDB(dbpath)
-        _cache["mtime"] = mtime
-        log.info("Search engine rebound to metadata.db (mtime %s)", mtime)
-    return _cache["db"]
+    return _cache.get()
 
 
 def resolve(term):

@@ -13,19 +13,16 @@
 # tag link table rather than a search per tag, and is cached on metadata.db's
 # mtime exactly as wings.py is.
 
-import os
-
 from flask import Blueprint, abort
 from flask_babel import gettext as _
 
 from . import calibre_db, config, db, logger
+from .library_cache import LibraryCache
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
 categories = Blueprint("categories", __name__)
 log = logger.create()
-
-_cache = {"mtime": None, "tree": None, "members": None}
 
 
 def _rollup():
@@ -64,16 +61,30 @@ def _tree(names):
     return root
 
 
+def _rebuild():
+    members = _rollup()
+    tree = _tree(sorted(members))
+    log.info("Category tree rebuilt: %d tags", len(members))
+    # The sidebar's flattened list goes in the cache entry too. It is a walk
+    # over every node and every implied prefix, it depends on nothing but the
+    # tree and the counts fixed here, and the sidebar renders on every single
+    # page: recomputing it per request was the one part of this module that
+    # ignored its own cache.
+    return tree, members, _as_list(tree, members)
+
+
+_cache = LibraryCache(_rebuild)
+
+
 def _build():
-    dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-    mtime = os.path.getmtime(dbpath)
-    if _cache["mtime"] != mtime:
-        members = _rollup()
-        _cache.update(
-            {"mtime": mtime, "members": members, "tree": _tree(sorted(members))}
-        )
-        log.info("Category tree rebuilt: %d tags", len(members))
-    return _cache["tree"], _cache["members"]
+    """(tree, members), rebuilt when metadata.db changes."""
+    tree, members, _nav = _cache.get()
+    return tree, members
+
+
+def _nav_tree():
+    """The sidebar's pre-walked tree, built once per library change."""
+    return _cache.get()[2]
 
 
 def _as_list(node, counts):
@@ -95,11 +106,10 @@ def _as_list(node, counts):
 @categories.app_context_processor
 def inject_categories():
     try:
-        tree, counts = _build()
+        return {"category_tree": _nav_tree()}
     except Exception as ex:
         log.error("Category tree unavailable: %s", ex)
         return {"category_tree": []}
-    return {"category_tree": _as_list(tree, counts)}
 
 
 @categories.route("/categories/<path:name>", defaults={"page": 1})

@@ -70,8 +70,8 @@
               <li class="dropdown"><a href="#" class="dropdown-toggle profileDrop" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user"></span></a>
                 <ul class="dropdown-menu profileDropli">
                     <li><a id="top_user" data-text="{{_('Account')}}" href="{{url_for('web.profile')}}" ><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{current_user.name}}</span></a></li>
-                    {% if g.allow_registration and not current_user.is_authenticated %}
-                    {% endif %}
+                    {# smallscope: login, register and logout removed (spec 11);
+                       the owner is authenticated on every request #}
                 </ul>
               </li>
               {% endif %}
@@ -94,8 +94,7 @@
               <li><a id="top_user" data-text="{{_('Account')}}" href="{{url_for('web.profile')}}"><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{_('Account')}}</span></a></li>
               {% endif %}
             {% endif %}
-            {% if g.allow_registration and not current_user.is_authenticated and g.current_theme == 0 %}
-            {% endif %}
+            {# smallscope: login and register removed (spec 11) #}
           </ul>
         </div><!--/.nav-collapse -->
       </div>

@@ -8,37 +8,36 @@
 # connection; results are cached keyed on metadata.db's mtime, so any
 # library change invalidates on the next request.
 
-import os
-
 from flask import Blueprint, abort
 from flask_babel import gettext as _
 
 from . import calibre_db, config, db, logger
+from .library_cache import LibraryCache, library_path
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
 wings = Blueprint("wings", __name__)
 log = logger.create()
 
-_cache = {"mtime": None, "wings": None}
+
+def _resolve_wings():
+    from cquarry.db import CalibreDB
+
+    with CalibreDB(library_path()) as quarry:
+        resolved = {
+            name: frozenset(quarry.resolve_vl(name))
+            for name in quarry.get_virtual_libraries()
+        }
+    log.info("Wings cache rebuilt: %d wings", len(resolved))
+    return resolved
+
+
+_cache = LibraryCache(_resolve_wings)
 
 
 def _wing_ids():
     """Wing name -> frozenset of book ids, rebuilt when metadata.db changes."""
-    dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-    mtime = os.path.getmtime(dbpath)
-    if _cache["mtime"] != mtime:
-        from cquarry.db import CalibreDB
-
-        with CalibreDB(dbpath) as quarry:
-            resolved = {
-                name: frozenset(quarry.resolve_vl(name))
-                for name in quarry.get_virtual_libraries()
-            }
-        _cache["mtime"] = mtime
-        _cache["wings"] = resolved
-        log.info("Wings cache rebuilt: %d wings", len(resolved))
-    return _cache["wings"]
+    return _cache.get()
 
 
 @wings.app_context_processor

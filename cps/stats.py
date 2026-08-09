@@ -12,20 +12,17 @@
 # 2% rated, so those would be charts of a single slice. They are readouts.
 # See spec 12.1 for the split and the counts that justify it.
 
-import os
-
-from flask import Blueprint
+from flask import Blueprint, abort
 from flask_babel import gettext as _
 from sqlalchemy import text
 
-from . import calibre_db, config, logger
+from . import calibre_db, logger
+from .library_cache import LibraryCache
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
 statistics = Blueprint("statistics", __name__)
 log = logger.create()
-
-_cache = {"mtime": None, "data": None}
 
 TOP_N = 12
 
@@ -127,7 +124,7 @@ def _custom_column_breakdown(label):
     )
     if not got:
         return []
-    cid, datatype, normalized = got[0][0], got[0][1], got[0][2]
+    cid, normalized = got[0][0], got[0][2]
     try:
         if normalized:
             rows = _rows(
@@ -152,13 +149,7 @@ def _ratings():
     return rated
 
 
-def collect():
-    """Everything the statistics surfaces need, cached on metadata.db's mtime."""
-    dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-    mtime = os.path.getmtime(dbpath)
-    if _cache["mtime"] == mtime:
-        return _cache["data"]
-
+def _rebuild():
     totals = _totals()
     books = totals["books"] or 1
     hours = _hour_histogram()
@@ -196,9 +187,16 @@ def collect():
             "source": source[:4],
         },
     }
-    _cache.update({"mtime": mtime, "data": data})
     log.info("Statistics rebuilt: %d books", totals["books"])
     return data
+
+
+_cache = LibraryCache(_rebuild)
+
+
+def collect():
+    """Everything the statistics surfaces need, cached on metadata.db's mtime."""
+    return _cache.get()
 
 
 # --- surfaces ---------------------------------------------------------------
@@ -209,9 +207,16 @@ def collect():
 @statistics.route("/statistics")
 @login_required_if_no_ano
 def show_statistics():
+    try:
+        data = collect()
+    except Exception as ex:
+        # The page exists; the library behind it does not answer. 503 says
+        # that, where an unguarded getmtime here used to raise a 500.
+        log.error("Statistics unavailable: %s", ex)
+        abort(503)
     return render_title_template(
         "statistics.html",
-        stats=collect(),
+        stats=data,
         title=_("Statistics"),
         page="statistics",
     )

@@ -83,15 +83,21 @@ def build_fixture(path, extra_wings=None):
         "INSERT INTO books_tags_link (book,tag) VALUES (?,?)",
         [(1, 2), (1, 3), (2, 2), (3, 1), (4, 4)],
     )
-    # A series so the palette index and series browse have something real to
+    # Series so the palette index and series browse have something real to
     # exercise; without one, whole code paths look covered but never run.
+    # Two of them, because the /<data>/<sort_param>/<id> shape bug can only be
+    # detected against an entity whose id is not 1: with a single series every
+    # link "works" by landing on the fallback.
     cur.executemany(
         "INSERT INTO series (id,name,sort) VALUES (?,?,?)",
-        [(1, "The Broken Earth", "Broken Earth, The")],
+        [
+            (1, "The Broken Earth", "Broken Earth, The"),
+            (2, "Dune Chronicles", "Dune Chronicles"),
+        ],
     )
     cur.executemany(
         "INSERT INTO books_series_link (book,series) VALUES (?,?)",
-        [(1, 1), (2, 1)],
+        [(1, 1), (2, 1), (3, 2)],
     )
     cur.execute("INSERT INTO languages (id,lang_code) VALUES (1,'eng')")
     cur.executemany(

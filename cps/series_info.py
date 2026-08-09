@@ -10,25 +10,17 @@
 # it. cquarry is already load-bearing here for search and wings, and two
 # copies of the same rule would eventually disagree.
 
-import os
-
 from flask import Blueprint
 
-from . import calibre_db, config, db, logger
+from . import calibre_db, db, logger
+from .library_cache import LibraryCache
 
 series_info = Blueprint("series_info", __name__)
 log = logger.create()
 
-_cache = {"mtime": None, "series": None}
 
-
-def _build():
-    """series id -> {'name', 'held', 'max', 'gaps', 'indices'}."""
-    dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-    mtime = os.path.getmtime(dbpath)
-    if _cache["mtime"] == mtime:
-        return _cache["series"]
-
+def _rebuild():
+    """series id -> {'name', 'held', 'max', 'gaps'}."""
     from cquarry.helpers import detect_series_gaps
 
     rows = (
@@ -51,13 +43,23 @@ def _build():
         out[sid] = {
             "name": entry["name"],
             "held": len(idx),
-            "max": int(top) if top else None,
+            # The highest index held, carried as-is. int(top) if top truncated
+            # a 7.5 to 7 and dropped a legitimate index of 0 as falsy, both of
+            # which state something the library did not say.
+            "max": top,
             "gaps": gaps,
         }
 
-    _cache.update({"mtime": mtime, "series": out})
     log.info("Series index rebuilt: %d series", len(out))
     return out
+
+
+_cache = LibraryCache(_rebuild)
+
+
+def _build():
+    """series id -> {'name', 'held', 'max', 'gaps'}, rebuilt on library change."""
+    return _cache.get()
 
 
 @series_info.app_template_global("carrel_series")

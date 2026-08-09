@@ -14,8 +14,15 @@
 #
 # Deleting this module and its two lines in main.py restores stock behaviour.
 #
-# This is only safe because the server binds localhost (spec 11.3). If it is
-# ever exposed to a network again, authentication has to come back with it.
+# The server binds 0.0.0.0 (spec 11.3), so with authentication removed anything
+# on the local network can read and download the whole library and reach the
+# admin pane. That is recorded as a deliberate decision, not an oversight: the
+# control is that the instance runs only in environments Brandon trusts, never
+# the bind address. Somewhere untrusted, the honest fixes are deleting this
+# module or fronting it with an authenticating reverse proxy.
+#
+# This comment previously claimed a localhost bind. It stopped being true when
+# the server was rebound for phone access on 2026-07-24.
 
 from flask import abort, request
 
@@ -30,13 +37,15 @@ from .cw_login import current_user, login_user
 # /admin/user/<id> is deliberately NOT sealed: it is how the owner edits their
 # own locale and sidebar preferences, which is ordinary configuration rather
 # than user management.
-_SEALED = frozenset((
-    "/login",
-    "/logout",
-    "/register",
-    "/admin/user/new",
-    "/admin/usertable",
-))
+_SEALED = frozenset(
+    (
+        "/login",
+        "/logout",
+        "/register",
+        "/admin/user/new",
+        "/admin/usertable",
+    )
+)
 
 
 def _owner():

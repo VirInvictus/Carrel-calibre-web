@@ -440,14 +440,22 @@ def render_search_results(term, offset=None, order=None, limit=None):
             ids, search_error = [], str(ex)
         result_count = len(ids)
         page = (int(offset) // int(limit) + 1) if (offset and limit) else 1
+        # Carrel: honour the sort header. search.html renders eight sort
+        # buttons and marks the chosen one active; ordering by a hardcoded
+        # Books.sort made every one of them a no-op that still looked applied.
+        # The series join travels with the order because authaz/authza sort on
+        # db.Series.name, exactly as upstream's own search query did.
         entries, __, pagination = calibre_db.fill_indexpage(
             page,
             0,
             db.Books,
             db.Books.id.in_(ids),
-            [db.Books.sort],
+            order[0] if order else [db.Books.sort],
             True,
             config.config_read_column,
+            db.books_series_link,
+            db.Books.id == db.books_series_link.c.book,
+            db.Series,
         )
     else:
         entries = list()

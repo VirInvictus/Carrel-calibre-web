@@ -9,8 +9,25 @@ jobs:
   check:
     name: ruff + tests
     runs-on: ubuntu-latest
+    env:
+      # Every Python file Carrel owns. The vendored upstream cps/ tree carries
+      # its own style and is deliberately not listed. Defined once so the two
+      # ruff steps cannot disagree; a new Carrel module goes here and nowhere
+      # else. This list had drifted to three entries, which is how an unused
+      # variable and two unformatted files reached the branch unchallenged.
+      CARREL_PY: >-
+        tests/
+        cps/carrel_search.py
+        cps/categories.py
+        cps/library_cache.py
+        cps/palette.py
+        cps/series_info.py
+        cps/single_user.py
+        cps/smallscope.py
+        cps/stats.py
+        cps/wings.py
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install system dependencies
         # python-magic loads libmagic at import; Wand loads the ImageMagick
@@ -45,12 +62,10 @@ jobs:
         run: pip install "git+https://github.com/VirInvictus/CalibreQuarry.git@main"
 
       - name: ruff check
-        # Scoped to the smallscope-owned Python only; the vendored upstream
-        # cps/ tree carries its own style and is not linted here.
-        run: ruff check tests/ cps/wings.py cps/smallscope.py
+        run: ruff check $CARREL_PY
 
       - name: ruff format --check
-        run: ruff format --check tests/ cps/wings.py cps/smallscope.py
+        run: ruff format --check $CARREL_PY
 
       - name: unittest
         run: python -m unittest discover -s tests

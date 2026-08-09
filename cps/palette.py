@@ -13,21 +13,19 @@
 # invalidates it on the next request.
 #
 # The payload is deliberately whole rather than paged: the fuzzy match runs
-# client-side over the full set, which is what makes it feel instant, and the
-# instance is localhost single-user.
+# client-side over the full set, which is what makes it feel instant, and there
+# is exactly one reader to serve it to (spec 11).
 
 import json
-import os
 
 from flask import Blueprint, Response
 
-from . import calibre_db, config, db, logger
+from . import calibre_db, db, logger
+from .library_cache import LibraryCache, library_mtime
 from .usermanagement import login_required_if_no_ano
 
 palette = Blueprint("palette", __name__)
 log = logger.create()
-
-_cache = {"mtime": None, "body": None}
 
 
 def _entries():
@@ -74,30 +72,53 @@ def _entries():
             }
         )
     for series in session.query(db.Series).all():
-        rows.append({"t": series.name, "g": "series", "h": "/series/stored/%d" % series.id})
+        rows.append(
+            {"t": series.name, "g": "series", "h": "/series/stored/%d" % series.id}
+        )
+    # Categories jump to Carrel's roll-up browser rather than stock
+    # calibre-web's /category/stored/<id>: the sidebar tree already goes there,
+    # and one concept should not have two destinations. For a leaf tag the two
+    # show the same books anyway, since a leaf's roll-up is itself.
+    #
+    # Only leaf tags are indexed, which is what `tags` holds. The implied
+    # intermediate nodes (Fic.Fantasy) stay reachable through the tree and not
+    # through Ctrl-K; indexing them too would grow the payload for a set of
+    # destinations that are one click away in the sidebar.
     for tag in session.query(db.Tags).all():
-        rows.append({"t": tag.name, "g": "category", "h": "/category/stored/%d" % tag.id})
+        rows.append(
+            {"t": tag.name, "g": "category", "h": "/categories/%s" % quote(tag.name)}
+        )
 
     return rows
+
+
+def _body():
+    rows = _entries()
+    log.info("Palette index rebuilt: %d entries", len(rows))
+    return "window.PALETTE=%s;" % json.dumps(
+        rows, ensure_ascii=False, separators=(",", ":")
+    )
+
+
+_cache = LibraryCache(_body)
 
 
 @palette.route("/palette-data.js")
 @login_required_if_no_ano
 def palette_data():
-    dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-    mtime = os.path.getmtime(dbpath)
-    if _cache["mtime"] != mtime:
-        rows = _entries()
-        _cache["body"] = "window.PALETTE=%s;" % json.dumps(
-            rows, ensure_ascii=False, separators=(",", ":")
-        )
-        _cache["mtime"] = mtime
-        log.info("Palette index rebuilt: %d entries", len(rows))
+    try:
+        body = _cache.get()
+    except Exception as ex:
+        # palette.js already treats an empty index as "no palette" and stands
+        # down, so an unreachable library costs the shortcut and nothing else.
+        # This used to raise out of an unguarded getmtime.
+        log.error("Palette index unavailable: %s", ex)
+        body = "window.PALETTE=[];"
     # The URL carries metadata.db's mtime (see palette_version below), so a
     # given URL's content can never change. Without this the browser reparses
     # ~390 KB of index on every page load.
     return Response(
-        _cache["body"],
+        body,
         mimetype="application/javascript",
         headers={"Cache-Control": "private, max-age=31536000, immutable"},
     )
@@ -106,8 +127,5 @@ def palette_data():
 @palette.app_context_processor
 def inject_palette_version():
     """Cache-buster for the palette index URL, keyed on the library's mtime."""
-    try:
-        dbpath = os.path.join(config.config_calibre_dir, "metadata.db")
-        return {"palette_version": int(os.path.getmtime(dbpath))}
-    except Exception:
-        return {"palette_version": 0}
+    mtime = library_mtime()
+    return {"palette_version": int(mtime) if mtime is not None else 0}

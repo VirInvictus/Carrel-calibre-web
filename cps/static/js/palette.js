@@ -102,9 +102,9 @@
         h: "/search?query=" + encodeURIComponent(input.value.trim()),
       });
     }
-    if (!results.length) {
-      list.innerHTML = '<div class="cp-none">nothing shelved under that name</div>';
-    }
+    // No "results is empty" branch: an empty query scores every entry at 1 and
+    // a non-empty one always appends the search fallback, so by this point
+    // results never is. The reachable no-match message is the one below.
     if (q && !hits) {
       // No destination matched, so say so above the search row rather than
       // leaving it looking like a match.
