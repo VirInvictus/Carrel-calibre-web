@@ -589,12 +589,6 @@ hr { border-color: var(--rule); }
 .masthead a { color: var(--kngw-black6); }
 .masthead a:hover { color: var(--kngw-orange); }
 
-@media (max-width: 767px) {
-    .hero-row { gap: 20px; }
-    .hero-n { font-size: 24px; }
-    .stat-label { flex-basis: 120px; }
-}
-
 /* ------------------------------------------------------------------ */
 /* Buttons and controls                                               */
 /* ------------------------------------------------------------------ */
@@ -701,6 +695,25 @@ hr { border-color: var(--rule); }
     padding: 5px 0;
     border-bottom: 1px solid var(--rule);
 }
+
+/* The three container-level rows go uppercase at wider tracking, which the
+   inner `p` rows above do not. They overlap: `.publishing-date` and
+   `.real_custom_columns` are in both selector lists, and this rule wins on
+   source order, so those two are uppercase at 0.08em while `.languages p`,
+   `.tags p` and `.identifiers p` are sentence case at 0.06em. That is not what
+   "one treatment, not three" says, and it is left as-is only because changing
+   it changes the page. Both were unscoped here until 2026-08-09; `.book-meta`
+   is the only place either class appears (detail.html, listenmp3.html), so
+   scoping them is behaviour-identical. */
+.book-meta .identifiers,
+.book-meta .publishing-date,
+.book-meta .real_custom_columns {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--kngw-gray3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
 .book-meta .publishers span,
 .book-meta .publishing-date span { font-size: 11px; }
 .book-meta .publishers a { font-family: var(--mono); font-size: 11px; }
@@ -767,19 +780,14 @@ hr { border-color: var(--rule); }
     white-space: nowrap;
 }
 
-.book-meta p, #description p {
+/* The description heading is `#decription` upstream, spelled that way in
+   detail.html, basic_detail.html and listenmp3.html alike, and handled by the
+   section-head rule above. There is no `#description` anywhere, so the
+   selector this rule used to carry matched nothing. */
+.book-meta p {
     font-family: var(--serif);
     color: var(--kngw-white);
     max-width: 68ch;
-}
-
-/* Metadata rows as a ledger: mono labels, hairline separation */
-.book-meta .identifiers, .publishing-date, .real_custom_columns {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--kngw-gray3);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
 }
 
 /* Reading-status badge states (spec §5.2) */
@@ -853,7 +861,15 @@ table td, table th { border-color: var(--rule); }
 /* Mobile                                                             */
 /* ------------------------------------------------------------------ */
 
+/* One breakpoint, one block. The statistics rules below used to sit in a
+   second @media of the same width up in §12's section; two blocks for one
+   breakpoint is how a phone rule ends up overridden by a desktop rule written
+   later in the file. */
 @media (max-width: 767px) {
     body { font-size: 16px; }
     .navigation .nav-head { padding-top: 12px; }
+
+    .hero-row { gap: 20px; }
+    .hero-n { font-size: 24px; }
+    .stat-label { flex-basis: 120px; }
 }
