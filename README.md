@@ -153,3 +153,13 @@ GPL-3.0, inherited from calibre-web. Upstream's documentation, issue tracker
 and community live at
 [janeczku/calibre-web](https://github.com/janeczku/calibre-web). This fork is a
 personal instance and is not a place to report upstream bugs.
+
+### support
+
+if any of this is useful to you and you'd like to chip in:
+
+```
+bc1qkge6zr45tzqfwfmvma2ylumt6mg7wlwmhr05yv
+```
+
+https://liberapay.com/bdkl/
