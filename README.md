@@ -29,7 +29,7 @@ database around the attempts.
 **Calibre's search grammar.** Upstream has none: it lowercases the term and
 hands it to FTS5 as a phrase, so every field-prefixed query matches as literal
 text and finds nothing. Carrel evaluates through
-[CalibreQuarry](https://github.com/VirInvictus/CalibreQuarry)'s stdlib port of
+[CalibreQuarry](https://github.com/VirInvictus/cquarry)'s stdlib port of
 Calibre's expression parser. Measured against the live library:
 
 | query | upstream | Carrel |

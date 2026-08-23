@@ -55,7 +55,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install cquarry (Wings evaluation engine)
-        # Wings routes evaluate virtual libraries through CalibreQuarry's search
+        # Wings routes evaluate virtual libraries through cquarry's search
         # port (cps/wings.py: `from cquarry.db import CalibreDB`). It lives in a
         # sibling repo, not requirements.txt, so install it here or the Wings
         # tests 404.
