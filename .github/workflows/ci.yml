@@ -59,7 +59,7 @@ jobs:
         # port (cps/wings.py: `from cquarry.db import CalibreDB`). It lives in a
         # sibling repo, not requirements.txt, so install it here or the Wings
         # tests 404.
-        run: pip install "git+https://github.com/VirInvictus/CalibreQuarry.git@main"
+        run: pip install "git+https://github.com/VirInvictus/cquarry.git@main"
 
       - name: ruff check
         run: ruff check $CARREL_PY
