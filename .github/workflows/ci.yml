@@ -25,6 +25,8 @@ jobs:
         cps/single_user.py
         cps/smallscope.py
         cps/stats.py
+        cps/saved_searches.py
+        cps/reader_state.py
         cps/wings.py
     steps:
       - uses: actions/checkout@v5

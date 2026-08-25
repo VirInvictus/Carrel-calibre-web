@@ -1,0 +1,85 @@
+# -*- coding: utf-8 -*-
+
+# Saved Searches as browse sections (Carrel spec extension, cquarry 1.1).
+#
+# Calibre stores named searches in metadata.db's preferences table under the
+# `saved_searches` key. Since cquarry 1.1 the engine interpolates them
+# directly (`search:"Name"`), which means the web search bar and a resolved
+# sidebar entry can never disagree about what a saved search matches: both go
+# through the same grammar evaluation as Wings.
+#
+# Same shape as wings.py: resolve once per library revision, cache on
+# metadata.db's mtime, expose a sidebar list plus one route per search.
+
+from flask import Blueprint, abort
+from flask_babel import gettext as _
+
+from . import calibre_db, config, db, logger
+from .library_cache import LibraryCache, library_path
+from .render_template import render_title_template
+from .usermanagement import login_required_if_no_ano
+
+saved_searches = Blueprint("saved_searches", __name__)
+log = logger.create()
+
+
+def _resolve_saved():
+    from cquarry.db import CalibreDB
+
+    with CalibreDB(library_path()) as quarry:
+        names = quarry.get_saved_searches()
+        resolved = {
+            name: frozenset(quarry.search('search:"%s"' % name)) for name in names
+        }
+    log.info("Saved-search cache rebuilt: %d searches", len(resolved))
+    return resolved
+
+
+_cache = LibraryCache(_resolve_saved)
+
+
+def _saved_ids():
+    """Saved-search name -> frozenset of book ids, rebuilt on library change."""
+    return _cache.get()
+
+
+@saved_searches.app_context_processor
+def inject_saved_searches():
+    try:
+        resolved = _saved_ids()
+    except Exception as ex:
+        log.error("Saved searches unavailable: %s", ex)
+        return {"saved_searches_list": []}
+    return {
+        "saved_searches_list": [
+            {"name": name, "count": len(ids)} for name, ids in resolved.items()
+        ]
+    }
+
+
+@saved_searches.route("/saved/<path:name>", defaults={"page": 1})
+@saved_searches.route("/saved/<path:name>/page/<int:page>")
+@login_required_if_no_ano
+def show_saved(name, page):
+    try:
+        ids = _saved_ids().get(name)
+    except Exception as ex:
+        log.error("Saved searches unavailable: %s", ex)
+        ids = None
+    if ids is None:
+        abort(404)
+    # A saved search that currently matches nothing is still a real search:
+    # render an empty page rather than 404 so the sidebar link keeps working.
+    db_filter = db.Books.id.in_(ids or [-1])
+    entries, random, pagination = calibre_db.fill_indexpage(
+        page, 0, db.Books, db_filter, [db.Books.sort], True, config.config_read_column
+    )
+    return render_title_template(
+        "index.html",
+        random=random,
+        entries=entries,
+        pagination=pagination,
+        title=_("Saved Search: %(name)s", name=name),
+        page="saved_searches",
+        wing_active=name,
+    )

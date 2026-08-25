@@ -156,6 +156,14 @@
                   <li {% if page == 'wings' and wing_active is defined and wing_active == wing.name %}class="active"{% endif %}><a href="{{ url_for('wings.show_wing', name=wing.name) }}"><span class="glyphicon glyphicon-tower"></span> {{ wing.name|shortentitle(40) }} <span class="badge badge-sm">{{ wing.count }}</span></a></li>
                 {% endfor %}
               {% endif %}
+              {# Carrel: Calibre saved searches as browse sections (cquarry 1.1
+                 interpolation — same engine as the search bar and Wings). #}
+              {% if current_user.is_authenticated and saved_searches_list %}
+                <li class="nav-head hidden-xs">{{_('Saved Searches')}}</li>
+                {% for saved in saved_searches_list %}
+                  <li {% if page == 'saved_searches' and wing_active is defined and wing_active == saved.name %}class="active"{% endif %}><a href="{{ url_for('saved_searches.show_saved', name=saved.name) }}"><span class="glyphicon glyphicon-search"></span> {{ saved.name|shortentitle(40) }} <span class="badge badge-sm">{{ saved.count }}</span></a></li>
+                {% endfor %}
+              {% endif %}
               {# Carrel: surfaces with no other permanent home. /statistics was
                  reachable only from the front-page strip. #}
               <li class="nav-head hidden-xs">{{_('Library')}}</li>

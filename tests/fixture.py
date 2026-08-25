@@ -119,6 +119,9 @@ def build_fixture(path, extra_wings=None):
         "Hugo": "tags:Award.Hugo",  # book 1
         "NotHugo": 'not vl:"Hugo"',  # books 2, 3, 4 (vl: cross-ref)
         "Empty": 'tags:"Nothing.Here"',  # no books
+        # Hidden in Calibre's own UI: get_vl_ui_state must keep it out
+        # of the sidebar while it stays resolvable by direct route.
+        "Secret": "tags:Award.Hugo",
     }
     wings.update(extra_wings or {})
     import json
@@ -127,7 +130,55 @@ def build_fixture(path, extra_wings=None):
         "INSERT INTO preferences (key,val) VALUES ('virtual_libraries', ?)",
         (json.dumps(wings),),
     )
+    cur.execute(
+        "INSERT INTO preferences (key,val) VALUES ('virt_libs_order', ?)",
+        (json.dumps({"SciFi": 0, "Hugo": 1}),),
+    )
+    cur.execute(
+        "INSERT INTO preferences (key,val) VALUES ('virt_libs_hidden', ?)",
+        (json.dumps(["Secret"]),),
+    )
+    # Saved searches exercise cquarry's search:"Name" interpolation end to end:
+    # one matching one book, one matching one, one matching nothing.
+    cur.execute(
+        "INSERT INTO preferences (key,val) VALUES ('saved_searches', ?)",
+        (
+            json.dumps(
+                {
+                    "Hugo Winners": "tags:Award.Hugo",
+                    "Space": 'tags:"Fic.SciFi.Space"',
+                    "Nothing": 'tags:"Nothing.Here"',
+                }
+            ),
+        ),
+    )
 
+    # Reader state (cquarry extractors): highlights plus two devices whose
+    # epoch_time decides the winner regardless of row order.
+    cur.executemany(
+        "INSERT INTO annotations (book, format, user_type, user, timestamp,"
+        " annot_id, annot_type, annot_data) VALUES (?,?,?,?,?,?,?,?)",
+        [
+            (
+                1,
+                "EPUB",
+                "local",
+                "reader",
+                "2026-01-01T00:00:00",
+                "a1",
+                "highlight",
+                json.dumps({"text": "mind is not a vessel"}),
+            ),
+        ],
+    )
+    cur.executemany(
+        "INSERT INTO last_read_positions (book, user_type, user, device,"
+        " cfi, pos_frac, epoch_time) VALUES (?,?,?,?,?,?,?)",
+        [
+            (1, "local", "reader", "kobo", "epubcfi(/6/4)", 0.42, 100),
+            (1, "local", "reader", "phone", "epubcfi(/6/9)", 0.90, 200),
+        ],
+    )
     cur.executemany(
         "INSERT INTO custom_columns (id,label,name,datatype,is_multiple,normalized) "
         "VALUES (?,?,?,?,0,?)",

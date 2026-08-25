@@ -47,6 +47,8 @@ def main():
     from .palette import palette
     from .series_info import series_info
     from .stats import statistics
+    from .saved_searches import saved_searches
+    from .reader_state import reader_state
     from .wings import wings
 
     try:
@@ -88,6 +90,8 @@ def main():
     app.register_blueprint(jinjia)
     app.register_blueprint(about)
     app.register_blueprint(wings)
+    app.register_blueprint(saved_searches)
+    app.register_blueprint(reader_state)
     app.register_blueprint(palette)
     app.register_blueprint(categories)
     app.register_blueprint(statistics)

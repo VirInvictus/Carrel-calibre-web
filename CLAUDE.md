@@ -35,6 +35,8 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 | `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch` by path prefix |
 | `cps/carrel_search.py` | resolves the search bar through cquarry's engine |
 | `cps/wings.py` | Calibre virtual libraries as browse sections |
+| `cps/saved_searches.py` | Calibre saved searches as browse sections (cquarry `search:"Name"` interpolation) |
+| `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors |
 | `cps/categories.py` | the dot taxonomy as a tree, with descendant roll-up |
 | `cps/palette.py` | the Ctrl-K index, emitted as JS |
 | `cps/series_info.py` | series position, holdings, gaps |

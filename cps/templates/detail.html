@@ -184,6 +184,27 @@
                 </div>
             {% endif %}
 
+            {# Carrel: reader state from Calibre's own sync (cquarry 1.1):
+               latest per-device progress and e-reader highlights. Absent data
+               renders nothing — the library does not claim what it lacks. #}
+            {% set rs = carrel_reader_state(entry.id) %}
+            {% if rs %}
+                <div class="reader-state">
+                    {% if rs.progress is not none %}
+                        <p>
+                            <span>{{ _('Reading progress') }}:</span>
+                            <span class="series-held">{{ (rs.progress * 100) | round(0, 'floor') | int }}%{% if rs.device %} on {{ rs.device }}{% endif %}</span>
+                        </p>
+                    {% endif %}
+                    {% if rs.annotations %}
+                        <p>
+                            <span>{{ _('Highlights') }}:</span>
+                            <span class="series-held">{{ rs.annotations | length }}</span>
+                        </p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
             {% if entry.publishers|length > 0 %}
                 <div class="publishers">
                     <p>

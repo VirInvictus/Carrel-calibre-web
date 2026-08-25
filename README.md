@@ -49,6 +49,12 @@ the grammar's own message rather than quietly returning nothing.
 through the same engine, so a wing in the sidebar and a `vl:` search agree by
 construction.
 
+**Saved Searches.** Calibre’s named searches join them as a second sidebar section (`/saved/<name>`), resolved through cquarry 1.1’s `search:"Name"` interpolation with cycle detection — so the sidebar, the search bar and the desktop Calibre GUI can never disagree about what a saved search matches.
+
+**Calibre-exact wing layout.** The sidebar follows the ordering stored in Calibre’s own preferences (`virt_libs_order`) and hides what Calibre hides (`virt_libs_hidden`), so the web room arranges wings exactly as the desktop does.
+
+**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`) — both read through cquarry’s extractors, never guessed.
+
 **A category browser over the dot taxonomy.** Only leaf tags are assigned in
 this library (`Fic.Fantasy.Epic.Gods` exists; `Fic.Fantasy` does not), so every
 path prefix becomes a browsable node that accumulates its descendants. The
@@ -127,6 +133,8 @@ New code lives in new modules, so the diff against upstream stays legible.
 | `cps/smallscope.py` | disables blueprints and the cut browse surfaces |
 | `cps/carrel_search.py` | resolves a query through cquarry's engine |
 | `cps/wings.py` | virtual libraries as browse sections |
+| `cps/saved_searches.py` | Calibre saved searches as browse sections |
+| `cps/reader_state.py` | per-book progress and highlights on the detail page |
 | `cps/categories.py` | the dot-taxonomy tree and its roll-up |
 | `cps/palette.py` | the Ctrl-K index |
 | `cps/series_info.py` | series position, holdings and gaps |

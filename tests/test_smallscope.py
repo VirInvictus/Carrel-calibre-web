@@ -60,6 +60,8 @@ from cps.smallscope import (  # noqa: E402
 )
 from cps.tasks_status import tasks  # noqa: E402
 from cps.web import web  # noqa: E402
+from cps.reader_state import reader_state  # noqa: E402
+from cps.saved_searches import saved_searches  # noqa: E402
 from cps.wings import wings  # noqa: E402
 
 trim(tasks, shelf, editbook, remotelogin)
@@ -82,6 +84,8 @@ for blueprint in (
     palette,
     categories,
     statistics,
+    saved_searches,
+    reader_state,
     series_info,
 ):
     app.register_blueprint(blueprint)
@@ -572,3 +576,100 @@ class SmallscopeTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestQuarryExtensions(SmallscopeTestCase):
+    """cquarry 1.1 adoption: saved searches, Calibre sidebar state, reader
+    state. All through the same engine as the search bar and Wings."""
+
+    # --- saved searches -------------------------------------------------
+
+    def test_saved_searches_sidebar_names_and_counts(self):
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertIn("Saved Searches", page)
+        # Hugo Winners: tags:Award.Hugo -> book 1 only.
+        self.assertIn("saved/Hugo%20Winners", page)
+        self.assertIn('Hugo Winners <span class="badge badge-sm">1', page)
+        # Space: tags:"Fic.SciFi.Space" -> book 1 (hierarchical).
+        self.assertIn('Space <span class="badge badge-sm">1', page)
+        # Nothing: matches no book, still listed.
+        self.assertIn("saved/Nothing", page)
+
+    def test_saved_search_page_filters_exactly(self):
+        page = self.client.get("/saved/Hugo Winners").get_data(as_text=True)
+        self.assertIn("Ancillary Justice", page)
+        self.assertNotIn("Dune", page)
+
+    def test_empty_saved_search_renders_not_404s(self):
+        page = self.client.get("/saved/Nothing")
+        self.assertEqual(page.status_code, 200)
+        self.assertNotIn("Ancillary Justice", page.get_data(as_text=True))
+
+    def test_unknown_saved_search_404s(self):
+        self.assertEqual(self.client.get("/saved/Nope").status_code, 404)
+
+    def test_saved_searches_cache_invalidates_on_mtime(self):
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertNotIn("saved/Fantasy Picks", page)
+        con = sqlite3.connect(DBPATH)
+        row = con.execute(
+            "SELECT val FROM preferences WHERE key='saved_searches'"
+        ).fetchone()
+        import json
+
+        saved = json.loads(row[0])
+        saved["Fantasy Picks"] = 'tags:"Fic.Fantasy"'
+        con.execute(
+            "UPDATE preferences SET val=? WHERE key='saved_searches'",
+            (json.dumps(saved),),
+        )
+        con.commit()
+        con.close()
+        os.utime(DBPATH)  # ensure the mtime moves even on coarse clocks
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertIn("saved/Fantasy Picks", page)
+
+    def test_interpolated_query_matches_engine_directly(self):
+        # The sidebar route and the raw engine must agree exactly: the route
+        # resolves via search:"Name" so a grammar change cannot split them.
+        from cps.saved_searches import _saved_ids
+
+        ids = _saved_ids()["Space"]
+        with app.app_context():
+            from cps.carrel_search import resolve
+
+            self.assertEqual(set(ids), set(resolve('tags:"Fic.SciFi.Space"')))
+
+    # --- wings sidebar mirrors Calibre's own layout ----------------------
+
+    def test_hidden_wing_is_absent_and_route_404s(self):
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertNotIn("wings/Secret", page)
+        self.assertEqual(self.client.get("/wings/Secret").status_code, 404)
+
+    def test_wing_order_follows_calibres_stored_tabs(self):
+        page = self.client.get("/").get_data(as_text=True)
+        sci_fi = page.index("wings/SciFi")
+        hugo = page.index("wings/Hugo")
+        not_hugo = page.index("wings/NotHugo")
+        # Stored order first (SciFi 0, Hugo 1), then unknown names
+        # alphabetically (Empty, NotHugo); Secret is hidden entirely.
+        self.assertLess(sci_fi, hugo)
+        self.assertLess(hugo, not_hugo)
+        empty = page.index("wings/Empty")
+        self.assertLess(hugo, empty)
+
+    # --- reader state on the detail page ----------------------------------
+
+    def test_reader_state_progress_and_highlights_render(self):
+        page = self.client.get("/book/1").get_data(as_text=True)
+        # The phone device read most recently (epoch_time 200 > kobo 100).
+        self.assertIn("Reading progress", page)
+        self.assertIn("90%", page)
+        self.assertIn("phone", page)
+        self.assertIn("Highlights", page)
+
+    def test_reader_state_absent_when_library_has_none(self):
+        page = self.client.get("/book/3").get_data(as_text=True)
+        self.assertNotIn("Reading progress", page)
+        self.assertNotIn("Highlights", page)
