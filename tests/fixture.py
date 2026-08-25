@@ -164,7 +164,7 @@ def build_fixture(path, extra_wings=None):
                 "EPUB",
                 "local",
                 "reader",
-                "2026-01-01T00:00:00",
+                1767225600,
                 "a1",
                 "highlight",
                 json.dumps({"text": "mind is not a vessel"}),
@@ -172,11 +172,11 @@ def build_fixture(path, extra_wings=None):
         ],
     )
     cur.executemany(
-        "INSERT INTO last_read_positions (book, user_type, user, device,"
-        " cfi, pos_frac, epoch_time) VALUES (?,?,?,?,?,?,?)",
+        "INSERT INTO last_read_positions (book, format, user, device,"
+        " cfi, epoch, pos_frac) VALUES (?,?,?,?,?,?,?)",
         [
-            (1, "local", "reader", "kobo", "epubcfi(/6/4)", 0.42, 100),
-            (1, "local", "reader", "phone", "epubcfi(/6/9)", 0.90, 200),
+            (1, "EPUB", "reader", "kobo", "epubcfi(/6/4)", 100, 0.42),
+            (1, "EPUB", "reader", "phone", "epubcfi(/6/9)", 200, 0.90),
         ],
     )
     cur.executemany(

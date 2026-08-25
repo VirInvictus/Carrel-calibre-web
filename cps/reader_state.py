@@ -61,7 +61,7 @@ def carrel_reader_state(book_id):
     progress = None
     device = None
     if positions:
-        latest = max(positions, key=lambda r: r.get("epoch_time") or 0)
+        latest = max(positions, key=lambda r: r.get("epoch") or 0)
         frac = latest.get("pos_frac")
         if frac is not None:
             progress = float(frac)
