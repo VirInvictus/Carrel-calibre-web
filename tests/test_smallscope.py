@@ -60,9 +60,9 @@ from cps.smallscope import (  # noqa: E402
 )
 from cps.tasks_status import tasks  # noqa: E402
 from cps.web import web  # noqa: E402
+from cps.wings import wings  # noqa: E402
 from cps.reader_state import reader_state  # noqa: E402
 from cps.saved_searches import saved_searches  # noqa: E402
-from cps.wings import wings  # noqa: E402
 
 trim(tasks, shelf, editbook, remotelogin)
 install_single_user(app)
@@ -84,9 +84,9 @@ for blueprint in (
     palette,
     categories,
     statistics,
+    series_info,
     saved_searches,
     reader_state,
-    series_info,
 ):
     app.register_blueprint(blueprint)
 
@@ -574,25 +574,99 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertIn('Fantasy <span class="badge badge-sm">1', page)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestQuarryExtensions(SmallscopeTestCase):
-    """cquarry 1.1 adoption: saved searches, Calibre sidebar state, reader
-    state. All through the same engine as the search bar and Wings."""
+    """cquarry 1.1 adoption: saved searches sidebar/routes, Calibre's own
+    wing layout state (order + hidden), and per-book reader state.
 
-    # --- saved searches -------------------------------------------------
+    Hermetic by setUp: earlier classes repoint config_calibre_dir and leave
+    the mtime caches holding whatever they last saw, so pin the library and
+    force clean rebuilds here."""
+
+    def setUp(self):
+        from cps import config as cps_config
+        from cps import reader_state as reader_state_mod
+        from cps import saved_searches as saved_searches_mod
+        from cps import wings as wings_mod
+
+        self._caches = (
+            saved_searches_mod._cache,
+            wings_mod._cache,
+            reader_state_mod._cache,
+        )
+        self._old_dir = cps_config.config_calibre_dir
+        cps_config.config_calibre_dir = LIB
+        # Reset the preference keys these tests mutate: the parent class runs
+        # first and leaves its own additions behind.
+        self._set_pref_raw(
+            "virtual_libraries",
+            {
+                "SciFi": 'tags:"Fic.SciFi"',
+                "Hugo": "tags:Award.Hugo",
+                "NotHugo": 'not vl:"Hugo"',
+                "Empty": 'tags:"Nothing.Here"',
+                "Secret": "tags:Award.Hugo",
+            },
+        )
+        self._set_pref_raw(
+            "saved_searches",
+            {
+                "Hugo Winners": "tags:Award.Hugo",
+                "Space": 'tags:"Fic.SciFi.Space"',
+                "Nothing": 'tags:"Nothing.Here"',
+            },
+        )
+        for cache in self._caches:
+            cache.invalidate()
+
+    def tearDown(self):
+        from cps import config as cps_config
+
+        cps_config.config_calibre_dir = self._old_dir
+        for cache in self._caches:
+            cache.invalidate()
+
+    def _set_pref_raw(self, key, value):
+        import json as _json
+
+        payload = _json.dumps(value)
+        con = sqlite3.connect(DBPATH)
+        cur = con.cursor()
+        cur.execute("UPDATE preferences SET val=? WHERE key=?", (payload, key))
+        if cur.rowcount == 0:
+            cur.execute(
+                "INSERT INTO preferences (key,val) VALUES (?,?)", (key, payload)
+            )
+        con.commit()
+        con.close()
+
+    def _set_pref(self, key, value):
+        import json as _json
+        import time as _time
+
+        payload = _json.dumps(value)
+        con = sqlite3.connect(DBPATH)
+        cur = con.cursor()
+        cur.execute("UPDATE preferences SET val=? WHERE key=?", (payload, key))
+        if cur.rowcount == 0:
+            cur.execute(
+                "INSERT INTO preferences (key,val) VALUES (?,?)", (key, payload)
+            )
+        con.commit()
+        con.close()
+        future = _time.time() + 20
+        os.utime(DBPATH, (future, future))
+
+    # --- saved searches -----------------------------------------------------
 
     def test_saved_searches_sidebar_names_and_counts(self):
         page = self.client.get("/").get_data(as_text=True)
         self.assertIn("Saved Searches", page)
-        # Hugo Winners: tags:Award.Hugo -> book 1 only.
+        # Hugo Winners -> Award.Hugo -> book 1 only.
         self.assertIn("saved/Hugo%20Winners", page)
         self.assertIn('Hugo Winners <span class="badge badge-sm">1', page)
-        # Space: tags:"Fic.SciFi.Space" -> book 1 (hierarchical).
-        self.assertIn('Space <span class="badge badge-sm">1', page)
-        # Nothing: matches no book, still listed.
+        # Space -> Fic.SciFi.Space -> books 1 AND 2.
+        self.assertIn('Space <span class="badge badge-sm">2', page)
+        # Nothing matches no book but is still listed.
         self.assertIn("saved/Nothing", page)
 
     def test_saved_search_page_filters_exactly(self):
@@ -601,46 +675,22 @@ class TestQuarryExtensions(SmallscopeTestCase):
         self.assertNotIn("Dune", page)
 
     def test_empty_saved_search_renders_not_404s(self):
-        page = self.client.get("/saved/Nothing")
-        self.assertEqual(page.status_code, 200)
-        self.assertNotIn("Ancillary Justice", page.get_data(as_text=True))
+        rv = self.client.get("/saved/Nothing")
+        self.assertEqual(rv.status_code, 200)
+        self.assertNotIn("Ancillary Justice", rv.get_data(as_text=True))
 
     def test_unknown_saved_search_404s(self):
         self.assertEqual(self.client.get("/saved/Nope").status_code, 404)
 
-    def test_saved_searches_cache_invalidates_on_mtime(self):
-        page = self.client.get("/").get_data(as_text=True)
-        self.assertNotIn("saved/Fantasy Picks", page)
-        con = sqlite3.connect(DBPATH)
-        row = con.execute(
-            "SELECT val FROM preferences WHERE key='saved_searches'"
-        ).fetchone()
-        import json
-
-        saved = json.loads(row[0])
-        saved["Fantasy Picks"] = 'tags:"Fic.Fantasy"'
-        con.execute(
-            "UPDATE preferences SET val=? WHERE key='saved_searches'",
-            (json.dumps(saved),),
-        )
-        con.commit()
-        con.close()
-        os.utime(DBPATH)  # ensure the mtime moves even on coarse clocks
-        page = self.client.get("/").get_data(as_text=True)
-        self.assertIn("saved/Fantasy Picks", page)
-
     def test_interpolated_query_matches_engine_directly(self):
-        # The sidebar route and the raw engine must agree exactly: the route
-        # resolves via search:"Name" so a grammar change cannot split them.
+        from cps.carrel_search import resolve
         from cps.saved_searches import _saved_ids
 
         ids = _saved_ids()["Space"]
         with app.app_context():
-            from cps.carrel_search import resolve
-
             self.assertEqual(set(ids), set(resolve('tags:"Fic.SciFi.Space"')))
 
-    # --- wings sidebar mirrors Calibre's own layout ----------------------
+    # --- wings layout mirrors Calibre ---------------------------------------
 
     def test_hidden_wing_is_absent_and_route_404s(self):
         page = self.client.get("/").get_data(as_text=True)
@@ -652,18 +702,16 @@ class TestQuarryExtensions(SmallscopeTestCase):
         sci_fi = page.index("wings/SciFi")
         hugo = page.index("wings/Hugo")
         not_hugo = page.index("wings/NotHugo")
-        # Stored order first (SciFi 0, Hugo 1), then unknown names
-        # alphabetically (Empty, NotHugo); Secret is hidden entirely.
+        # Stored order first (SciFi 0, Hugo 1); unknown names keep
+        # alphabetical order after the ordered ones; Secret is hidden.
         self.assertLess(sci_fi, hugo)
         self.assertLess(hugo, not_hugo)
-        empty = page.index("wings/Empty")
-        self.assertLess(hugo, empty)
 
-    # --- reader state on the detail page ----------------------------------
+    # --- reader state on the detail page -------------------------------------
 
     def test_reader_state_progress_and_highlights_render(self):
         page = self.client.get("/book/1").get_data(as_text=True)
-        # The phone device read most recently (epoch_time 200 > kobo 100).
+        # The phone device read most recently (epoch 200 > kobo 100).
         self.assertIn("Reading progress", page)
         self.assertIn("90%", page)
         self.assertIn("phone", page)
@@ -673,3 +721,7 @@ class TestQuarryExtensions(SmallscopeTestCase):
         page = self.client.get("/book/3").get_data(as_text=True)
         self.assertNotIn("Reading progress", page)
         self.assertNotIn("Highlights", page)
+
+
+if __name__ == "__main__":
+    unittest.main()

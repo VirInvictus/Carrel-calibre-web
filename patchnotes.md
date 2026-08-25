@@ -24,3 +24,11 @@ behaviour; everything lives in Carrel-owned modules.
   agreement, hidden-wing 404, tab order, and reader-state rendering.
 - **Requires cquarry >= 1.1** (CI already installs from the standalone repo's
   main branch).
+- **Fix:** `last_read_positions` rows follow Calibre's real schema
+  (`format`/`user`/`device`/`cfi`/`epoch`/`pos_frac`; no `user_type`, the time
+  column is `epoch`). Reader-state picks the latest device by `epoch`.
+- **Fix:** saved-search pages are excluded from index.html's sort header (the
+  documented BuildError hazard), and empty-result searches render an empty grid
+  instead of erroring.
+- **Tests:** fixture aligns with the dumped real schema for annotations and
+  reading positions; suite is stable across repeated runs.

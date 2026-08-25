@@ -34,6 +34,8 @@ BOOKS = [
 
 
 def build_fixture(path, extra_wings=None):
+    import json
+
     con = sqlite3.connect(path)
     with open(_SCHEMA_SQL, encoding="utf-8") as fh:
         con.executescript(fh.read())
@@ -113,14 +115,36 @@ def build_fixture(path, extra_wings=None):
         [(b, "text") for b in (1, 2, 3, 4)],
     )
     cur.execute("INSERT INTO library_id (uuid) VALUES ('smallscope-test-uuid')")
+    cur.execute(
+        "INSERT INTO annotations (book, format, user_type, user, timestamp,"
+        " annot_id, annot_type, annot_data) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            1,
+            "EPUB",
+            "local",
+            "reader",
+            1767225600,
+            "a1",
+            "highlight",
+            json.dumps({"text": "mind is not a vessel"}),
+        ),
+    )
+    cur.executemany(
+        "INSERT INTO last_read_positions (book, format, user, device, cfi,"
+        " epoch, pos_frac) VALUES (?,?,?,?,?,?,?)",
+        [
+            (1, "EPUB", "reader", "kobo", "epubcfi(/6/4)", 100, 0.42),
+            (1, "EPUB", "reader", "phone", "epubcfi(/6/9)", 200, 0.90),
+        ],
+    )
 
     wings = {
         "SciFi": 'tags:"Fic.SciFi"',  # hierarchical: books 1, 2, 3
         "Hugo": "tags:Award.Hugo",  # book 1
         "NotHugo": 'not vl:"Hugo"',  # books 2, 3, 4 (vl: cross-ref)
         "Empty": 'tags:"Nothing.Here"',  # no books
-        # Hidden in Calibre's own UI: get_vl_ui_state must keep it out
-        # of the sidebar while it stays resolvable by direct route.
+        # Hidden in Calibre's own UI (virt_libs_hidden): stays out
+        # of the sidebar while its route keeps resolving.
         "Secret": "tags:Award.Hugo",
     }
     wings.update(extra_wings or {})
@@ -138,8 +162,6 @@ def build_fixture(path, extra_wings=None):
         "INSERT INTO preferences (key,val) VALUES ('virt_libs_hidden', ?)",
         (json.dumps(["Secret"]),),
     )
-    # Saved searches exercise cquarry's search:"Name" interpolation end to end:
-    # one matching one book, one matching one, one matching nothing.
     cur.execute(
         "INSERT INTO preferences (key,val) VALUES ('saved_searches', ?)",
         (
@@ -153,32 +175,6 @@ def build_fixture(path, extra_wings=None):
         ),
     )
 
-    # Reader state (cquarry extractors): highlights plus two devices whose
-    # epoch_time decides the winner regardless of row order.
-    cur.executemany(
-        "INSERT INTO annotations (book, format, user_type, user, timestamp,"
-        " annot_id, annot_type, annot_data) VALUES (?,?,?,?,?,?,?,?)",
-        [
-            (
-                1,
-                "EPUB",
-                "local",
-                "reader",
-                1767225600,
-                "a1",
-                "highlight",
-                json.dumps({"text": "mind is not a vessel"}),
-            ),
-        ],
-    )
-    cur.executemany(
-        "INSERT INTO last_read_positions (book, format, user, device,"
-        " cfi, epoch, pos_frac) VALUES (?,?,?,?,?,?,?)",
-        [
-            (1, "EPUB", "reader", "kobo", "epubcfi(/6/4)", 100, 0.42),
-            (1, "EPUB", "reader", "phone", "epubcfi(/6/9)", 200, 0.90),
-        ],
-    )
     cur.executemany(
         "INSERT INTO custom_columns (id,label,name,datatype,is_multiple,normalized) "
         "VALUES (?,?,?,?,0,?)",
