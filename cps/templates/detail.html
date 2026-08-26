@@ -184,6 +184,18 @@
                 </div>
             {% endif %}
 
+            {# Carrel: native page count from Calibre's own books_pages_link
+               (cquarry 1.3). Absent data renders nothing. #}
+            {% set pc = carrel_page_count(entry.id) %}
+            {% if pc %}
+                <div class="page-count">
+                    <p>
+                        <span>{{ _('Pages') }}:</span>
+                        <span class="series-held">{{ pc }}</span>
+                    </p>
+                </div>
+            {% endif %}
+
             {# Carrel: reader state from Calibre's own sync (cquarry 1.1):
                latest per-device progress and e-reader highlights. Absent data
                renders nothing — the library does not claim what it lacks. #}

@@ -63,6 +63,7 @@ from cps.web import web  # noqa: E402
 from cps.wings import wings  # noqa: E402
 from cps.reader_state import reader_state  # noqa: E402
 from cps.saved_searches import saved_searches  # noqa: E402
+from cps.page_count import page_count  # noqa: E402
 
 trim(tasks, shelf, editbook, remotelogin)
 install_single_user(app)
@@ -87,6 +88,7 @@ for blueprint in (
     series_info,
     saved_searches,
     reader_state,
+    page_count,
 ):
     app.register_blueprint(blueprint)
 
@@ -587,11 +589,13 @@ class TestQuarryExtensions(SmallscopeTestCase):
         from cps import reader_state as reader_state_mod
         from cps import saved_searches as saved_searches_mod
         from cps import wings as wings_mod
+        from cps import page_count as page_count_mod
 
         self._caches = (
             saved_searches_mod._cache,
             wings_mod._cache,
             reader_state_mod._cache,
+            page_count_mod._cache,
         )
         self._old_dir = cps_config.config_calibre_dir
         cps_config.config_calibre_dir = LIB
@@ -721,6 +725,96 @@ class TestQuarryExtensions(SmallscopeTestCase):
         page = self.client.get("/book/3").get_data(as_text=True)
         self.assertNotIn("Reading progress", page)
         self.assertNotIn("Highlights", page)
+
+
+class TestPageCountAndCacheIdentity(unittest.TestCase):
+    """cquarry 1.3 adoption: native page counts on the detail page, and
+    LibraryCache invalidation that keys on the library's identity UUID so a
+    restored *copy* of the same library rebuilds even when `cp -p` reproduced
+    the mtime.
+
+    Deliberately NOT a SmallscopeTestCase subclass: that base carries wing
+    tests which mutate the shared fixture's virtual_libraries preference, and
+    a second subclass re-runs them against already-mutated state."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = app.test_client()
+
+    def setUp(self):
+        from cps import config as cps_config
+        from cps import page_count as page_count_mod
+
+        self._page_cache = page_count_mod._cache
+        self._old_dir = cps_config.config_calibre_dir
+        cps_config.config_calibre_dir = LIB
+        self._page_cache.invalidate()
+
+    def tearDown(self):
+        from cps import config as cps_config
+
+        cps_config.config_calibre_dir = self._old_dir
+        self._page_cache.invalidate()
+
+    def test_native_page_count_renders_on_detail(self):
+        from cps.page_count import carrel_page_count
+
+        self.assertEqual(carrel_page_count(1), 441)
+        self.assertIsNone(carrel_page_count(2))  # library doesn't know
+        self.assertIsNone(carrel_page_count(999))  # no such book, never 500s
+
+    def test_detail_page_shows_pages_line(self):
+        page = self.client.get("/book/1").get_data(as_text=True)
+        self.assertIn("Pages", page)
+        self.assertIn("441", page)
+
+    def test_cache_rebuilds_when_library_identity_changes_at_equal_mtime(self):
+        import os as _os
+        import shutil as _shutil
+        import sqlite3 as _sqlite3
+
+        from cps.library_cache import LibraryCache, library_path
+
+        calls = {"n": 0}
+
+        def build():
+            calls["n"] += 1
+            return calls["n"]
+
+        cache = LibraryCache(build)
+
+        # First get(): builds once.
+        self.assertEqual(cache.get(), 1)
+
+        # Swap in a copy of the same file under a DIFFERENT library UUID and
+        # restore the original's mtime — the situation after a move/restore
+        # with `cp -p`. Mtime alone would call this fresh; identity must not.
+        saved = DBPATH + ".saved"
+        _shutil.copy(library_path(), saved)
+        st = _os.stat(library_path())
+        con = _sqlite3.connect(DBPATH)
+        old_uuid = con.execute("SELECT uuid FROM library_id LIMIT 1").fetchone()[0]
+        con.close()
+        try:
+            con = _sqlite3.connect(saved)
+            con.execute("UPDATE library_id SET uuid='a-different-library-copy'")
+            con.commit()
+            con.close()
+            _shutil.copy(saved, library_path())
+            _os.utime(library_path(), (st.st_atime, st.st_mtime))
+
+            self.assertEqual(cache.get(), 2)  # identity change forces rebuild
+            self.assertEqual(cache.get(), 2)  # stable afterwards
+        finally:
+            # Leave the shared fixture exactly as we found it.
+            con = _sqlite3.connect(DBPATH)
+            con.execute(
+                "UPDATE library_id SET uuid=? WHERE uuid='a-different-library-copy'",
+                (old_uuid,),
+            )
+            con.commit()
+            con.close()
+            _os.remove(saved)
 
 
 if __name__ == "__main__":

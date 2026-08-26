@@ -49,6 +49,7 @@ def main():
     from .stats import statistics
     from .saved_searches import saved_searches
     from .reader_state import reader_state
+    from .page_count import page_count
     from .wings import wings
 
     try:
@@ -92,6 +93,7 @@ def main():
     app.register_blueprint(wings)
     app.register_blueprint(saved_searches)
     app.register_blueprint(reader_state)
+    app.register_blueprint(page_count)
     app.register_blueprint(palette)
     app.register_blueprint(categories)
     app.register_blueprint(statistics)

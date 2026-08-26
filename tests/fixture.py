@@ -72,6 +72,11 @@ def build_fixture(path, extra_wings=None):
         "INSERT INTO books_authors_link (book,author) VALUES (?,?)",
         [(1, 1), (2, 1), (3, 2), (4, 3)],
     )
+    # Native page counts: book 1 known, book 2 unknown — the detail page
+    # renders only what the library actually knows.
+    cur.execute(
+        "INSERT INTO books_pages_link (book, pages, algorithm) VALUES (1, 441, 'demo')"
+    )
     cur.executemany(
         "INSERT INTO tags (id,name) VALUES (?,?)",
         [

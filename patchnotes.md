@@ -1,5 +1,26 @@
 # Patchnotes (Carrel-calibre-web)
 
+## cquarry 1.3 adoption (2026-08-26)
+
+- **Native page counts on the detail page (`cps/page_count.py`).** Calibre
+  maintains per-book page counts in its own `books_pages_link` table (the
+  CountPages integration); cquarry 1.3 reads that table natively with the
+  `#pages` custom column kept as an older-schema fallback. A new Jinja global
+  `carrel_page_count(book_id)` follows the reader_state pattern — answers or
+  says None, never 500s — and detail.html renders a "Pages" line only when the
+  library actually knows.
+- **Library-identity cache invalidation (`cps/library_cache.py`).** The six
+  LibraryCache surfaces (wings, categories, search, series, statistics,
+  palette — plus reader state and page count) now key on metadata.db's mtime
+  AND the library's identity UUID from `library_id`. An mtime alone cannot
+  tell a restored *copy* from the original (`cp -p` reproduces timestamps);
+  after a move/restore the bundled copy rebuilds instead of serving cached
+  state. Identity reads use a bare mode=ro SELECT so validation stays cheap;
+  schemas predating `library_id` degrade to mtime-only, exactly as before.
+- **Tests:** fixture gains native page rows; new coverage for the detail-page
+  "Pages" line, absent-count degradation, and equal-mtime/identity-swap cache
+  rebuilds. Suite: 82 tests green.
+
 ## cquarry 1.1 adoption (2026-08-25)
 
 Deepens the fork's use of the shared engine. No upstream file gains new

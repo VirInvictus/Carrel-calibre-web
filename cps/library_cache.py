@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Caching on metadata.db's mtime (Carrel spec 7).
+# Caching on metadata.db's mtime and library UUID (Carrel spec 7).
 #
 # Six surfaces (wings, categories, search, series, statistics, the palette)
 # all derive something expensive from the library and all invalidate on the
@@ -10,10 +10,17 @@
 # graceful empty.
 #
 # This is that rule, once. The library is read-only by contract, so an mtime
-# is a sufficient version: nothing in this process can change the file, and
-# anything outside it (Calibre) moves the mtime when it does.
+# is a sufficient version for in-place edits: nothing in this process can
+# change the file, and anything outside it (Calibre) moves the mtime when it
+# does. The mtime alone cannot tell a restored *copy* from the original,
+# though — `cp -p` reproduces timestamps — so the cache also keys on the
+# library's identity UUID from `library_id` (surfaces via cquarry 1.3's
+# get_library_uuid() elsewhere; here a bare mode=ro SELECT keeps validation
+# cheap). A bundled copy of the same library therefore rebuilds instead of
+# serving the original's cached state after a move/restore.
 
 import os
+import sqlite3
 
 from . import config
 
@@ -35,8 +42,28 @@ def library_mtime():
         return None
 
 
+def library_uuid():
+    """The library's identity UUID, or None when it cannot be read.
+
+    Deliberately does NOT go through cquarry: this runs on every cache hit,
+    so it opens its own short-lived mode=ro connection and issues a single
+    SELECT against `library_id`. None on schemas predating the table — those
+    degrade to mtime-only invalidation, exactly as before.
+    """
+    path = library_path()
+    try:
+        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT uuid FROM library_id LIMIT 1").fetchone()
+            return row[0] if row else None
+        finally:
+            con.close()
+    except Exception:
+        return None
+
+
 class LibraryCache:
-    """Memoizes build() until metadata.db's mtime moves.
+    """Memoizes build() until metadata.db's mtime or identity UUID moves.
 
     build is called with no arguments and may return anything. dispose, if
     given, is called with the previous value once a replacement exists, which
@@ -48,11 +75,13 @@ class LibraryCache:
         self._dispose = dispose
         self._label = label
         self._mtime = None
+        self._uuid = None
         self._value = None
 
     def get(self):
         mtime = os.path.getmtime(library_path())
-        if self._mtime == mtime:
+        uuid = library_uuid()
+        if self._mtime == mtime and self._uuid == uuid:
             return self._value
 
         # Build before evicting: if the build raises, the previous value is
@@ -65,9 +94,11 @@ class LibraryCache:
             except Exception:
                 pass
         self._mtime = mtime
+        self._uuid = uuid
         self._value = value
         return value
 
     def invalidate(self):
         """Force the next get() to rebuild. Used by tests."""
         self._mtime = None
+        self._uuid = None

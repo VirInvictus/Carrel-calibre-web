@@ -20,6 +20,7 @@ jobs:
         cps/carrel_search.py
         cps/categories.py
         cps/library_cache.py
+        cps/page_count.py
         cps/palette.py
         cps/series_info.py
         cps/single_user.py
