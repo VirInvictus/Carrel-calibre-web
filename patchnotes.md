@@ -1,5 +1,25 @@
 # Patchnotes (Carrel-calibre-web)
 
+## cquarry 1.8 sync + editable install (2026-08-26 → 0.6.28, 2026-08-30)
+
+- **Deployment venv reinstalled EDITABLE from `~/.gitrepos/cquarry`** (Carrel
+  spec §8.2's documented contract). The stale non-editable cquarry 1.1.1 in
+  site-packages predated the branch's 1.3 API calls — the running instance
+  silently degraded page_count to None. Installed == repo now, and it cannot
+  drift again.
+- **`cps/library_cache.py`'s UUID read adopts cquarry's URI contract.** The
+  "deliberately does NOT go through cquarry" note was a stale-install
+  artifact, not architecture: the Phase 4 venv predated `get_library_uuid()`.
+  The read stays a single one-query mode=ro connection (a full CalibreDB
+  lifecycle would regress the per-cache-hit cost the module exists to keep
+  cheap), but the URI now comes from cquarry's `db_uri_ro()` — whose
+  percent-encoding the old bare f-string was missing, a latent break on
+  library paths containing `?` or `#`. Analytics adoption stays deferred to
+  cquarry's Phase 7 (don't patch the fork twice).
+- **Version 0.6.28** (fork-side bump in `cps/constants.py`), which also
+  leapfrogs upstream's in-flight 0.6.27b numbering before the next deliberate
+  rebase. README's test count corrected to the real 35.
+
 ## cquarry 1.3 adoption (2026-08-26)
 
 - **Native page counts on the detail page (`cps/page_count.py`).** Calibre

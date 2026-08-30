@@ -14,13 +14,16 @@
 # change the file, and anything outside it (Calibre) moves the mtime when it
 # does. The mtime alone cannot tell a restored *copy* from the original,
 # though — `cp -p` reproduces timestamps — so the cache also keys on the
-# library's identity UUID from `library_id` (surfaces via cquarry 1.3's
-# get_library_uuid() elsewhere; here a bare mode=ro SELECT keeps validation
-# cheap). A bundled copy of the same library therefore rebuilds instead of
-# serving the original's cached state after a move/restore.
+# library's identity UUID from `library_id`, read through cquarry's
+# db_uri_ro() contract (0.6.28; the old bare f-string URI silently broke on
+# library paths containing '?' or '#'). A bundled copy of the same library
+# therefore rebuilds instead of serving the original's cached state after a
+# move/restore.
 
 import os
 import sqlite3
+
+from cquarry.helpers import db_uri_ro
 
 from . import config
 
@@ -45,14 +48,19 @@ def library_mtime():
 def library_uuid():
     """The library's identity UUID, or None when it cannot be read.
 
-    Deliberately does NOT go through cquarry: this runs on every cache hit,
-    so it opens its own short-lived mode=ro connection and issues a single
-    SELECT against `library_id`. None on schemas predating the table — those
-    degrade to mtime-only invalidation, exactly as before.
+    One short-lived mode=ro connection, same as before — but the URI comes
+    from cquarry's db_uri_ro() now, whose percent-encoding this path was
+    missing (the "deliberately does NOT go through cquarry" note below the
+    old code was a stale-install artifact, not architecture: the Phase 4
+    venv predated get_library_uuid(), and the stance went with it). Still a
+    bare SELECT rather than a full CalibreDB lifecycle because this runs on
+    every cache hit; the contract mirrors CalibreDB.get_library_uuid() —
+    None on schemas predating the table, degrading to mtime-only
+    invalidation exactly as before.
     """
     path = library_path()
     try:
-        con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        con = sqlite3.connect(db_uri_ro(path), uri=True)
         try:
             row = con.execute("SELECT uuid FROM library_id LIMIT 1").fetchone()
             return row[0] if row else None

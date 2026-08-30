@@ -114,7 +114,7 @@ or `just serve` from the Carrel repo, which is the same command.
 ~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
-33 tests in about a second, against a fixture library built from a real Calibre
+35 tests in about a second, against a fixture library built from a real Calibre
 schema dump. They cover the enum read column and all four status badges, write
 refusal with checksum proof, the read-only attachment, the disabled routes,
 wing membership, category roll-up, the search grammar, the statistics metrics,
