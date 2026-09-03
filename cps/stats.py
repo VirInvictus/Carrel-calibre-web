@@ -144,6 +144,24 @@ def _custom_column_breakdown(label):
     return [{"label": str(v), "value": n} for v, n in rows if v is not None]
 
 
+def _pace_by_year():
+    """Books added per year, from cquarry's analytics module (Phase 7 swap:
+    the derivation is database-shaped, so it lives upstream)."""
+    from cquarry.analytics import addition_timeline
+
+    from .library_cache import quarry
+
+    try:
+        timeline = addition_timeline(quarry(), granularity="year")
+    except Exception as ex:
+        log.info("acquisition pace unavailable: %s", ex)
+        return []
+    return [
+        {"label": str(year), "value": n}
+        for year, n in sorted(timeline.items())
+    ]
+
+
 def _ratings():
     rated = _rows("SELECT count(DISTINCT book) FROM books_ratings_link")[0][0]
     return rated
@@ -165,6 +183,7 @@ def _rebuild():
         "totals": totals,
         "charts": {
             "decade": _by_decade(),
+            "pace": _pace_by_year(),
             "formats": _formats(),
             "genres": _genre_spine(),
             "authors": _top("authors", "books_authors_link", "author"),

@@ -765,11 +765,22 @@ def get_book_cover_internal(book, resolution=None):
                 log.error_or_exception(ex)
                 return get_cover_on_failure()
 
-        # Send the book cover from the Calibre directory
+        # Send the book cover from the Calibre directory. Resolution goes
+        # through cquarry's get_cover_path() (Phase 7 swap): jpg primary,
+        # png fallback, existence verified — a png-only catalogued cover
+        # serves its real art now instead of degrading to the generic.
         else:
-            cover_file_path = os.path.join(config.get_book_path(), book.path)
-            if os.path.isfile(os.path.join(cover_file_path, "cover.jpg")):
-                return send_from_directory(cover_file_path, "cover.jpg")
+            from .library_cache import quarry
+
+            try:
+                cover = quarry().get_cover_path(book.id)
+            except Exception as ex:
+                log.error_or_exception(ex)
+                cover = None
+            if cover and os.path.isfile(cover):
+                # get_cover_path() returns a str (Hermitage wraps it in Path).
+                return send_from_directory(os.path.dirname(cover),
+                                           os.path.basename(cover))
             else:
                 return get_cover_on_failure()
     else:

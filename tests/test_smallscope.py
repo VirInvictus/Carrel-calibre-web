@@ -12,6 +12,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+import pathlib
 import unittest
 
 # cps's cli parser reads sys.argv at create_app time; hide unittest's args.
@@ -293,6 +294,50 @@ class SmallscopeTestCase(unittest.TestCase):
             self.assertEqual(carrel_series(_Entry())["index"], 7.5)
 
     # --- currently reading (Phase 12) ---------------------------------------
+
+    def test_statistics_pace_ledger_carries_the_fixture_years(self):
+        # The pace ledger comes from cquarry's analytics module; this test
+        # exists because the first wiring called it with the wrong shape and
+        # the degrade-to-empty path masked it.
+        from cps import stats
+
+        with app.test_request_context("/"):
+            data = stats.collect()
+        self.assertEqual(
+            [(d["label"], d["value"]) for d in data["charts"]["pace"]],
+            [("2024", 4)],
+        )
+
+    def test_cover_route_serves_png_primary_covers(self):
+        # cquarry's get_cover_path resolution: jpg primary, png fallback.
+        # The fixture covers are all has_cover=0 and file-less, so give
+        # book 2 a png-only cover and flip its flag, then ask for it.
+        import sqlite3
+
+        con = sqlite3.connect(LIB + "/metadata.db")
+        try:
+            con.execute("UPDATE books SET has_cover = 1 WHERE id = 2")
+            con.commit()
+        finally:
+            con.close()
+        cover_dir = pathlib.Path(LIB) / "a" / "b (2)"
+        cover_dir.mkdir(parents=True, exist_ok=True)
+        (cover_dir / "cover.png").write_bytes(b"\x89PNG fake")
+        try:
+            app.config["TESTING"] = True  # propagate the error if it 500s
+            resp = self.client.get("/cover/2")
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("image/png", resp.headers["Content-Type"])
+            self.assertIn(b"PNG", resp.data)
+        finally:
+            app.config["TESTING"] = False
+            (pathlib.Path(LIB) / "a" / "b (2)" / "cover.png").unlink()
+            con = sqlite3.connect(LIB + "/metadata.db")
+            try:
+                con.execute("UPDATE books SET has_cover = 0 WHERE id = 2")
+                con.commit()
+            finally:
+                con.close()
 
     def test_reading_shelf_lists_exactly_the_reading_books(self):
         from cps import reading_shelf

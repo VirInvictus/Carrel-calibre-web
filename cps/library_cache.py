@@ -71,6 +71,31 @@ def library_uuid():
         return None
 
 
+_quarry_cache = None
+
+
+def quarry():
+    """A shared cquarry CalibreDB, rebuilt when the library moves.
+
+    One open read-only connection for the surfaces that only need a handle
+    (cover resolution, analytics, series rollups) — mtime/UUID-keyed like
+    every cache here, so a library swap rebuilds it. Modules that own a
+    specific engine (carrel_search, page_count, reader_state) keep their own
+    caches; this is for the callers that would otherwise open a fresh
+    connection per request.
+    """
+    global _quarry_cache
+    if _quarry_cache is None:
+        from cquarry.db import CalibreDB
+
+        _quarry_cache = LibraryCache(
+            lambda: CalibreDB(library_path()),
+            dispose=lambda quarry: quarry.close(),
+            label="cquarry",
+        )
+    return _quarry_cache.get()
+
+
 class LibraryCache:
     """Memoizes build() until metadata.db's mtime or identity UUID moves.
 

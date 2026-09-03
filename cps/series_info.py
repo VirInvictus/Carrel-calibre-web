@@ -12,39 +12,40 @@
 
 from flask import Blueprint
 
-from . import calibre_db, db, logger
-from .library_cache import LibraryCache
+from . import logger
+from .library_cache import LibraryCache, quarry
 
 series_info = Blueprint("series_info", __name__)
 log = logger.create()
 
 
 def _rebuild():
-    """series id -> {'name', 'held', 'max', 'gaps'}."""
+    """series id -> {'name', 'held', 'max', 'gaps'}.
+
+    Phase 7 swap: the data comes from cquarry now — get_entities("series")
+    for the id↔name pairing, get_all_series() for the per-series index
+    rollups. Same shape the detail page has always consumed; only the
+    source moved (Phase 6/9: gap detection already came from cquarry).
+    """
     from cquarry.helpers import detect_series_gaps
 
-    rows = (
-        calibre_db.session.query(db.Series.id, db.Series.name, db.Books.series_index)
-        .join(db.books_series_link, db.Series.id == db.books_series_link.c.series)
-        .join(db.Books, db.Books.id == db.books_series_link.c.book)
-        .all()
-    )
-    by_id = {}
-    for sid, name, index in rows:
-        entry = by_id.setdefault(sid, {"name": name, "indices": []})
-        if index is not None:
-            entry["indices"].append(float(index))
-
+    quarry_db = quarry()
+    ids_by_name = {
+        e["name"]: e["id"] for e in quarry_db.get_entities("series")
+    }
     out = {}
-    for sid, entry in by_id.items():
-        idx = sorted(entry["indices"])
+    for rollup in quarry_db.get_all_series():
+        sid = ids_by_name.get(rollup["name"])
+        if sid is None:
+            continue
+        idx = sorted(float(i) for i in rollup["indices"].split(",") if i != "")
         top = max(idx) if idx else None
-        gaps = detect_series_gaps(",".join(str(i) for i in idx), top)
+        gaps = detect_series_gaps(rollup["indices"], top)
         out[sid] = {
-            "name": entry["name"],
-            "held": len(idx),
-            # The highest index held, carried as-is. int(top) if top truncated
-            # a 7.5 to 7 and dropped a legitimate index of 0 as falsy, both of
+            "name": rollup["name"],
+            "held": rollup["book_count"],
+            # The highest index held, carried as-is. int(top) would truncate
+            # a 7.5 to 7 and drop a legitimate index of 0 as falsy, both of
             # which state something the library did not say.
             "max": top,
             "gaps": gaps,

@@ -94,6 +94,9 @@
   {% endif %}
 
   {{ ranked('Publication by decade', stats.charts.decade) }}
+  {% if stats.charts.pace %}
+    {{ ranked('Acquisition pace by year', stats.charts.pace, 'When books entered the library (cquarry addition_timeline).') }}
+  {% endif %}
   {{ ranked('Genres', stats.charts.genres, 'Counted over books, by top-level tag family.') }}
   {{ ranked('By weekday', stats.charts.weekdays) }}
   {{ ranked('Formats', stats.charts.formats) }}

@@ -1,4 +1,31 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7 begins: the data-layer swap's first increments (2026-09-03, 0.6.30)
+
+The NEW-AUDIT Stage 6 boundary map classified every cps/db.py call site;
+this release lands the riders and the first two swap increments. The live
+swap surface (web.py, opds.py, search.py) remains future work by design.
+
+- **Series awareness reads cquarry now.** `series_info._rebuild()` dropped
+  its ORM session query: ids come from `get_entities("series")`, index
+  rollups from `get_all_series()`, and gap detection from
+  `detect_series_gaps()` as it always has. Same output shape the detail
+  page has always consumed (fixture test unchanged and green).
+- **Covers resolve through `get_cover_path()`.** The local-disk branch of
+  `get_book_cover_internal` no longer hardcodes `cover.jpg`: cquarry
+  resolves jpg-primary/png-fallback with existence verification, served
+  through the new shared `library_cache.quarry()` (one mtime/UUID-keyed
+  CalibreDB for the surfaces that only need a handle). Behavior win: a
+  png-only catalogued cover serves its real art instead of degrading to
+  the generic. Fixture test pins the png case end to end.
+- **Acquisition pace joins /statistics via `cquarry.analytics`.** A new
+  "Acquisition pace by year" ledger computed by
+  `analytics.addition_timeline()` — the derivation is database-shaped, so
+  it lives upstream per the frontend-only split. (The first wiring called
+  it with the wrong shape and the degrade-to-empty path masked it; the new
+  test asserts real fixture data so that class of bug cannot hide again.)
+- **Version 0.6.30.** Suite 92 → 96 discovered (48 base), green from the
+  deployment venv.
+
 ## Phase 12 sweep + the two verdicts (2026-09-02, 0.6.29)
 
 - **Falsy series index 0.** "Book 0" is a real place in a series and kept
