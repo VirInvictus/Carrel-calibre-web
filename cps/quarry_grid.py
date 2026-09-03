@@ -146,6 +146,11 @@ class GridPagination:
         self.pages = max(1, -(-total // per_page)) if per_page else 1
 
     @property
+    def total_count(self):
+        # the name the read/unread titles use for the total
+        return self.total
+
+    @property
     def has_prev(self):
         return self.page > 1
 
@@ -270,6 +275,16 @@ def ids_with(field, value):
     return sorted(out)
 
 
+def read_ids(are_read):
+    """Book ids for the read/unread grids: 'Read' in the library's
+    reading_status enumeration (or its complement)."""
+    status = _read_status_map()
+    read = {i for i, v in status.items() if v == "Read"}
+    if are_read:
+        return sorted(read)
+    return sorted(i for i in all_ids() if i not in read)
+
+
 def ids_missing(kind):
     """Book ids with NO value for one kind (the 'None' browse variants:
     untagged, no publisher, no language, no formats, unrated)."""
@@ -314,7 +329,9 @@ def search_sort(sort_param):
     return SEARCH_SORTS.get(sort_param, (("sort",), False))
 
 
-def grid(page, ids, sort=("sort",), descending=False, per_page=None):
+def grid(
+    page, ids, sort=("sort",), descending=False, per_page=None, preserve_order=False
+):
     """(entries, pagination) for one page of the given book-id set.
 
     `ids=None` means the whole library; an EMPTY set means an empty page.
@@ -333,6 +350,12 @@ def grid(page, ids, sort=("sort",), descending=False, per_page=None):
     total = len(all_rows)
     offset = (max(1, page) - 1) * per_page
     rows = all_rows[offset : offset + per_page]
+    # Callers that carry their own ordering (download counts, shelf order)
+    # get their id sequence back verbatim; list_books otherwise sorts by
+    # its keys.
+    if preserve_order and wanted:
+        row_order = {bid: n for n, bid in enumerate(wanted)}
+        rows = sorted(rows, key=lambda r: row_order.get(r["id"], len(row_order)))
 
     status = _read_status_map()
     entries = [GridEntry(row, status.get(row["id"], False)) for row in rows]

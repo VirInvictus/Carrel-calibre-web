@@ -249,55 +249,6 @@ def update_view():
     return "1", 200
 
 
-"""
-@web.route("/ajax/getcomic/<int:book_id>/<book_format>/<int:page>")
-@user_login_required
-def get_comic_book(book_id, book_format, page):
-    book = calibre_db.get_book(book_id)
-    if not book:
-        return "", 204
-    else:
-        for bookformat in book.data:
-            if bookformat.format.lower() == book_format.lower():
-                cbr_file = os.path.join(config.config_calibre_dir, book.path, bookformat.name) + "." + book_format
-                if book_format in ("cbr", "rar"):
-                    if feature_support['rar'] == True:
-                        rarfile.UNRAR_TOOL = config.config_rarfile_location
-                        try:
-                            rf = rarfile.RarFile(cbr_file)
-                            names = sort(rf.namelist())
-                            extract = lambda page: rf.read(names[page])
-                        except:
-                            # rarfile not valid
-                            log.error('Unrar binary not found, or unable to decompress file %s', cbr_file)
-                            return "", 204
-                    else:
-                        log.info('Unrar is not supported please install python rarfile extension')
-                        # no support means return nothing
-                        return "", 204
-                elif book_format in ("cbz", "zip"):
-                    zf = zipfile.ZipFile(cbr_file)
-                    names=sort(zf.namelist())
-                    extract = lambda page: zf.read(names[page])
-                elif book_format in ("cbt", "tar"):
-                    tf = tarfile.TarFile(cbr_file)
-                    names=sort(tf.getnames())
-                    extract = lambda page: tf.extractfile(names[page]).read()
-                else:
-                    log.error('unsupported comic format')
-                    return "", 204
-
-                b64 = codecs.encode(extract(page), 'base64').decode()
-                ext = names[page].rpartition('.')[-1]
-                if ext not in ('png', 'gif', 'jpg', 'jpeg', 'webp'):
-                    ext = 'png'
-                extractedfile="data:image/" + ext + ";base64," + b64
-                fileData={"name": names[page], "page":page, "last":len(names)-1, "content": extractedfile}
-                return make_response(json.dumps(fileData))
-        return "", 204
-"""
-
-
 # ################################### Typeahead ##################################################################
 
 
@@ -573,27 +524,23 @@ def render_hot_books(page, order):
             random = false()
 
         off = int(int(config.config_books_per_page) * (page - 1))
-        all_books = (
-            ub.session.query(ub.Downloads, func.count(ub.Downloads.book_id))
-            .order_by(*order[0])
+        # Phase 7: download counts order the ids (app DB); the page itself
+        # comes from cquarry's grid, preserving the count order. Downloads
+        # whose book left the library are pruned like the old loop did.
+        count_rows = (
+            ub.session.query(ub.Downloads.book_id, func.count(ub.Downloads.book_id))
             .group_by(ub.Downloads.book_id)
+            .order_by(*order[0])
+            .all()
         )
-        hot_books = all_books.offset(off).limit(config.config_books_per_page)
-        entries = list()
-        for book in hot_books:
-            query = calibre_db.generate_linked_query(
-                config.config_read_column, db.Books
-            )
-            download_book = (
-                query.filter(calibre_db.common_filters())
-                .filter(book.Downloads.book_id == db.Books.id)
-                .first()
-            )
-            if download_book:
-                entries.append(download_book)
-            else:
-                ub.delete_download(book.Downloads.book_id)
-        num_books = entries.__len__()
+        ordered_ids = [row[0] for row in count_rows]
+        page_ids = ordered_ids[off : off + config.config_books_per_page]
+        entries, grid_pagination = quarry_grid.grid(page, page_ids, preserve_order=True)
+        have = {entry.Books.id for entry in entries}
+        for book_id in page_ids:
+            if book_id not in have:
+                ub.delete_download(book_id)
+        num_books = len(entries)
         pagination = Pagination(page, config.config_books_per_page, num_books)
         return render_title_template(
             "index.html",
@@ -615,31 +562,23 @@ def render_downloaded_books(page, order, user_id):
         user_id = current_user.id
     user = ub.session.query(ub.User).filter(ub.User.id == user_id).first()
     if current_user.check_visibility(constants.SIDEBAR_DOWNLOAD) and user:
-        entries, random, pagination = calibre_db.fill_indexpage(
-            page,
-            0,
-            db.Books,
-            ub.Downloads.user_id == user_id,
-            order[0],
-            True,
-            config.config_read_column,
-            db.books_series_link,
-            db.Books.id == db.books_series_link.c.book,
-            db.Series,
-            ub.Downloads,
-            db.Books.id == ub.Downloads.book_id,
-        )
-        for book in entries:
-            if not (
-                calibre_db.session.query(db.Books)
-                .filter(calibre_db.common_filters())
-                .filter(db.Books.id == book.Books.id)
-                .first()
-            ):
-                ub.delete_download(book.Books.id)
+        # Phase 7: the user's downloaded ids page through cquarry's grid
+        # (insertion order; downloads whose book left the library are
+        # pruned like the old loop did).
+        download_ids = [
+            row[0]
+            for row in ub.session.query(ub.Downloads.book_id)
+            .filter(ub.Downloads.user_id == user_id)
+            .all()
+        ]
+        entries, pagination = quarry_grid.grid(page, download_ids, preserve_order=True)
+        have = {entry.Books.id for entry in entries}
+        for book_id in download_ids:
+            if book_id not in have:
+                ub.delete_download(book_id)
         return render_title_template(
             "index.html",
-            random=random,
+            random=None,
             entries=entries,
             pagination=pagination,
             id=user_id,
@@ -804,7 +743,7 @@ def render_category_books(page, book_id, order):
     entries, pagination = quarry_grid.grid(page, ids, sort=keys, descending=descending)
     return render_title_template(
         "index.html",
-        random=random,
+        random=None,
         entries=entries,
         pagination=pagination,
         id=book_id,
@@ -891,18 +830,30 @@ def render_read_books(page, are_read, as_xml=False, order=None):
                 return redirect(url_for("web.index"))
             return []  # ToDo: Handle error Case for opds
 
-    entries, random, pagination = calibre_db.fill_indexpage(
-        page,
-        0,
-        db.Books,
-        db_filter,
-        sort_param,
-        True,
-        config.config_read_column,
-        db.books_series_link,
-        db.Books.id == db.books_series_link.c.book,
-        db.Series,
-    )
+    if as_xml or not config.config_read_column:
+        # OPDS feeds keep the ORM path (feed.xml's rich entry surface);
+        # the ub.ReadBook fallback keeps working for column-less instances.
+        entries, random, pagination = calibre_db.fill_indexpage(
+            page,
+            0,
+            db.Books,
+            db_filter,
+            sort_param,
+            True,
+            config.config_read_column,
+            db.books_series_link,
+            db.Books.id == db.books_series_link.c.book,
+            db.Series,
+        )
+    else:
+        # Phase 7: the HTML read/unread grids resolve through cquarry's
+        # read map.
+        ids = quarry_grid.read_ids(are_read)
+        keys, descending = quarry_grid.search_sort(order[1])
+        entries, pagination = quarry_grid.grid(
+            page, ids, sort=keys, descending=descending
+        )
+        random = None
 
     if as_xml:
         return entries, pagination
@@ -934,17 +885,17 @@ def render_archived_books(page, sort_param):
     )
     archived_book_ids = [archived_book.book_id for archived_book in archived_books]
 
-    archived_filter = db.Books.id.in_(archived_book_ids)
-
-    entries, random, pagination = calibre_db.fill_indexpage_with_archived_books(
-        page, db.Books, 0, archived_filter, order, True, True, config.config_read_column
+    # Phase 7: archived ids (app DB) page through cquarry's grid.
+    keys, descending = quarry_grid.search_sort(sort_param[1])
+    entries, pagination = quarry_grid.grid(
+        page, archived_book_ids, sort=keys, descending=descending
     )
 
     name = _("Archived Books") + " (" + str(len(entries)) + ")"
     page_name = "archived"
     return render_title_template(
         "index.html",
-        random=random,
+        random=None,
         entries=entries,
         pagination=pagination,
         title=name,

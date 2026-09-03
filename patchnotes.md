@@ -1,4 +1,27 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7: the last grids join the swap; dead code out (2026-09-03, 0.6.34)
+
+- **Archived, read/unread, hot, and downloaded grids page through
+  cquarry.** Archived and read/unread resolve id sets (app-DB archived
+  ids; the read map in `quarry_grid.read_ids`) and page via
+  `quarry_grid.grid`, which gained a `preserve_order` mode for callers
+  carrying their own ordering — hot books keep their download-count
+  order from the app DB, downloaded books their user-download order.
+  Dead downloads are pruned exactly as the old per-book loops did. The
+  OPDS read/unread feeds stay on the ORM for now (feed.xml's rich entry
+  surface — they swap with opds.py itself), as does the ub.ReadBook
+  fallback for column-less instances.
+- **/basic_book detail and the about-page counts.** `/basic_book` and
+  `/basic` search were already cquarry-backed; the about page's four
+  counts now come from `count_books()` + `get_entities()` instead of ORM
+  session queries.
+- **Dead code out.** The commented-out `get_comic_book` block is deleted,
+  and `edit_book_read_status` loses its unreachable bool-column write
+  branch — any configured read column is now simply read-only here.
+- **Version 0.6.34.** Suite 102 green. Remaining Phase 7: opds.py (the
+  biggest piece), show_book/read_book detail surface, /ajax/listbooks,
+  adv_search — planned in NEW-AUDIT.md's Stage 6 box.
+
 ## Phase 7: the browse grids join the swap (2026-09-03, 0.6.33)
 
 - **Every entity browse grid now pages through cquarry.** Author,

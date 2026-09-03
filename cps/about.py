@@ -30,21 +30,22 @@ import flask
 from flask_babel import gettext as _
 
 from . import db, calibre_db, converter, uploader, constants, dep_check
+from .library_cache import quarry
 from .render_template import render_title_template
 from .usermanagement import user_login_required
 
 
-about = flask.Blueprint('about', __name__)
+about = flask.Blueprint("about", __name__)
 
 modules = dict()
 req = dep_check.load_dependencies(False)
 opt = dep_check.load_dependencies(True)
-for i in (req + opt):
+for i in req + opt:
     modules[i[1]] = i[0]
-modules['Jinja2'] = metadata("jinja2")["Version"]
+modules["Jinja2"] = metadata("jinja2")["Version"]
 if sys.version_info < (3, 12):
-    modules['pySqlite'] = sqlite3.version
-modules['SQLite'] = sqlite3.sqlite_version
+    modules["pySqlite"] = sqlite3.version
+modules["SQLite"] = sqlite3.sqlite_version
 sorted_modules = OrderedDict((sorted(modules.items(), key=lambda x: x[0].casefold())))
 
 
@@ -52,24 +53,30 @@ def collect_stats():
     if constants.NIGHTLY_VERSION[0] == "$Format:%H$":
         calibre_web_version = constants.STABLE_VERSION.replace("b", " Beta")
     else:
-        calibre_web_version = (constants.STABLE_VERSION.replace("b", " Beta") + ' - '
-                               + constants.NIGHTLY_VERSION[0].replace('%', '%%') + ' - '
-                               + constants.NIGHTLY_VERSION[1].replace('%', '%%'))
+        calibre_web_version = (
+            constants.STABLE_VERSION.replace("b", " Beta")
+            + " - "
+            + constants.NIGHTLY_VERSION[0].replace("%", "%%")
+            + " - "
+            + constants.NIGHTLY_VERSION[1].replace("%", "%%")
+        )
 
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         calibre_web_version += " - Exe-Version"
     elif constants.HOME_CONFIG:
         calibre_web_version += " - pyPi"
 
-    _VERSIONS = {'Calibre Web': calibre_web_version}
-    _VERSIONS.update(OrderedDict(
-        Python=sys.version,
-        Platform='{0[0]} {0[2]} {0[3]} {0[4]} {0[5]}'.format(platform.uname()),
-    ))
+    _VERSIONS = {"Calibre Web": calibre_web_version}
+    _VERSIONS.update(
+        OrderedDict(
+            Python=sys.version,
+            Platform="{0[0]} {0[2]} {0[3]} {0[4]} {0[5]}".format(platform.uname()),
+        )
+    )
     _VERSIONS.update(uploader.get_magick_version())
-    _VERSIONS['Unrar'] = converter.get_unrar_version()
-    _VERSIONS['Ebook converter'] = converter.get_calibre_version()
-    _VERSIONS['Kepubify'] = converter.get_kepubify_version()
+    _VERSIONS["Unrar"] = converter.get_unrar_version()
+    _VERSIONS["Ebook converter"] = converter.get_calibre_version()
+    _VERSIONS["Kepubify"] = converter.get_kepubify_version()
     _VERSIONS.update(sorted_modules)
     return _VERSIONS
 
@@ -77,9 +84,20 @@ def collect_stats():
 @about.route("/stats")
 @user_login_required
 def stats():
-    counter = calibre_db.session.query(db.Books).count()
-    authors = calibre_db.session.query(db.Authors).count()
-    categories = calibre_db.session.query(db.Tags).count()
-    series = calibre_db.session.query(db.Series).count()
-    return render_title_template('stats.html', bookcounter=counter, authorcounter=authors, versions=collect_stats(),
-                                 categorycounter=categories, seriecounter=series, title=_("Statistics"), page="stat")
+    # Phase 7: the counts come from cquarry now (count_books + entity
+    # rollups over the cached rows).
+    quarry_db = quarry()
+    counter = quarry_db.count_books()
+    authors = len(quarry_db.get_entities("authors"))
+    categories = len(quarry_db.get_entities("tags"))
+    series = len(quarry_db.get_entities("series"))
+    return render_title_template(
+        "stats.html",
+        bookcounter=counter,
+        authorcounter=authors,
+        versions=collect_stats(),
+        categorycounter=categories,
+        seriecounter=series,
+        title=_("Statistics"),
+        page="stat",
+    )
