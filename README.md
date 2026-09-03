@@ -114,10 +114,11 @@ or `just serve` from the Carrel repo, which is the same command.
 ~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
-35 tests in about a second, against a fixture library built from a real Calibre
+46 tests in about a second, against a fixture library built from a real Calibre
 schema dump. They cover the enum read column and all four status badges, write
 refusal with checksum proof, the read-only attachment, the disabled routes,
 wing membership, category roll-up, the search grammar, the statistics metrics,
+the currently-reading shelf,
 and that every palette destination lands on the thing it names.
 
 The harness does not log in. That is deliberate: every assertion doubles as a

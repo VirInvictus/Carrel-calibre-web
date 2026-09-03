@@ -22,6 +22,7 @@ jobs:
         cps/library_cache.py
         cps/page_count.py
         cps/palette.py
+        cps/reading_shelf.py
         cps/series_info.py
         cps/single_user.py
         cps/smallscope.py

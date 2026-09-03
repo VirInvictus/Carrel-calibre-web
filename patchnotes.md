@@ -1,4 +1,46 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 12 sweep + the two verdicts (2026-09-02, 0.6.29)
+
+- **Falsy series index 0.** "Book 0" is a real place in a series and kept
+  vanishing: `carrel_series` coerced with a truthiness check and the detail
+  template gated the badge on `{% if cs.index %}`, so an index of 0/0.0
+  rendered as no number at all. The coercion now tests `is not None` and the
+  template gates on `is not none`. Fixture-backed test pins #0 as an int and
+  the fractional 7.5 passthrough.
+- **Route guards are case-normalized.** `seal_browse_surfaces` lowercases
+  both sides before matching, so `/HOT` and `/Discover` 404 exactly like
+  their lowercase forms (a capitalized bypass was not a feature). Test pins
+  the capitalized shapes.
+- **The palette speaks both dialects.** Ctrl-K accepts a one-letter prefix
+  plus a space to scope the haystack — `a tolkien` searches authors,
+  `s dune` series, `c` categories, `w` wings, `p` pages — with the counter
+  reporting the scoped shelf; the search fallback still sees the full query.
+  The `/` opener now ignores the keystroke while Ctrl/Alt/Meta is held, so
+  browser shortcuts own their combos.
+- **palette.js carries no second palette.** The eight hardcoded Dragon
+  fallbacks (`var(--kngw-black2,#1d1c19)` and friends) are gone per
+  Brandon's 2026-09-02 verdict: the palette inherits the sheet's `:root`
+  tokens, the §4.2 guard question dissolves, and a missing token now fails
+  visibly instead of silently diverging.
+- **keynav stands down under modals.** j/k (and g/G/Enter) no longer move
+  the grid while the book-detail modal, a config dialog, or any native
+  `dialog[open]` is up: the handler checks Bootstrap's `modal-open` body
+  class and visible `.modal.in/.modal.show` before touching focus.
+- **LibraryCache transitions are serialized.** A `threading.Lock` wraps
+  `get()`/`invalidate()`: two threads racing a stale mtime could both build
+  (double work, and a disposed-old-value race for carrel_search); a rebuild
+  is single-file now, build-before-evict semantics unchanged. A test fires
+  four concurrent gets at one cache and asserts one build.
+- **Currently Reading shelf on the front page.** New `cps/reading_shelf.py`
+  (headless like stats.py, LibraryCache-cached): the books Calibre's own
+  `reading_status` enumeration marks Reading, newest-grid page only, absent
+  entirely when the column is unconfigured or empty — no fork-side state.
+  The sheet gains the `.shelf` block (gray3 heading, per the contrast
+  verdict below); registered in `main.py` and the test harness; the CI
+  `CARREL_PY` lint list carries the new module.
+- **Version 0.6.29.** Suite 82 → 92 discovered (46 base), green from the
+  deployment venv.
+
 
 ## cquarry 1.8 sync + editable install (2026-08-26 → 0.6.28, 2026-08-30)
 
