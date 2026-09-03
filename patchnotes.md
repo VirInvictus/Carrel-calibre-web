@@ -1,4 +1,29 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7: the hybrid unwinds (2026-09-03, 0.6.31)
+
+- **Wings, saved searches, and categories page through cquarry now.** The
+  three surfaces resolved their book-id sets through cquarry's search
+  engine but still paged them through the stock ORM `fill_indexpage` —
+  the hybrid the boundary map called out. New `cps/quarry_grid.py`
+  finishes the swap: cquarry 1.10's `list_books()` pages the rows, and a
+  clean-room adapter builds exactly the attribute surface `index.html`
+  renders (`entry.Books.title/series[0].id/ratings[0].rating/authors/
+  data`, the `entry[2]` read badge from the read column, and a
+  Flask-shaped pagination shim with ellipsis arithmetic). The ORM and
+  its query builders are off these pages entirely.
+- **The categories rollup too.** `_rollup()`'s tag→book pairs come from
+  cquarry's cached rows (every book row carries its tags) instead of an
+  ORM session query — same implied-prefix rule.
+- **A falsy-empty trap the tests caught**: `grid()` treated an empty
+  id-set as "the whole library" (bare `if ids`), which would have made
+  the saved search matching nothing render every book — the exact bug
+  the "renders not 404s" test guards. `None` means everything; an empty
+  set means an empty page, and the distinction is now explicit and
+  test-pinned.
+- **Version 0.6.31.** Suite 96 → 100 discovered (50 base). Remaining
+  Phase 7 surface (web.py, opds.py, search.py results assembly,
+  basic.py) stays future work, scoped by the boundary map.
+
 ## Phase 7 begins: the data-layer swap's first increments (2026-09-03, 0.6.30)
 
 The NEW-AUDIT Stage 6 boundary map classified every cps/db.py call site;

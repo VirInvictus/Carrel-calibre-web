@@ -46,6 +46,7 @@ def main():
     from .categories import categories
     from .palette import palette
     from .series_info import series_info
+    from .quarry_grid import quarry_grid
     from .reading_shelf import reading_shelf
     from .stats import statistics
     from .saved_searches import saved_searches
@@ -100,6 +101,7 @@ def main():
     app.register_blueprint(statistics)
     app.register_blueprint(series_info)
     app.register_blueprint(reading_shelf)
+    app.register_blueprint(quarry_grid)
     app.register_blueprint(shelf)
     app.register_blueprint(admi)
     app.register_blueprint(remotelogin)

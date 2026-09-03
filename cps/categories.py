@@ -16,8 +16,9 @@
 from flask import Blueprint, abort
 from flask_babel import gettext as _
 
-from . import calibre_db, config, db, logger
-from .library_cache import LibraryCache
+from . import logger
+from . import quarry_grid
+from .library_cache import LibraryCache, quarry
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
@@ -35,15 +36,14 @@ def _rollup():
     for `tags:Fic.Fantasy`, so the browser and the search agree.
     """
     rolled = {}
-    rows = (
-        calibre_db.session.query(db.Tags.name, db.books_tags_link.c.book)
-        .join(db.books_tags_link, db.Tags.id == db.books_tags_link.c.tag)
-        .all()
-    )
-    for name, book in rows:
-        parts = name.split(".")
-        for i in range(1, len(parts) + 1):
-            rolled.setdefault(".".join(parts[:i]), set()).add(book)
+    # Phase 7 swap: the tag->book pairs come from cquarry's cached rows
+    # (every book row carries its tags as a native list) instead of an ORM
+    # session query. Same implied-prefix rule as before.
+    for book in quarry().get_all_books():
+        for name in book["tags"] or []:
+            parts = name.split(".")
+            for i in range(1, len(parts) + 1):
+                rolled.setdefault(".".join(parts[:i]), set()).add(book["id"])
     return {k: frozenset(v) for k, v in rolled.items()}
 
 
@@ -124,18 +124,10 @@ def show_category(name, page):
     ids = counts.get(name)
     if ids is None:
         abort(404)
-    entries, random, pagination = calibre_db.fill_indexpage(
-        page,
-        0,
-        db.Books,
-        db.Books.id.in_(ids),
-        [db.Books.sort],
-        True,
-        config.config_read_column,
-    )
+    entries, pagination = quarry_grid.grid(page, ids)
     return render_title_template(
         "index.html",
-        random=random,
+        random=None,
         entries=entries,
         pagination=pagination,
         title=_("Category: %(name)s", name=name),

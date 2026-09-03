@@ -52,6 +52,7 @@ from cps.shelf import shelf  # noqa: E402
 from cps.categories import categories  # noqa: E402
 from cps.palette import palette  # noqa: E402
 from cps.series_info import series_info  # noqa: E402
+from cps.quarry_grid import quarry_grid  # noqa: E402
 from cps.reading_shelf import reading_shelf  # noqa: E402
 from cps.stats import statistics  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
@@ -89,6 +90,7 @@ for blueprint in (
     statistics,
     series_info,
     reading_shelf,
+    quarry_grid,
     saved_searches,
     reader_state,
     page_count,
@@ -338,6 +340,55 @@ class SmallscopeTestCase(unittest.TestCase):
                 con.commit()
             finally:
                 con.close()
+
+    def test_quarry_grid_pages_and_shims(self):
+        # The cquarry-backed grid: title-sort order, the Books attribute
+        # surface index.html renders, the entry[2] read badge, and the
+        # pagination shim's Flask shape.
+        from cps.quarry_grid import grid
+
+        entries, pagination = grid(1, {1, 2, 3, 4})
+        titles = [e.Books.title for e in entries]
+        # title-sort order: Ancillary Justice, Ancillary Sword, Dune,
+        # Gardens of the Moon (the fixture's b.sort values).
+        self.assertEqual(titles, sorted(titles))
+        dune = next(e for e in entries if e.Books.title == "Dune")
+        self.assertEqual(dune[2], False)  # unread: no cc2 row
+        sword = next(e for e in entries if e.Books.title == "Ancillary Sword")
+        self.assertEqual(sword[2], "Reading")
+        # authors surface (id for the browse link, raw name for display)
+        a = sword.Books.authors[0]
+        self.assertEqual(a.name, "Ann Leckie")
+        self.assertIsInstance(a.id, int)
+        # ratings + series surfaces
+        justice = next(e for e in entries if e.Books.title == "Ancillary Justice")
+        self.assertEqual(justice.Books.ratings, [])  # fixture carries no ratings
+        self.assertEqual(justice.Books.series[0].name, "The Broken Earth")
+        self.assertIsInstance(justice.Books.series[0].id, int)
+        # data surface (formats)
+        self.assertIn("EPUB", [d.format for d in sword.Books.data])
+        # pagination shim: a fixture page count of 4 with a 60-per-page
+        # default means a single page, no neighbors.
+        self.assertFalse(pagination.has_prev)
+        self.assertFalse(pagination.has_next)
+
+    def test_quarry_grid_pagination_shim(self):
+        from cps.quarry_grid import GridPagination
+
+        small = GridPagination(1, 60, 130)
+        self.assertFalse(small.has_prev)
+        self.assertTrue(small.has_next)
+        # 130 books over 60-per-page is 3 pages: too few for an ellipsis.
+        self.assertEqual(list(small.iter_pages()), [1, 2, 3])
+        # 20 single-book pages with the reader on page 3: edges + window,
+        # and an ellipsis gap on each side of the window.
+        big = GridPagination(3, 1, 20)
+        pages = list(big.iter_pages())
+        self.assertIn(None, pages)
+        self.assertEqual([n for n in pages if n is not None][-1], 20)
+        self.assertIn(3, pages)
+        self.assertTrue(big.has_prev)
+        self.assertTrue(big.has_next)
 
     def test_reading_shelf_lists_exactly_the_reading_books(self):
         from cps import reading_shelf

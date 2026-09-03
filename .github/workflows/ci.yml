@@ -23,6 +23,7 @@ jobs:
         cps/page_count.py
         cps/palette.py
         cps/reading_shelf.py
+        cps/quarry_grid.py
         cps/series_info.py
         cps/single_user.py
         cps/smallscope.py

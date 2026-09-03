@@ -11,8 +11,9 @@
 from flask import Blueprint, abort
 from flask_babel import gettext as _
 
-from . import calibre_db, config, db, logger
+from . import logger
 from .library_cache import LibraryCache, library_path
+from . import quarry_grid
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
@@ -84,13 +85,10 @@ def show_wing(name, page):
         ids = None
     if ids is None:
         abort(404)
-    db_filter = db.Books.id.in_(ids)
-    entries, random, pagination = calibre_db.fill_indexpage(
-        page, 0, db.Books, db_filter, [db.Books.sort], True, config.config_read_column
-    )
+    entries, pagination = quarry_grid.grid(page, ids)
     return render_title_template(
         "index.html",
-        random=random,
+        random=None,
         entries=entries,
         pagination=pagination,
         title=_("Wing: %(name)s", name=name),

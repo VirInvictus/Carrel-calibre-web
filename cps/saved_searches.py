@@ -14,8 +14,9 @@
 from flask import Blueprint, abort
 from flask_babel import gettext as _
 
-from . import calibre_db, config, db, logger
+from . import logger
 from .library_cache import LibraryCache, library_path
+from . import quarry_grid
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
@@ -70,13 +71,10 @@ def show_saved(name, page):
         abort(404)
     # A saved search that currently matches nothing is still a real search:
     # render an empty page rather than 404 so the sidebar link keeps working.
-    db_filter = db.Books.id.in_(ids or [-1])
-    entries, random, pagination = calibre_db.fill_indexpage(
-        page, 0, db.Books, db_filter, [db.Books.sort], True, config.config_read_column
-    )
+    entries, pagination = quarry_grid.grid(page, ids or frozenset())
     return render_title_template(
         "index.html",
-        random=random,
+        random=None,
         entries=entries,
         pagination=pagination,
         title=_("Saved Search: %(name)s", name=name),

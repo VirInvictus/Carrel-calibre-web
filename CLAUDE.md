@@ -39,6 +39,7 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 | `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors |
 | `cps/categories.py` | the dot taxonomy as a tree, with descendant roll-up |
 | `cps/palette.py` | the Ctrl-K index, emitted as JS |
+| `cps/quarry_grid.py` | the cquarry-backed grid: entry adapters + pagination shim over `list_books()` |
 | `cps/reading_shelf.py` | the front page's Currently Reading shelf |
 | `cps/series_info.py` | series position, holdings, gaps |
 | `cps/stats.py` | headless metrics plus the `/statistics` route |
