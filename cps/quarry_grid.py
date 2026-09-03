@@ -194,6 +194,94 @@ def _name_ids(kind):
     return cache["map"]
 
 
+# Entity kinds the browse grids resolve, mapped to the row field that
+# carries the match value: an entity's books are the cached rows whose
+# field contains the entity's name/value. Rows-side resolution needs no
+# new cquarry API and no per-entity queries.
+_ENTITY_ROW_FIELDS = {
+    "authors": "authors",
+    "series": "series",
+    "publishers": "publisher",
+    "tags": "tags",
+    "languages": "languages",
+    "formats": "formats",
+    "ratings": "rating",
+}
+
+
+def _entity_name_map(kind):
+    """{entity id: match value} for one kind, from get_entities()."""
+    quarry_db = quarry()
+    out = {}
+    for e in quarry_db.get_entities(kind):
+        value = e["name"]
+        if kind == "ratings":
+            # get_entities surfaces the rating value as its name (text).
+            value = int(value)
+        elif kind in ("authors", "series"):
+            value = e["name"]
+        out[e["id"]] = value
+    return out
+
+
+def ids_for_entity(kind, entity_id):
+    """Book ids linked to one entity, ascending. Unknown ids give []."""
+    try:
+        entity_id = int(entity_id)
+    except (TypeError, ValueError):
+        return []
+    field = _ENTITY_ROW_FIELDS[kind]
+    wanted = _entity_name_map(kind).get(entity_id)
+    if wanted is None:
+        return []
+    out = []
+    for row in quarry().get_all_books():
+        have = row.get(field)
+        if isinstance(have, list):
+            if wanted in have:
+                out.append(row["id"])
+        elif have == wanted:
+            out.append(row["id"])
+    return sorted(out)
+
+
+def entity_name(kind, entity_id):
+    """The entity's raw display name/value, or None when the id is unknown.
+    Ratings come back as the integer value; authors keep Calibre's raw
+    pipe-escaped form (callers decide the display transform)."""
+    try:
+        entity_id = int(entity_id)
+    except (TypeError, ValueError):
+        return None
+    return _entity_name_map(kind).get(entity_id)
+
+
+def ids_with(field, value):
+    """Book ids whose row field contains `value` (list fields: membership;
+    scalar fields: equality), ascending."""
+    out = []
+    for row in quarry().get_all_books():
+        have = row.get(field)
+        if isinstance(have, list):
+            if value in have:
+                out.append(row["id"])
+        elif have == value:
+            out.append(row["id"])
+    return sorted(out)
+
+
+def ids_missing(kind):
+    """Book ids with NO value for one kind (the 'None' browse variants:
+    untagged, no publisher, no language, no formats, unrated)."""
+    field = _ENTITY_ROW_FIELDS[kind]
+    return sorted(row["id"] for row in quarry().get_all_books() if not row.get(field))
+
+
+def all_ids():
+    """Every book id, ascending."""
+    return sorted(row["id"] for row in quarry().get_all_books())
+
+
 def _read_status_map():
     try:
         return quarry().load_custom_column("reading_status") or {}

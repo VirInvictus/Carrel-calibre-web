@@ -1,4 +1,27 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7: the browse grids join the swap (2026-09-03, 0.6.33)
+
+- **Every entity browse grid now pages through cquarry.** Author,
+  publisher, series, category, language, ratings, formats, rated, and the
+  newest default grid resolve their book-id sets rows-side
+  (`quarry_grid.ids_for_entity` / `ids_missing` / `ids_with` over the
+  cached rows — entity id → name/value → row match; no per-entity
+  queries, no new cquarry API needed) and page via `quarry_grid.grid`
+  with the sort header honored through `SEARCH_SORTS`. None-variants
+  (untagged, no publisher, no language, no formats, unrated) are set
+  subtractions via `ids_missing`, preserving the `-1` URL semantics.
+- **Discover (random) and the degrade path.** Discover samples ids with
+  `random.sample` instead of `func.randomblob`; the newest grid degrades
+  to an empty page when the library vanishes mid-request, exactly as the
+  old `fill_indexpage` path did (the degrade test caught the 500).
+- **Two URL-shape fixes the tests caught:** entity ids arrive from URLs
+  as strings, so `entity_name`/`ids_for_entity` coerce to int (SQLite
+  used to do that coercion silently); and the four swapped return lines
+  that still referenced the removed `random` local were fixed.
+- **Version 0.6.33.** Suite 102 green. Remaining Phase 7 surface:
+  web.py's remaining routes (hot/downloaded/archived stay app-DB-coupled
+  for now), opds.py, show_book/read_book detail, helper.py lookups.
+
 ## Phase 7 continued: the search results page and /basic join the swap
 (2026-09-03, 0.6.32)
 
