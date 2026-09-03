@@ -1,4 +1,30 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7 continued: the search results page and /basic join the swap
+(2026-09-03, 0.6.32)
+
+- **/search results page through cquarry's list_books.** `render_search_results`
+  resolved ids through cquarry's engine but still paged them via the stock ORM
+  `fill_indexpage` (with the series join riding along for the authaz/authza
+  sorts). The paging now goes through `quarry_grid.grid()`, whose new
+  `SEARCH_SORTS` map carries the sort header onto `list_books` keys —
+  `authaz` = author_sort, series, series_index ascending (the ORM's exact
+  shape, enabled by cquarry 1.11's multi-key sorts), `authza` descending,
+  and the title/date/publisher tokens likewise. The route passes the
+  RESOLVED sort token (`order[1]`, after the saved view-property
+  substitution), not the raw one.
+- **/basic searches through the one grammar.** The low-bandwidth fallback
+  page was the last holdout of the old ORM search grammar (spec 13); its
+  query now resolves through `carrel_search` and pages via `quarry_grid`
+  (compact 15-per-page kept via the new grid `per_page` override), and a
+  malformed query degrades to an empty result page instead of a 500.
+- Requires cquarry 1.11.1 (`2f05b0d`): its `list_books` "sort" key was a
+  silent no-op (missing row-key alias) that 1.11.0's tests missed because
+  the cache arrives pre-sorted — found by this fork's descending search
+  sort, fixed upstream in the same wave.
+- Suite 100 → 102 discovered (51 base): the sort-header test now exercises
+  the cquarry path (and caught the upstream bug), plus grid/pagination
+  unit tests and /basic grammar + degradation coverage.
+
 ## Phase 7: the hybrid unwinds (2026-09-03, 0.6.31)
 
 - **Wings, saved searches, and categories page through cquarry now.** The

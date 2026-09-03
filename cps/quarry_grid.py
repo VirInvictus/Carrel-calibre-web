@@ -202,21 +202,46 @@ def _read_status_map():
         return {}
 
 
-def grid(page, ids):
+# The search page's sort-header tokens mapped onto list_books keys.
+# authaz/authza are the ORM's exact shape: author_sort primary, series
+# name then series index tie-breaking, one direction for all.
+SEARCH_SORTS = {
+    "stored": (("sort",), False),
+    "abc": (("sort",), False),
+    "zyx": (("sort",), True),
+    "new": (("timestamp",), True),
+    "old": (("timestamp",), False),
+    "authaz": (("author_sort", "series", "series_index"), False),
+    "authza": (("author_sort", "series", "series_index"), True),
+    "pubnew": (("pubdate",), True),
+    "pubold": (("pubdate",), False),
+    "seriesasc": (("series_index",), False),
+    "seriesdesc": (("series_index",), True),
+}
+
+
+def search_sort(sort_param):
+    """(keys, descending) for a search-page sort token; unknown falls to
+    the title-sort default."""
+    return SEARCH_SORTS.get(sort_param, (("sort",), False))
+
+
+def grid(page, ids, sort=("sort",), descending=False, per_page=None):
     """(entries, pagination) for one page of the given book-id set.
 
-    `ids=None` means the whole library. Sorted by Calibre's title-sort —
-    the same order the stock grid used. Page size is the instance's
-    configured books-per-page.
+    `ids=None` means the whole library; an EMPTY set means an empty page.
+    Sorted by Calibre's title-sort unless the caller passes a sort shape
+    (see SEARCH_SORTS). Page size is the instance's configured
+    books-per-page.
     """
-    per_page = config.config_books_per_page or 60
+    per_page = per_page or config.config_books_per_page or 60
     quarry_db = quarry()
     # None means the whole library; an EMPTY set means an empty page. A
     # bare `if ids` would render every book for a saved search that
     # matches nothing (the falsy-empty trap the saved-search contract
     # explicitly guards against).
     wanted = None if ids is None else list(ids)
-    all_rows = quarry_db.list_books(ids=wanted, sort="sort")
+    all_rows = quarry_db.list_books(ids=wanted, sort=sort, descending=descending)
     total = len(all_rows)
     offset = (max(1, page) - 1) * per_page
     rows = all_rows[offset : offset + per_page]

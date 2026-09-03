@@ -341,6 +341,18 @@ class SmallscopeTestCase(unittest.TestCase):
             finally:
                 con.close()
 
+    def test_basic_page_searches_through_the_cquarry_grammar(self):
+        # The /basic fallback now speaks the one grammar (spec 13): a
+        # field-prefixed query resolves and pages through quarry_grid.
+        resp = self.client.get("/basic?query=tags:Fic.SciFi")
+        self.assertEqual(resp.status_code, 200)
+        page = resp.get_data(as_text=True)
+        self.assertIn("Ancillary Justice", page)
+        self.assertIn("Dune", page)
+        # A cquarry ParseException degrades to an empty result page, not 500.
+        resp = self.client.get("/basic?query=authors%3A%22Unclosed")
+        self.assertEqual(resp.status_code, 200)
+
     def test_quarry_grid_pages_and_shims(self):
         # The cquarry-backed grid: title-sort order, the Books attribute
         # surface index.html renders, the entry[2] read badge, and the

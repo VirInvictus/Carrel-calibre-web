@@ -408,7 +408,11 @@ def render_books_list(data, sort_param, book_id, page):
     elif data == "search":
         term = request.args.get('query', None)
         offset = int(int(config.config_books_per_page) * (page - 1))
-        return render_search_results(term, offset, order, config.config_books_per_page)
+        # order[1] is the RESOLVED token: get_sort_function substituted the
+        # user's saved view property for "stored".
+        return render_search_results(
+            term, offset, order, config.config_books_per_page, sort_param=order[1]
+        )
     elif data == "advsearch":
         term = json.loads(flask_session.get('query', '{}'))
         offset = int(int(config.config_books_per_page) * (page - 1))
