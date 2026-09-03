@@ -22,6 +22,7 @@
 
 import os
 import sqlite3
+import threading
 
 from cquarry.helpers import db_uri_ro
 
@@ -85,8 +86,17 @@ class LibraryCache:
         self._mtime = None
         self._uuid = None
         self._value = None
+        # Phase 12: transitions are serialized. Two threads racing get()
+        # could both see a stale mtime and both build (double work, and for
+        # carrel_search a disposed-old-value race); the lock makes a rebuild
+        # single-file.
+        self._lock = threading.Lock()
 
     def get(self):
+        with self._lock:
+            return self._get_locked()
+
+    def _get_locked(self):
         mtime = os.path.getmtime(library_path())
         uuid = library_uuid()
         if self._mtime == mtime and self._uuid == uuid:
@@ -108,5 +118,6 @@ class LibraryCache:
 
     def invalidate(self):
         """Force the next get() to rebuild. Used by tests."""
-        self._mtime = None
-        self._uuid = None
+        with self._lock:
+            self._mtime = None
+            self._uuid = None

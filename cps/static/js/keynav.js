@@ -37,6 +37,15 @@
     return veil && !veil.hidden;
   }
 
+  function modalOpen() {
+    // Bootstrap marks the body while a modal (the book-detail one, the
+    // config dialogs) is up; j/k belong to whatever the modal holds.
+    return (
+      document.body.classList.contains("modal-open") ||
+      !!document.querySelector(".modal.in, .modal.show, dialog[open]")
+    );
+  }
+
   function focus(n) {
     if (idx >= 0 && items[idx]) items[idx].classList.remove("kn-sel");
     idx = Math.max(0, Math.min(items.length - 1, n));
@@ -56,7 +65,7 @@
 
   document.addEventListener("keydown", function (ev) {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
-    if (typing(ev.target) || paletteOpen()) return;
+    if (typing(ev.target) || paletteOpen() || modalOpen()) return;
 
     switch (ev.key) {
       case "j":

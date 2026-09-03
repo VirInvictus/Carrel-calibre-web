@@ -51,6 +51,7 @@ from cps.shelf import shelf  # noqa: E402
 from cps.categories import categories  # noqa: E402
 from cps.palette import palette  # noqa: E402
 from cps.series_info import series_info  # noqa: E402
+from cps.reading_shelf import reading_shelf  # noqa: E402
 from cps.stats import statistics  # noqa: E402
 from cps.single_user import install as install_single_user  # noqa: E402
 from cps.smallscope import (  # noqa: E402
@@ -86,6 +87,7 @@ for blueprint in (
     categories,
     statistics,
     series_info,
+    reading_shelf,
     saved_searches,
     reader_state,
     page_count,
@@ -267,6 +269,78 @@ class SmallscopeTestCase(unittest.TestCase):
         self.assertEqual(entry["held"], 2)
         self.assertIn("gaps", entry)
         self.assertEqual(info[2]["held"], 1)
+
+    def test_series_index_zero_is_explicit(self):
+        # "Book 0" is a real place in a series (prologue-numbered editions
+        # use it); index 0.0 must render as #0, not vanish into a falsy
+        # check in the module or the template.
+        from cps.series_info import carrel_series
+
+        class _Series:
+            id = 1
+
+        class _Entry:
+            series = [_Series()]
+            series_index = 0.0
+
+        with app.test_request_context("/"):
+            out = carrel_series(_Entry())
+        self.assertEqual(out["index"], 0)
+        self.assertIsInstance(out["index"], int)
+        # a fractional index still arrives as-is
+        _Entry.series_index = 7.5
+        with app.test_request_context("/"):
+            self.assertEqual(carrel_series(_Entry())["index"], 7.5)
+
+    # --- currently reading (Phase 12) ---------------------------------------
+
+    def test_reading_shelf_lists_exactly_the_reading_books(self):
+        from cps import reading_shelf
+
+        with app.test_request_context("/"):
+            shelf = reading_shelf._build()
+        # the fixture marks book 2 (and only book 2) Reading
+        self.assertEqual([b["title"] for b in shelf], ["Ancillary Sword"])
+        self.assertEqual(shelf[0]["author"], "Leckie, Ann")
+        self.assertEqual(shelf[0]["href"], "/book/2")
+
+    def test_reading_shelf_template_renders_on_the_front_page(self):
+        resp = self.client.get("/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Currently reading", resp.data)
+        self.assertIn(b"Ancillary Sword", resp.data)
+
+    # --- phase 12 sweep ------------------------------------------------------
+
+    def test_sealed_routes_ignore_case(self):
+        # seal_browse_surfaces normalizes the path: /Hot/ must 404 exactly
+        # like /hot/ does.
+        for path in ("/HOT", "/Hot", "/Discover"):
+            resp = self.client.get(path)
+            self.assertEqual(resp.status_code, 404, path)
+
+    def test_library_cache_serializes_builds(self):
+        import threading
+        import time
+
+        from cps.library_cache import LibraryCache
+
+        calls = []
+
+        def build():
+            calls.append(1)
+            time.sleep(0.05)
+            return len(calls)
+
+        cache = LibraryCache(build)
+        threads = [threading.Thread(target=cache.get) for _ in range(4)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+        # The lock serializes get(): one build, four consumers of the same
+        # value. Without it, four stale-mtime races meant four builds.
+        self.assertEqual(len(calls), 1)
 
     # --- statistics (spec 12) ----------------------------------------------
 

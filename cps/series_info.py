@@ -79,7 +79,9 @@ def carrel_series(entry):
         return {
             "id": s.id,
             "name": info["name"],
-            "index": int(index) if index and float(index).is_integer() else index,
+            "index": int(index)
+            if (index is not None and float(index).is_integer())
+            else index,
             "held": info["held"],
             "max": info["max"],
             "gaps": info["gaps"],

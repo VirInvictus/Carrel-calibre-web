@@ -15,31 +15,31 @@
   var css =
     ".cp-veil{position:fixed;inset:0;z-index:2000;background:rgba(13,12,12,.66);backdrop-filter:blur(3px)}" +
     ".cp{position:absolute;left:50%;top:15vh;transform:translateX(-50%);width:min(600px,92vw);" +
-    "font-family:var(--mono,ui-monospace,monospace);background:var(--kngw-black2,#1d1c19);" +
-    "border:1px solid var(--kngw-black5,#393836);border-radius:var(--radius,3px);" +
+    "font-family:var(--mono,ui-monospace,monospace);background:var(--kngw-black2);" +
+    "border:1px solid var(--kngw-black5);border-radius:var(--radius,3px);" +
     "box-shadow:0 18px 50px rgba(0,0,0,.6)}" +
     ".cp-head{display:flex;align-items:center;gap:10px;padding:13px 15px;" +
-    "border-bottom:1px solid var(--kngw-black4,#282727)}" +
-    ".cp-gt{color:var(--kngw-orange,#b6927b);font-weight:600}" +
-    ".cp-in{flex:1;background:transparent;border:0;outline:0;color:var(--kngw-fuji-white,#dcd7ba);" +
+    "border-bottom:1px solid var(--kngw-black4)}" +
+    ".cp-gt{color:var(--kngw-orange);font-weight:600}" +
+    ".cp-in{flex:1;background:transparent;border:0;outline:0;color:var(--kngw-fuji-white);" +
     "font-family:inherit;font-size:14px;letter-spacing:.02em}" +
-    ".cp-in::placeholder{color:var(--kngw-black6,#625e5a)}" +
+    ".cp-in::placeholder{color:var(--kngw-black6)}" +
     ".cp-list{max-height:46vh;overflow-y:auto;padding:6px 0;" +
-    "scrollbar-width:thin;scrollbar-color:var(--kngw-black5,#393836) transparent}" +
+    "scrollbar-width:thin;scrollbar-color:var(--kngw-black5) transparent}" +
     ".cp-list::-webkit-scrollbar{width:8px}" +
     ".cp-list::-webkit-scrollbar-track{background:transparent}" +
-    ".cp-list::-webkit-scrollbar-thumb{background:var(--kngw-black5,#393836);border-radius:3px}" +
+    ".cp-list::-webkit-scrollbar-thumb{background:var(--kngw-black5);border-radius:3px}" +
     ".cp-row{display:flex;align-items:baseline;gap:12px;padding:7px 15px;cursor:pointer;" +
-    "border-left:2px solid transparent;font-size:13px;color:var(--kngw-white,#c5c9c5)}" +
-    ".cp-row .g{margin-left:auto;font-size:10px;color:var(--kngw-black6,#625e5a);" +
+    "border-left:2px solid transparent;font-size:13px;color:var(--kngw-white)}" +
+    ".cp-row .g{margin-left:auto;font-size:10px;color:var(--kngw-black6);" +
     "text-transform:uppercase;letter-spacing:.09em;white-space:nowrap}" +
-    ".cp-row.sel{border-left-color:var(--kngw-orange,#b6927b);background:var(--kngw-black4,#282727);" +
-    "color:var(--kngw-fuji-white,#dcd7ba)}" +
-    ".cp-row.sel .g{color:var(--kngw-orange,#b6927b)}" +
-    ".cp-none{padding:14px 15px;font-size:12px;color:var(--kngw-black6,#625e5a)}" +
+    ".cp-row.sel{border-left-color:var(--kngw-orange);background:var(--kngw-black4);" +
+    "color:var(--kngw-fuji-white)}" +
+    ".cp-row.sel .g{color:var(--kngw-orange)}" +
+    ".cp-none{padding:14px 15px;font-size:12px;color:var(--kngw-black6)}" +
     ".cp-foot{display:flex;justify-content:space-between;padding:8px 15px;" +
-    "border-top:1px solid var(--kngw-black4,#282727);font-size:10px;letter-spacing:.08em;" +
-    "text-transform:uppercase;color:var(--kngw-black6,#625e5a)}";
+    "border-top:1px solid var(--kngw-black4);font-size:10px;letter-spacing:.08em;" +
+    "text-transform:uppercase;color:var(--kngw-black6)}";
   var st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -50,7 +50,7 @@
   veil.innerHTML =
     '<div class="cp" role="dialog" aria-modal="true" aria-label="Command palette">' +
     '<div class="cp-head"><span class="cp-gt">&gt;</span>' +
-    '<input class="cp-in" type="text" placeholder="jump anywhere — wings, authors, series, categories" ' +
+    '<input class="cp-in" type="text" placeholder="jump anywhere — a authors · s series · c categories · w wings" ' +
     'spellcheck="false" autocomplete="off" aria-label="Search the library"></div>' +
     '<div class="cp-list" role="listbox"></div>' +
     '<div class="cp-foot"><span>&#8593;&#8595; navigate &middot; &#8629; open &middot; esc close</span>' +
@@ -81,9 +81,25 @@
     return qi === q.length ? 100 - gaps * 8 - t.length / 50 : -1;
   }
 
+  // A prefix letter plus a space scopes the haystack to one shelf:
+  // "a tolkien" searches the authors, "s dune" the series. The search
+  // fallback below always sees the full query, prefix included.
+  var PREFIXES = { w: "wing", a: "author", s: "series", c: "category", p: "page" };
+
+  function scope(q) {
+    var m = /^([wascp])\s+(.*)$/.exec(q);
+    if (!m || !PREFIXES[m[1]]) return { data: DATA, q: q };
+    var group = PREFIXES[m[1]];
+    return {
+      data: DATA.filter(function (e) { return e.g === group; }),
+      q: m[2],
+    };
+  }
+
   function update() {
-    var q = input.value.trim().toLowerCase();
-    results = DATA.map(function (e) { return { e: e, s: score(q, e) }; })
+    var sc = scope(input.value.trim().toLowerCase());
+    var q = sc.q;
+    results = sc.data.map(function (e) { return { e: e, s: score(q, e) }; })
       .filter(function (r) { return r.s > 0; })
       .sort(function (a, b) { return b.s - a.s; })
       .slice(0, 12)
@@ -128,7 +144,7 @@
       row.addEventListener("pointermove", function () { setSel(i); });
       list.appendChild(row);
     });
-    nEl.textContent = hits + " of " + DATA.length;
+    nEl.textContent = hits + " of " + sc.data.length;
   }
 
   function setSel(i) {
@@ -154,7 +170,13 @@
       ev.preventDefault();
       veil.hidden ? open() : close();
     } else if (ev.key === "Escape" && !veil.hidden) close();
-    else if (ev.key === "/" && veil.hidden) {
+    else if (
+      ev.key === "/" &&
+      !ev.ctrlKey &&
+      !ev.altKey &&
+      !ev.metaKey &&
+      veil.hidden
+    ) {
       var t = ev.target;
       if (!(t instanceof HTMLElement) || !t.closest("input,textarea,select,[contenteditable]")) {
         ev.preventDefault();

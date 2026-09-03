@@ -34,8 +34,11 @@ def trim(*blueprints):
 def seal_browse_surfaces(app):
     @app.before_request
     def _sealed():
-        path = request.path.rstrip("/")
+        # Normalized: /Hot/ is the same route as /hot/, and a capitalized
+        # bypass is not a feature (Phase 12).
+        path = request.path.rstrip("/").lower()
         for prefix in _SEALED_PREFIXES:
+            prefix = prefix.lower()
             if path == prefix or path.startswith(prefix + "/"):
                 abort(404)
 

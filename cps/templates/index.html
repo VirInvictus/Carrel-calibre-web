@@ -14,6 +14,22 @@
     <span><a href="{{ url_for('statistics.show_statistics') }}">all statistics &rarr;</a></span>
   </div>
 {% endif %}
+{# Carrel (Phase 12): the Currently Reading shelf. The library's own
+   reading_status enumeration is the source of truth; the shelf renders
+   exactly what Calibre says is in progress, or nothing at all. #}
+{% if carrel_reading and page == 'newest' %}
+  <div class="shelf">
+    <h2 class="shelf-h">Currently reading</h2>
+    <ul class="shelf-list">
+      {% for b in carrel_reading %}
+      <li>
+        <a href="{{ url_for('web.show_book', book_id=b.id) }}">{{ b.title }}</a>
+        <span class="shelf-a">{{ b.author }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
 {% if current_user.show_detail_random() and page != "discover" %}
 <div class="discover random-books">
   <h2 class="random-books">{{_('Discover (Random Books)')}}</h2>

@@ -197,7 +197,7 @@ hr { border-color: var(--rule); }
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3); /* was black6: labels carry information (AA) */
     padding: 18px 16px 8px;
     border-bottom: 1px solid var(--rule);
     margin-bottom: 6px;
@@ -226,11 +226,12 @@ hr { border-color: var(--rule); }
 .navigation li a:hover .glyphicon,
 .navigation li.active a .glyphicon { color: var(--kngw-orange); }
 
-/* Wing counts sit right, quiet, and never wrap */
+/* Wing counts sit right, quiet, and never wrap. gray3: counts carry
+   information, and black6 fails AA on the page background (2026-09-02). */
 .navigation .badge {
     margin-left: auto;
     background: transparent;
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3);
     font-family: var(--mono);
     font-size: 10px;
     padding: 0;
@@ -299,7 +300,7 @@ hr { border-color: var(--rule); }
 .cat-node .badge, .cat-leaf .badge {
     margin-left: auto;
     background: transparent;
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3); /* counts carry information (AA) */
     font-family: var(--mono);
     font-size: 10px;
     padding: 0;
@@ -486,7 +487,7 @@ hr { border-color: var(--rule); }
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3); /* was black6: labels carry information (AA) */
 }
 
 /* Readout rows: the degenerate axes, stated rather than charted */
@@ -500,7 +501,7 @@ hr { border-color: var(--rule); }
     font-size: 11.5px;
 }
 .ro-k {
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3); /* was black6: labels carry information (AA) */
     text-transform: uppercase;
     letter-spacing: 0.1em;
     min-width: 82px;
@@ -567,7 +568,7 @@ hr { border-color: var(--rule); }
 .hour-tick {
     font-family: var(--mono);
     font-size: 9px;
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3); /* was black6: ticks carry information (AA) */
     text-align: center;
     padding-top: 5px;
 }
@@ -583,11 +584,22 @@ hr { border-color: var(--rule); }
     border-bottom: 1px solid var(--rule);
     font-family: var(--mono);
     font-size: 11px;
-    color: var(--kngw-black6);
+    color: var(--kngw-gray3); /* was black6: the readout carries information (AA) */
 }
 .masthead b { color: var(--kngw-old-white); font-weight: 400; }
-.masthead a { color: var(--kngw-black6); }
+.masthead a { color: var(--kngw-gray3); } /* was black6 (AA) */
 .masthead a:hover { color: var(--kngw-orange); }
+
+/* Currently Reading shelf (front page) */
+.shelf { margin: 18px 0 0; padding: 0 0 14px; border-bottom: 1px solid var(--rule); }
+.shelf-h { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--kngw-gray3); margin: 0 0 8px; }
+.shelf-list { list-style: none; margin: 0; padding: 0; display: flex;
+  flex-wrap: wrap; gap: 6px 18px; }
+.shelf-list li { font-size: 13px; }
+.shelf-list a { color: var(--kngw-white); }
+.shelf-a { color: var(--kngw-gray3); font-family: var(--mono); font-size: 11px;
+  margin-left: 6px; }
 
 /* ------------------------------------------------------------------ */
 /* Buttons and controls                                               */
