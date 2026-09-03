@@ -156,10 +156,7 @@ def _pace_by_year():
     except Exception as ex:
         log.info("acquisition pace unavailable: %s", ex)
         return []
-    return [
-        {"label": str(year), "value": n}
-        for year, n in sorted(timeline.items())
-    ]
+    return [{"label": str(year), "value": n} for year, n in sorted(timeline.items())]
 
 
 def _ratings():

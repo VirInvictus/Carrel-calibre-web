@@ -30,9 +30,7 @@ def _rebuild():
     from cquarry.helpers import detect_series_gaps
 
     quarry_db = quarry()
-    ids_by_name = {
-        e["name"]: e["id"] for e in quarry_db.get_entities("series")
-    }
+    ids_by_name = {e["name"]: e["id"] for e in quarry_db.get_entities("series")}
     out = {}
     for rollup in quarry_db.get_all_series():
         sid = ids_by_name.get(rollup["name"])
