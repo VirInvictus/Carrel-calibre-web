@@ -548,6 +548,7 @@ def detail_entry(book_id):
         )
     return entry, cc_cols
 
+
 class _DetailIdentifier:
     """Stands in for the ORM Identifiers object on the detail page."""
 
@@ -584,16 +585,18 @@ def build_detail(book_id):
         kind: {e["name"]: e["id"] for e in quarry_db.get_entities(kind)}
         for kind in ("authors", "series", "publishers", "tags")
     }
-    comment_html = (quarry_db.get_comments().get(book_id) or "")
+    comment_html = quarry_db.get_comments().get(book_id) or ""
 
     data_list = []
     for fmt in sorted(fmts.keys()):
         info = fmts[fmt]
-        data_list.append(types.SimpleNamespace(
-            format=fmt,
-            uncompressed_size=info.get("size_bytes", 0),
-            name=info.get("name", ""),
-        ))
+        data_list.append(
+            types.SimpleNamespace(
+                format=fmt,
+                uncompressed_size=info.get("size_bytes", 0),
+                name=info.get("name", ""),
+            )
+        )
     authors_list = [
         types.SimpleNamespace(
             id=entity_maps["authors"].get(name),
@@ -610,19 +613,22 @@ def build_detail(book_id):
         for code in row["languages"] or []
     ]
     pub_name = row["publisher"]
-    pub_list = [
-        types.SimpleNamespace(id=entity_maps["publishers"].get(pub_name),
-                              name=pub_name)
-    ] if pub_name else []
+    pub_list = (
+        [
+            types.SimpleNamespace(
+                id=entity_maps["publishers"].get(pub_name), name=pub_name
+            )
+        ]
+        if pub_name
+        else []
+    )
     series_name = row["series"]
     series_id = entity_maps["series"].get(series_name) if series_name else None
-    series_list = [
-        types.SimpleNamespace(id=series_id, name=series_name)
-    ] if series_name else []
+    series_list = (
+        [types.SimpleNamespace(id=series_id, name=series_name)] if series_name else []
+    )
     rating_val = row["rating"]
-    rating_list = [
-        types.SimpleNamespace(rating=rating_val)
-    ] if rating_val else []
+    rating_list = [types.SimpleNamespace(rating=rating_val)] if rating_val else []
     identifiers = [
         _DetailIdentifier(id_type, val)
         for id_type, val in (row["identifiers"] or {}).items()
@@ -665,9 +671,16 @@ def build_detail(book_id):
 
 
 _ID_LABELS = {
-    "amazon": "Amazon", "asin": "Amazon", "isbn": "ISBN", "doi": "DOI",
-    "goodreads": "Goodreads", "google": "Google Books", "kobo": "Kobo",
-    "barnesnoble": "Barnes & Noble", "douban": "Douban", "babelio": "Babelio",
+    "amazon": "Amazon",
+    "asin": "Amazon",
+    "isbn": "ISBN",
+    "doi": "DOI",
+    "goodreads": "Goodreads",
+    "google": "Google Books",
+    "kobo": "Kobo",
+    "barnesnoble": "Barnes & Noble",
+    "douban": "Douban",
+    "babelio": "Babelio",
 }
 _ID_URLS = {
     "isbn": "https://www.worldcat.org/isbn/{0}",
