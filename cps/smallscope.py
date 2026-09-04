@@ -17,8 +17,13 @@ from flask import abort, request
 # `tags:Fic.Fantasy AND rating:>=4 AND #audience:Rin` is not expressible
 # in it at all.
 _SEALED_PREFIXES = (
-    "/hot", "/rated", "/discover", "/advsearch",
-    "/table", "/ajax/listbooks", "/ajax/table_settings",
+    "/hot",
+    "/rated",
+    "/discover",
+    "/advsearch",
+    "/table",
+    "/ajax/listbooks",
+    "/ajax/table_settings",
 )
 
 
