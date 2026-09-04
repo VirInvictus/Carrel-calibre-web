@@ -16,7 +16,10 @@ from flask import abort, request
 # now uses. One grammar or none. The bar strictly subsumes the form:
 # `tags:Fic.Fantasy AND rating:>=4 AND #audience:Rin` is not expressible
 # in it at all.
-_SEALED_PREFIXES = ("/hot", "/rated", "/discover", "/advsearch")
+_SEALED_PREFIXES = (
+    "/hot", "/rated", "/discover", "/advsearch",
+    "/table", "/ajax/listbooks", "/ajax/table_settings",
+)
 
 
 def _disable(blueprint):

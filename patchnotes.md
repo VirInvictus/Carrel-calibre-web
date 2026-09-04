@@ -1,7 +1,26 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7 wrap: /ajax/listbooks sealed, advsearch code deleted, slop pass (2026-09-03, 0.6.36)
+
+- **The books-table zombie is sealed.** /table, /ajax/listbooks, and
+  /ajax/table_settings join the sealed prefixes: no sidebar link exists,
+  every write button on that page already 404s (editbook blueprint
+  trimmed), and the read side is the last big AlchemyEncoder consumer.
+  Sealing is reversible; deletion can ride the rebrand.
+- **The advsearch code behind its seal is deleted.** /advsearch was
+  already 404-sealed (spec 13.2a: one grammar or none); the ~500 lines
+  of dead ORM behind it (routes, adv_search_* helpers,
+  render_adv_search_results, render_prepare_search_form, the
+  flask_session handshake, search_form.html) are gone. The seal now has
+  nothing behind it to rot.
+- **Slop pass (dragon-agents slop-reader):** the em-dash habit it flagged
+  across NEW-AUDIT.md and these patchnotes is purged (about 40 instances
+  recast to colons/semicolons), plus a duplicated instruction passage, a
+  duplicated resolution line, a future-dated line, and one "robust".
+- **Version 0.6.36.** Suite 108 green.
+
 ## Phase 7: OPDS through cquarry (2026-09-03, 0.6.35)
 
-- **The OPDS book-list feeds run on cquarry now** — newest, letter books
+- **The OPDS book-list feeds run on cquarry now**: newest, letter books
   and the books A–Z index, discover (random via sample), best-rated,
   series, the four dataset feeds (author/publisher/category/ratings),
   formats, language index, and the search feed, which now speaks the
@@ -14,7 +33,7 @@
   via `get_formats`), `has_cover`, and `GridPagination` gained
   `next_offset`/`previous_offset` for the feed's rel links.
 - **Deliberately deferred inside OPDS**: the custom-column content block
-  (needs a cc adapter with series `.extra` — the feed renders without
+  (needs a cc adapter with series `.extra`: the feed renders without
   it; ratings/tags/series/comments remain), the hot and shelf feeds
   (app-DB-coupled), and the Calibre-Companion JSON endpoint (wants
   `get_book_by_uuid`, a 1.12 candidate). The shelf orphan-cleanup and
@@ -29,11 +48,11 @@
   cquarry.** Archived and read/unread resolve id sets (app-DB archived
   ids; the read map in `quarry_grid.read_ids`) and page via
   `quarry_grid.grid`, which gained a `preserve_order` mode for callers
-  carrying their own ordering — hot books keep their download-count
+  carrying their own ordering: hot books keep their download-count
   order from the app DB, downloaded books their user-download order.
   Dead downloads are pruned exactly as the old per-book loops did. The
   OPDS read/unread feeds stay on the ORM for now (feed.xml's rich entry
-  surface — they swap with opds.py itself), as does the ub.ReadBook
+  surface: they swap with opds.py itself), as does the ub.ReadBook
   fallback for column-less instances.
 - **/basic_book detail and the about-page counts.** `/basic_book` and
   `/basic` search were already cquarry-backed; the about page's four
@@ -41,10 +60,10 @@
   session queries.
 - **Dead code out.** The commented-out `get_comic_book` block is deleted,
   and `edit_book_read_status` loses its unreachable bool-column write
-  branch — any configured read column is now simply read-only here.
+  branch: any configured read column is now simply read-only here.
 - **Version 0.6.34.** Suite 102 green. Remaining Phase 7: opds.py (the
   biggest piece), show_book/read_book detail surface, /ajax/listbooks,
-  adv_search — planned in NEW-AUDIT.md's Stage 6 box.
+  adv_search: planned in NEW-AUDIT.md's Stage 6 box.
 
 ## Phase 7: the browse grids join the swap (2026-09-03, 0.6.33)
 
@@ -52,7 +71,7 @@
   publisher, series, category, language, ratings, formats, rated, and the
   newest default grid resolve their book-id sets rows-side
   (`quarry_grid.ids_for_entity` / `ids_missing` / `ids_with` over the
-  cached rows — entity id → name/value → row match; no per-entity
+  cached rows: entity id → name/value → row match; no per-entity
   queries, no new cquarry API needed) and page via `quarry_grid.grid`
   with the sort header honored through `SEARCH_SORTS`. None-variants
   (untagged, no publisher, no language, no formats, unrated) are set
@@ -76,7 +95,7 @@
   resolved ids through cquarry's engine but still paged them via the stock ORM
   `fill_indexpage` (with the series join riding along for the authaz/authza
   sorts). The paging now goes through `quarry_grid.grid()`, whose new
-  `SEARCH_SORTS` map carries the sort header onto `list_books` keys —
+  `SEARCH_SORTS` map carries the sort header onto `list_books` keys :
   `authaz` = author_sort, series, series_index ascending (the ORM's exact
   shape, enabled by cquarry 1.11's multi-key sorts), `authza` descending,
   and the title/date/publisher tokens likewise. The route passes the
@@ -89,7 +108,7 @@
   malformed query degrades to an empty result page instead of a 500.
 - Requires cquarry 1.11.1 (`2f05b0d`): its `list_books` "sort" key was a
   silent no-op (missing row-key alias) that 1.11.0's tests missed because
-  the cache arrives pre-sorted — found by this fork's descending search
+  the cache arrives pre-sorted: found by this fork's descending search
   sort, fixed upstream in the same wave.
 - Suite 100 → 102 discovered (51 base): the sort-header test now exercises
   the cquarry path (and caught the upstream bug), plus grid/pagination
@@ -99,7 +118,7 @@
 
 - **Wings, saved searches, and categories page through cquarry now.** The
   three surfaces resolved their book-id sets through cquarry's search
-  engine but still paged them through the stock ORM `fill_indexpage` —
+  engine but still paged them through the stock ORM `fill_indexpage` :
   the hybrid the boundary map called out. New `cps/quarry_grid.py`
   finishes the swap: cquarry 1.10's `list_books()` pages the rows, and a
   clean-room adapter builds exactly the attribute surface `index.html`
@@ -109,10 +128,10 @@
   its query builders are off these pages entirely.
 - **The categories rollup too.** `_rollup()`'s tag→book pairs come from
   cquarry's cached rows (every book row carries its tags) instead of an
-  ORM session query — same implied-prefix rule.
+  ORM session query: same implied-prefix rule.
 - **A falsy-empty trap the tests caught**: `grid()` treated an empty
   id-set as "the whole library" (bare `if ids`), which would have made
-  the saved search matching nothing render every book — the exact bug
+  the saved search matching nothing render every book: the exact bug
   the "renders not 404s" test guards. `None` means everything; an empty
   set means an empty page, and the distinction is now explicit and
   test-pinned.
@@ -140,7 +159,7 @@ swap surface (web.py, opds.py, search.py) remains future work by design.
   the generic. Fixture test pins the png case end to end.
 - **Acquisition pace joins /statistics via `cquarry.analytics`.** A new
   "Acquisition pace by year" ledger computed by
-  `analytics.addition_timeline()` — the derivation is database-shaped, so
+  `analytics.addition_timeline()`: the derivation is database-shaped, so
   it lives upstream per the frontend-only split. (The first wiring called
   it with the wrong shape and the degrade-to-empty path masked it; the new
   test asserts real fixture data so that class of bug cannot hide again.)
@@ -160,8 +179,8 @@ swap surface (web.py, opds.py, search.py) remains future work by design.
   their lowercase forms (a capitalized bypass was not a feature). Test pins
   the capitalized shapes.
 - **The palette speaks both dialects.** Ctrl-K accepts a one-letter prefix
-  plus a space to scope the haystack — `a tolkien` searches authors,
-  `s dune` series, `c` categories, `w` wings, `p` pages — with the counter
+  plus a space to scope the haystack: `a tolkien` searches authors,
+  `s dune` series, `c` categories, `w` wings, `p` pages: with the counter
   reporting the scoped shelf; the search fallback still sees the full query.
   The `/` opener now ignores the keystroke while Ctrl/Alt/Meta is held, so
   browser shortcuts own their combos.
@@ -182,7 +201,7 @@ swap surface (web.py, opds.py, search.py) remains future work by design.
 - **Currently Reading shelf on the front page.** New `cps/reading_shelf.py`
   (headless like stats.py, LibraryCache-cached): the books Calibre's own
   `reading_status` enumeration marks Reading, newest-grid page only, absent
-  entirely when the column is unconfigured or empty — no fork-side state.
+  entirely when the column is unconfigured or empty: no fork-side state.
   The sheet gains the `.shelf` block (gray3 heading, per the contrast
   verdict below); registered in `main.py` and the test harness; the CI
   `CARREL_PY` lint list carries the new module.
@@ -194,7 +213,7 @@ swap surface (web.py, opds.py, search.py) remains future work by design.
 
 - **Deployment venv reinstalled EDITABLE from `~/.gitrepos/cquarry`** (Carrel
   spec §8.2's documented contract). The stale non-editable cquarry 1.1.1 in
-  site-packages predated the branch's 1.3 API calls — the running instance
+  site-packages predated the branch's 1.3 API calls: the running instance
   silently degraded page_count to None. Installed == repo now, and it cannot
   drift again.
 - **`cps/library_cache.py`'s UUID read adopts cquarry's URI contract.** The
@@ -202,7 +221,7 @@ swap surface (web.py, opds.py, search.py) remains future work by design.
   artifact, not architecture: the Phase 4 venv predated `get_library_uuid()`.
   The read stays a single one-query mode=ro connection (a full CalibreDB
   lifecycle would regress the per-cache-hit cost the module exists to keep
-  cheap), but the URI now comes from cquarry's `db_uri_ro()` — whose
+  cheap), but the URI now comes from cquarry's `db_uri_ro()`: whose
   percent-encoding the old bare f-string was missing, a latent break on
   library paths containing `?` or `#`. Analytics adoption stays deferred to
   cquarry's Phase 7 (don't patch the fork twice).
@@ -216,12 +235,12 @@ swap surface (web.py, opds.py, search.py) remains future work by design.
   maintains per-book page counts in its own `books_pages_link` table (the
   CountPages integration); cquarry 1.3 reads that table natively with the
   `#pages` custom column kept as an older-schema fallback. A new Jinja global
-  `carrel_page_count(book_id)` follows the reader_state pattern — answers or
-  says None, never 500s — and detail.html renders a "Pages" line only when the
+  `carrel_page_count(book_id)` follows the reader_state pattern: answers or
+  says None, never 500s: and detail.html renders a "Pages" line only when the
   library actually knows.
 - **Library-identity cache invalidation (`cps/library_cache.py`).** The six
   LibraryCache surfaces (wings, categories, search, series, statistics,
-  palette — plus reader state and page count) now key on metadata.db's mtime
+  palette: plus reader state and page count) now key on metadata.db's mtime
   AND the library's identity UUID from `library_id`. An mtime alone cannot
   tell a restored *copy* from the original (`cp -p` reproduces timestamps);
   after a move/restore the bundled copy rebuilds instead of serving cached

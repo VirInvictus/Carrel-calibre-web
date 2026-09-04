@@ -52,7 +52,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from . import constants, logger, isoLanguages, services
 from . import db, ub, config, app
 from . import calibre_db, kobo_sync_status, quarry_grid
-from .search import render_search_results, render_adv_search_results
+from .search import render_search_results
 from .gdriveutils import getFileFromEbooksFolder, do_gdrive_download
 from .helper import (
     check_valid_domain,
@@ -424,12 +424,6 @@ def render_books_list(data, sort_param, book_id, page):
         # user's saved view property for "stored".
         return render_search_results(
             term, offset, order, config.config_books_per_page, sort_param=order[1]
-        )
-    elif data == "advsearch":
-        term = json.loads(flask_session.get("query", "{}"))
-        offset = int(int(config.config_books_per_page) * (page - 1))
-        return render_adv_search_results(
-            term, offset, order, config.config_books_per_page
         )
     else:
         website = data or "newest"
@@ -937,7 +931,6 @@ data = [
     "language",
     "archived",
     "search",
-    "advsearch",
     "newest",
 ]
 for d in data:
