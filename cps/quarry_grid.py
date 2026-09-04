@@ -574,7 +574,6 @@ def build_detail(book_id):
     precomputed here; the template just reads.
     """
     from datetime import datetime as _dt
-    from cquarry.db import CalibreDB as _CDB
 
     quarry_db = quarry()
     row = quarry_db.get_book(book_id, include_comments=True)
