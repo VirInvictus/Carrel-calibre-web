@@ -586,7 +586,6 @@ def build_detail(book_id):
     }
     comment_html = (quarry_db.get_comments().get(book_id) or "")
 
-    import os as _os
     data_list = []
     for fmt in sorted(fmts.keys()):
         info = fmts[fmt]
