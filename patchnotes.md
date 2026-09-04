@@ -1,4 +1,19 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7: DetailProxy scaffold (2026-09-04, 0.6.37)
+
+- **`quarry_grid._Books` grew the detail-page surface**: ordered_authors
+  (entity id map), identifiers with `format_type()` and vendor URLs
+  (`_IdentifierProxy`), `reader_list` / `audio_entries` (derived from
+  formats), per-format `uncompressed_size` via `formats_map`, and
+  `__getitem__` for the custom_column_N accessor (returns []: the cc
+  adapter is a documented deferral). `_READER_FORMATS` / `_AUDIO_FORMATS`
+  constants defined.
+- **`detail_entry()`** stubs the cquarry-backed detail builder: fetches
+  the dossier, builds the enriched proxy + cc metadata list. The
+  show_book route still runs on the ORM (the swap is the next session's
+  work — the scaffold is tested and the proxies are proven by the suite).
+- **Version 0.6.37.** Suite 108 green.
+
 ## Phase 7 wrap: /ajax/listbooks sealed, advsearch code deleted, slop pass (2026-09-03, 0.6.36)
 
 - **The books-table zombie is sealed.** /table, /ajax/listbooks, and

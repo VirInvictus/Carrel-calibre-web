@@ -67,14 +67,18 @@ class _Rating(_Proxy):
 class _Data(_Proxy):
     # _row is the format name; the owning book id enables the lazy size
     # lookup (feed.xml's length attribute; index.html never asks).
-    def __init__(self, fmt, book_id):
+    def __init__(self, fmt, book_id=None, size=None):
         super().__init__(fmt)
         self._book_id = book_id
+        self._size = size
 
     @property
     def uncompressed_size(self):
+        if self._size is not None:
+            return self._size
         try:
-            fmts = quarry().get_formats(self._book_id) or {}
+            quarry_db = quarry()
+            fmts = quarry_db.get_formats(self._book_id) or {}
             return (fmts.get(self._row) or {}).get("size_bytes")
         except Exception:
             return None
@@ -84,10 +88,50 @@ class _Data(_Proxy):
         return self._row
 
 
+_READER_FORMATS = frozenset(
+    {"txt", "pdf", "epub", "kepub", "cbz", "cbt", "cbr", "djvu", "djv"}
+)
+_AUDIO_FORMATS = frozenset({"mp3", "mp4", "ogg", "opus", "wav", "flac", "m4a", "m4b"})
+
+
+class _IdentifierProxy:
+    __slots__ = ("type", "val")
+
+    def __init__(self, id_type, val):
+        self.type = id_type
+        self.val = val
+
+    def format_type(self):
+        return _IDENTIFIER_LABELS.get(self.type.lower(), self.type)
+
+    def __str__(self):
+        return _IDENTIFIER_URLS.get(self.type.lower(), "{0}").format(self.val)
+
+
+_IDENTIFIER_LABELS = {
+    "amazon": "Amazon",
+    "asin": "Amazon",
+    "isbn": "ISBN",
+    "doi": "DOI",
+    "goodreads": "Goodreads",
+    "google": "Google Books",
+    "kobo": "Kobo",
+}
+_IDENTIFIER_URLS = {
+    "isbn": "https://www.worldcat.org/isbn/{0}",
+    "doi": "https://dx.doi.org/{0}",
+    "goodreads": "https://www.goodreads.com/book/show/{0}",
+    "google": "https://books.google.com/books?id={0}",
+    "kobo": "https://www.kobo.com/ebook/{0}",
+}
+
+
 class _Books(_Proxy):
-    def __init__(self, row, comments_map=None):
+    def __init__(self, row, comments_map=None, formats_map=None, entity_ids=None):
         super().__init__(row)
         self._comments_map = comments_map or {}
+        self._formats_map = formats_map or {}
+        self._entity_ids = entity_ids or {}
 
     @property
     def id(self):
@@ -136,7 +180,12 @@ class _Books(_Proxy):
 
     @property
     def data(self):
-        return [_Data(fmt, self._row["id"]) for fmt in self._row["formats"] or []]
+        return [
+            _Data(
+                fmt, self._row["id"], self._formats_map.get(fmt, {}).get("size_bytes")
+            )
+            for fmt in self._row["formats"] or []
+        ]
 
     @property
     def uuid(self):
@@ -185,6 +234,37 @@ class _Books(_Proxy):
     def comments(self):
         html = self._comments_map.get(self._row["id"]) if self._comments_map else None
         return [_Series({"name": html, "id": None})] if html else []
+
+    @property
+    def ordered_authors(self):
+        ids = self._entity_ids.get("authors", {})
+        out = []
+        for name in self._row["authors"] or []:
+            out.append(_Series({"id": ids.get(name), "name": name}))
+        return out
+
+    @property
+    def identifiers(self):
+        return [
+            _IdentifierProxy(id_type, val)
+            for id_type, val in (self._row["identifiers"] or {}).items()
+        ]
+
+    @property
+    def reader_list(self):
+        return [
+            fmt.lower()
+            for fmt in self._row["formats"] or []
+            if fmt.lower() in _READER_FORMATS
+        ]
+
+    @property
+    def audio_entries(self):
+        return [
+            fmt.lower()
+            for fmt in self._row["formats"] or []
+            if fmt.lower() in _AUDIO_FORMATS
+        ]
 
     def __getitem__(self, key):
         # custom_column_N access (feed.xml's cc block): the cquarry-backed
@@ -409,6 +489,63 @@ def search_sort(sort_param):
     """(keys, descending) for a search-page sort token; unknown falls to
     the title-sort default."""
     return SEARCH_SORTS.get(sort_param, (("sort",), False))
+
+
+# --- DetailProxy: the show_book / read_book audio entry surface (Phase 7) ---
+
+
+def _detail_books_proxy(row, comments_map, formats_map, entity_ids):
+    """A _Books proxy enriched for the detail page: publishers/languages/
+    tags carry entity ids, data carries sizes, comments render raw."""
+    return _Books(
+        row, comments_map=comments_map, formats_map=formats_map, entity_ids=entity_ids
+    )
+
+
+def detail_entry(book_id):
+    """Build a GridEntry for one book's detail page, backed by cquarry.
+
+    Returns (GridEntry, cc_list) or (None, None) for unknown books. The
+    proxy exposes the attribute surface detail.html renders: ordered
+    authors, identifiers with vendor URLs, languages with display names,
+    publishers/tags/series with entity ids, comments, per-format sizes,
+    and custom_column_N accessors.
+    """
+    quarry_db = quarry()
+    dossier = quarry_db.get_book_dossier(book_id, include_comments=True)
+    if dossier is None:
+        return None, None
+    row = dossier["book"]
+    row["formats"] = sorted(dossier["formats"].keys())
+    fmts = dossier["formats"]
+    html = (dossier.get("comments") or {}).get("html", "")
+    entity_ids = {
+        kind: {e["name"]: e["id"] for e in quarry_db.get_entities(kind)}
+        for kind in ("authors", "series", "publishers", "tags")
+    }
+    entry = GridEntry(
+        row,
+        read_status=False,
+        comments_map={book_id: html},
+        formats_map=fmts,
+        entity_ids=entity_ids,
+    )
+    entry._detail_dossier = dossier
+    # cc metadata (the template iterates this to find custom_column_N keys)
+    cc_cols = []
+    for col in quarry_db.get_custom_columns().values():
+        if col["datatype"] in ("composite", "series"):
+            continue
+        if col["id"] == config.config_read_column:
+            continue
+        cc_cols.append(
+            type(
+                "CC",
+                (),
+                {"id": col["id"], "name": col["name"], "datatype": col["datatype"]},
+            )()
+        )
+    return entry, cc_cols
 
 
 def grid(
