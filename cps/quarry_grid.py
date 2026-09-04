@@ -647,6 +647,7 @@ def build_detail(book_id):
     return types.SimpleNamespace(
         id=row["id"],
         title=row["title"],
+        author_sort=row.get("author_sort") or "",
         last_modified=last_modified,
         data=data_list,
         comments=[types.SimpleNamespace(text=comment_html)] if comment_html else [],

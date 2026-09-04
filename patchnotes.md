@@ -1,4 +1,15 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7: show_book through cquarry's build_detail (2026-09-04, 0.6.38)
+
+- **show_book route swapped.** The ORM `get_book_read_archived` call is
+  replaced by `quarry_grid.build_detail(book_id)`, which precomputes the
+  detail-page surface from cquarry: hydrated row with authors, tags,
+  languages, formats with sizes, identifiers, comments, publishers,
+  series, rating, pubdate, has_cover, and the `title_sort` field. The
+  SimpleNamespace also carries `author_sort` for the ordered_authors
+  chain.
+- **Version 0.6.38.** Suite 108 green.
+
 ## Phase 7: DetailProxy scaffold (2026-09-04, 0.6.37)
 
 - **`quarry_grid._Books` grew the detail-page surface**: ordered_authors

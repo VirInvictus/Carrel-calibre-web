@@ -2196,23 +2196,21 @@ def read_book(book_id, book_format):
 @web.route("/book/<int:book_id>")
 @login_required_if_no_ano
 def show_book(book_id):
-    entries = calibre_db.get_book_read_archived(
-        book_id, config.config_read_column, allow_show_archived=True
-    )
-    if entries:
-        read_book = entries[1]
-        archived_book = entries[2]
-        entry = entries[0]
+    # Phase 7: the entry comes from cquarry's build_detail (precomputed).
+    entry = quarry_grid.build_detail(book_id)
+    if entry is not None:
         from .smallscope import read_column_is_enum
 
         if config.config_read_column and read_column_is_enum(config.config_read_column):
             # smallscope: enumeration read column; expose the label for the badge
+            status_map = quarry_grid._read_status_map()
+            read_book = status_map.get(book_id)
             entry.read_status = read_book == "Read"
             entry.read_status_label = read_book or "To Read"
         else:
-            entry.read_status = read_book == ub.ReadBook.STATUS_FINISHED
+            entry.read_status = False
             entry.read_status_label = None
-        entry.is_archived = archived_book
+        entry.is_archived = False
         for lang_index in range(0, len(entry.languages)):
             entry.languages[lang_index].language_name = isoLanguages.get_language_name(
                 get_locale(), entry.languages[lang_index].lang_code
@@ -2227,7 +2225,7 @@ def show_book(book_id):
 
         entry.tags = sort(entry.tags, key=lambda tag: tag.name)
 
-        entry.ordered_authors = calibre_db.order_authors([entry])
+        # ordered_authors comes precomputed from build_detail
 
         entry.email_share_list = check_send_to_ereader(entry)
         entry.reader_list = check_read_formats(entry)
