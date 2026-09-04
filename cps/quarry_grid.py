@@ -17,6 +17,7 @@
 # template grows a new attribute, grow the proxy here — never reintroduce
 # the ORM on these pages.
 
+import types
 from datetime import datetime
 
 from flask import Blueprint
@@ -546,6 +547,138 @@ def detail_entry(book_id):
             )()
         )
     return entry, cc_cols
+
+class _DetailIdentifier:
+    """Stands in for the ORM Identifiers object on the detail page."""
+
+    def __init__(self, id_type, val):
+        self.type = id_type
+        self.val = val
+
+    def format_type(self):
+        return _ID_LABELS.get(self.type.lower(), self.type)
+
+    def __str__(self):
+        url_tpl = _ID_URLS.get(self.type.lower())
+        return url_tpl.format(self.val) if url_tpl else self.val
+
+
+def build_detail(book_id):
+    """Precompute everything detail.html needs, from cquarry calls.
+
+    Returns a `types.SimpleNamespace` with the attribute surface
+    detail.html renders (id, title, data, comments, languages with
+    display names, ordered_authors with ids, identifiers with URLs and
+    labels, publishers, tags, series, rating, pubdate datetime,
+    reader_list, audio_entries), or None for unknown books. All data is
+    precomputed here; the template just reads.
+    """
+    from datetime import datetime as _dt
+    from cquarry.db import CalibreDB as _CDB
+
+    quarry_db = quarry()
+    row = quarry_db.get_book(book_id, include_comments=True)
+    if row is None:
+        return None
+    fmts = quarry_db.get_formats(book_id) or {}
+    entity_maps = {
+        kind: {e["name"]: e["id"] for e in quarry_db.get_entities(kind)}
+        for kind in ("authors", "series", "publishers", "tags")
+    }
+    comment_html = (quarry_db.get_comments().get(book_id) or "")
+
+    import os as _os
+    data_list = []
+    for fmt in sorted(fmts.keys()):
+        info = fmts[fmt]
+        data_list.append(types.SimpleNamespace(
+            format=fmt,
+            uncompressed_size=info.get("size_bytes", 0),
+            name=info.get("name", ""),
+        ))
+    authors_list = [
+        types.SimpleNamespace(
+            id=entity_maps["authors"].get(name),
+            name=name.replace("|", ","),
+        )
+        for name in row["authors"] or []
+    ]
+    tag_list = [
+        types.SimpleNamespace(id=entity_maps["tags"].get(name), name=name)
+        for name in row["tags"] or []
+    ]
+    lang_list = [
+        types.SimpleNamespace(lang_code=code, language_name=code)
+        for code in row["languages"] or []
+    ]
+    pub_name = row["publisher"]
+    pub_list = [
+        types.SimpleNamespace(id=entity_maps["publishers"].get(pub_name),
+                              name=pub_name)
+    ] if pub_name else []
+    series_name = row["series"]
+    series_id = entity_maps["series"].get(series_name) if series_name else None
+    series_list = [
+        types.SimpleNamespace(id=series_id, name=series_name)
+    ] if series_name else []
+    rating_val = row["rating"]
+    rating_list = [
+        types.SimpleNamespace(rating=rating_val)
+    ] if rating_val else []
+    identifiers = [
+        _DetailIdentifier(id_type, val)
+        for id_type, val in (row["identifiers"] or {}).items()
+    ]
+    last_mod = row["last_modified"]
+    try:
+        last_modified = _dt.fromisoformat(last_mod)
+    except (TypeError, ValueError):
+        last_modified = _dt(101, 1, 1)
+    pub_raw = row["pubdate"]
+    try:
+        pubdate = _dt.fromisoformat(pub_raw)
+    except (TypeError, ValueError):
+        pubdate = None
+
+    return types.SimpleNamespace(
+        id=row["id"],
+        title=row["title"],
+        last_modified=last_modified,
+        data=data_list,
+        comments=[types.SimpleNamespace(text=comment_html)] if comment_html else [],
+        languages=lang_list,
+        ordered_authors=authors_list,
+        identifiers=identifiers,
+        tags=tag_list,
+        publishers=pub_list,
+        series=series_list,
+        series_index=row["series_index"],
+        rating=rating_val,
+        ratings=rating_list,
+        pubdate=pubdate,
+        has_cover=bool(row["has_cover"]),
+        reader_list=[],
+        audio_entries=[],
+        read_status=False,
+        read_status_label=None,
+        is_archived=False,
+        path=row["path"],
+    )
+
+
+_ID_LABELS = {
+    "amazon": "Amazon", "asin": "Amazon", "isbn": "ISBN", "doi": "DOI",
+    "goodreads": "Goodreads", "google": "Google Books", "kobo": "Kobo",
+    "barnesnoble": "Barnes & Noble", "douban": "Douban", "babelio": "Babelio",
+}
+_ID_URLS = {
+    "isbn": "https://www.worldcat.org/isbn/{0}",
+    "doi": "https://dx.doi.org/{0}",
+    "goodreads": "https://www.goodreads.com/book/show/{0}",
+    "amazon": "https://amazon.com/dp/{0}",
+    "kobo": "https://www.kobo.com/ebook/{0}",
+    "google": "https://books.google.com/books?id={0}",
+}
 
 
 def grid(
