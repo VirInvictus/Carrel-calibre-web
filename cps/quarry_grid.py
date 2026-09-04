@@ -65,12 +65,30 @@ class _Rating(_Proxy):
 
 
 class _Data(_Proxy):
+    # _row is the format name; the owning book id enables the lazy size
+    # lookup (feed.xml's length attribute; index.html never asks).
+    def __init__(self, fmt, book_id):
+        super().__init__(fmt)
+        self._book_id = book_id
+
+    @property
+    def uncompressed_size(self):
+        try:
+            fmts = quarry().get_formats(self._book_id) or {}
+            return (fmts.get(self._row) or {}).get("size_bytes")
+        except Exception:
+            return None
+
     @property
     def format(self):
         return self._row
 
 
 class _Books(_Proxy):
+    def __init__(self, row, comments_map=None):
+        super().__init__(row)
+        self._comments_map = comments_map or {}
+
     @property
     def id(self):
         return self._row["id"]
@@ -118,7 +136,63 @@ class _Books(_Proxy):
 
     @property
     def data(self):
-        return [_Data(fmt) for fmt in self._row["formats"] or []]
+        return [_Data(fmt, self._row["id"]) for fmt in self._row["formats"] or []]
+
+    @property
+    def uuid(self):
+        return self._row["uuid"]
+
+    @property
+    def has_cover(self):
+        return bool(self._row["has_cover"])
+
+    @property
+    def title_sort(self):
+        return self._row["title_sort"]
+
+    def _parsed(self, field):
+        raw = self._row[field]
+        try:
+            return datetime.fromisoformat(raw)
+        except (TypeError, ValueError):
+            return datetime(101, 1, 1)
+
+    @property
+    def atom_timestamp(self):
+        # OPDS updated stamps (feed.xml) — same format the ORM property used.
+        return self.last_modified.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+    @property
+    def pubdate(self):
+        return self._parsed("pubdate")
+
+    @property
+    def publishers(self):
+        name = self._row["publisher"]
+        return [_Series({"id": None, "name": name})] if name else []
+
+    @property
+    def languages(self):
+        return [
+            _Series({"id": None, "name": code}) for code in self._row["languages"] or []
+        ]
+
+    @property
+    def tags(self):
+        return [_Series({"id": None, "name": name}) for name in self._row["tags"] or []]
+
+    @property
+    def comments(self):
+        html = self._comments_map.get(self._row["id"]) if self._comments_map else None
+        return [_Series({"name": html, "id": None})] if html else []
+
+    def __getitem__(self, key):
+        # custom_column_N access (feed.xml's cc block): the cquarry-backed
+        # feed passes cc=[], so this stays empty until a cc adapter lands.
+        return []
+
+    def get(self, key, default=None):
+        return default
 
 
 class GridEntry:
@@ -126,8 +200,8 @@ class GridEntry:
 
     __slots__ = ("Books", "_read_status")
 
-    def __init__(self, row, read_status=False):
-        self.Books = _Books(row)
+    def __init__(self, row, read_status=False, comments_map=None):
+        self.Books = _Books(row, comments_map=comments_map)
         self._read_status = read_status
 
     def __getitem__(self, idx):
@@ -144,6 +218,14 @@ class GridPagination:
         self.per_page = per_page
         self.total = total
         self.pages = max(1, -(-total // per_page)) if per_page else 1
+
+    @property
+    def next_offset(self):
+        return self.page * self.per_page if self.has_next else None
+
+    @property
+    def previous_offset(self):
+        return (self.page - 2) * self.per_page if self.has_prev else None
 
     @property
     def total_count(self):
@@ -330,7 +412,13 @@ def search_sort(sort_param):
 
 
 def grid(
-    page, ids, sort=("sort",), descending=False, per_page=None, preserve_order=False
+    page,
+    ids,
+    sort=("sort",),
+    descending=False,
+    per_page=None,
+    preserve_order=False,
+    include_comments=False,
 ):
     """(entries, pagination) for one page of the given book-id set.
 
@@ -358,7 +446,16 @@ def grid(
         rows = sorted(rows, key=lambda r: row_order.get(r["id"], len(row_order)))
 
     status = _read_status_map()
-    entries = [GridEntry(row, status.get(row["id"], False)) for row in rows]
+    comments = None
+    if include_comments:
+        try:
+            comments = quarry_db.get_comments()
+        except Exception:
+            comments = None
+    entries = [
+        GridEntry(row, status.get(row["id"], False), comments_map=comments)
+        for row in rows
+    ]
     return entries, GridPagination(max(1, page), per_page, total)
 
 

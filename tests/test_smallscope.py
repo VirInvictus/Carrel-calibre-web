@@ -341,6 +341,57 @@ class SmallscopeTestCase(unittest.TestCase):
             finally:
                 con.close()
 
+    def test_opds_new_feed_is_valid_xml_with_full_entries(self):
+        # The OPDS swap: the newest feed parses as XML and each entry
+        # carries the uuid, content block, and acquisition links KOReader
+        # consumes.
+        import xml.etree.ElementTree as ET
+
+        resp = self.client.get(
+            "/opds/new", headers={"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("atom+xml", resp.headers["Content-Type"])
+        root = ET.fromstring(resp.get_data(as_text=True))
+        ns = "{http://www.w3.org/2005/Atom}"
+        entries = root.findall(f"{ns}entry")
+        self.assertTrue(entries)
+        first = entries[0]
+        self.assertTrue(first.find(f"{ns}title").text)
+        uuid_el = first.find(f"{ns}id")
+        self.assertTrue(uuid_el.text.startswith("urn:uuid:"))
+        self.assertIsNotNone(first.find(f"{ns}content"))
+        acq = [
+            link
+            for link in first.findall(f"{ns}link")
+            if "acquisition" in (link.get("rel") or "")
+        ]
+        self.assertTrue(acq)
+
+    def test_opds_search_feed_resolves_the_cquarry_grammar(self):
+        import xml.etree.ElementTree as ET
+
+        resp = self.client.get(
+            "/opds/search/tags%3AFic.SciFi",
+            headers={"Authorization": "Basic YWRtaW46YWRtaW4xMjM="},
+        )
+        self.assertEqual(resp.status_code, 200)
+        root = ET.fromstring(resp.get_data(as_text=True))
+        ns = "{http://www.w3.org/2005/Atom}"
+        titles = [e.find(f"{ns}title").text for e in root.findall(f"{ns}entry")]
+        self.assertIn("Ancillary Justice", titles)
+        self.assertIn("Dune", titles)
+        self.assertNotIn("Gardens of the Moon", titles)
+
+    def test_opds_letter_indexes_render(self):
+        auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        for path in ("/opds", "/opds/author", "/opds/series", "/opds/category"):
+            resp = self.client.get(path, headers=auth)
+            self.assertEqual(resp.status_code, 200, path)
+            # navigation feeds carry letter elements ("00" = All) or entries
+            data = resp.get_data(as_text=True)
+            self.assertIn("<entry>", data, path)
+
     def test_basic_page_searches_through_the_cquarry_grammar(self):
         # The /basic fallback now speaks the one grammar (spec 13): a
         # field-prefixed query resolves and pages through quarry_grid.

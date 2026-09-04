@@ -1,4 +1,28 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7: OPDS through cquarry (2026-09-03, 0.6.35)
+
+- **The OPDS book-list feeds run on cquarry now** — newest, letter books
+  and the books A–Z index, discover (random via sample), best-rated,
+  series, the four dataset feeds (author/publisher/category/ratings),
+  formats, language index, and the search feed, which now speaks the
+  same grammar as the search bar (via `carrel_search.resolve`) instead
+  of the old ORM wildcard match. Letter indexes are computed in Python
+  from cquarry rows instead of SQL group-bys.
+- **`quarry_grid` proxies grew the OPDS surface**: uuid, atom_timestamp,
+  pubdate as a datetime, publishers/languages/tags, comments (a batch
+  comment fetch per feed render), per-format `uncompressed_size` (lazy
+  via `get_formats`), `has_cover`, and `GridPagination` gained
+  `next_offset`/`previous_offset` for the feed's rel links.
+- **Deliberately deferred inside OPDS**: the custom-column content block
+  (needs a cc adapter with series `.extra` — the feed renders without
+  it; ratings/tags/series/comments remain), the hot and shelf feeds
+  (app-DB-coupled), and the Calibre-Companion JSON endpoint (wants
+  `get_book_by_uuid`, a 1.12 candidate). The shelf orphan-cleanup and
+  download-count app-DB writes are unchanged.
+- **Version 0.6.35.** Suite 102 → 108 discovered (54 base): OPDS feeds
+  parse as XML with full entries, the search feed resolves the cquarry
+  grammar, and the letter indexes render.
+
 ## Phase 7: the last grids join the swap; dead code out (2026-09-03, 0.6.34)
 
 - **Archived, read/unread, hot, and downloaded grids page through
