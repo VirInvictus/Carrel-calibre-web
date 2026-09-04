@@ -1,4 +1,17 @@
 # Patchnotes (Carrel-calibre-web)
+## Phase 7 close: read_book through cquarry; rebrand light-touch (2026-09-04, 0.6.39)
+
+- **read_book route swapped.** The ORM `get_filtered_book` call is
+  replaced by `quarry_grid.build_detail(book_id)`, same as show_book.
+  All reader branches (epub/pdf/txt/djvu/audio) work from the
+  precomputed surface.
+- **Rebrand light-touch.** Upstream copyright headers stripped from
+  Carrel-owned files that were rewritten from scratch (clean_html.py).
+  Stock calibre-web files (web.py, db.py, helper.py, config_sql.py)
+  keep their upstream headers: they are still substantially upstream
+  code. README identity is already Carrel-first.
+- **Version 0.6.39.** Suite 108 green.
+
 ## Phase 7: show_book through cquarry's build_detail (2026-09-04, 0.6.38)
 
 - **show_book route swapped.** The ORM `get_book_read_archived` call is

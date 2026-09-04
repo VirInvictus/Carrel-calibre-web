@@ -2094,7 +2094,8 @@ def profile():
 @login_required_if_no_ano
 @viewer_required
 def read_book(book_id, book_format):
-    book = calibre_db.get_filtered_book(book_id)
+    # Phase 7: the book data comes from cquarry's build_detail.
+    book = quarry_grid.build_detail(book_id)
 
     if not book:
         flash(
@@ -2108,7 +2109,7 @@ def read_book(book_id, book_format):
         )
         return redirect(url_for("web.index"))
 
-    book.ordered_authors = calibre_db.order_authors([book], False)
+    book.ordered_authors = book.ordered_authors  # already precomputed
 
     # check if book has a bookmark
     bookmark = None
