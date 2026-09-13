@@ -227,7 +227,9 @@ hr { border-color: var(--rule); }
 .navigation li.active a .glyphicon { color: var(--kngw-orange); }
 
 /* Wing counts sit right, quiet, and never wrap. gray3: counts carry
-   information, and black6 fails AA on the page background (2026-09-02). */
+   information, and black6 fails AA on the page background (2026-09-02).
+   One rule covers every sidebar count: the tree lives inside
+   nav.navigation, so its badges need no second copy. */
 .navigation .badge {
     margin-left: auto;
     background: transparent;
@@ -237,11 +239,14 @@ hr { border-color: var(--rule); }
     padding: 0;
     white-space: nowrap;
 }
-.navigation li a:hover .badge { color: var(--kngw-gray3); }
 
 /* ------------------------------------------------------------------ */
 /* Category tree: the dot taxonomy as a collapsible ledger            */
 /* ------------------------------------------------------------------ */
+
+/* The section sits beneath Wings (decision 2026-09-12) and reads as a
+   secondary index: a half-step down in size and rhythm from the wing rows
+   above it, so the curated structure keeps its primacy. */
 
 /* <details>/<summary> gives collapse with no JavaScript. The marker is
    replaced with a typographic caret so the row stays in the mono register. */
@@ -249,12 +254,12 @@ hr { border-color: var(--rule); }
     display: flex;
     align-items: baseline;
     gap: 9px;
-    padding: 5px 16px 5px 16px;
+    padding: 3px 16px 3px 16px;
     cursor: pointer;
     list-style: none;
     color: var(--kngw-gray);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 11.5px;
     border-left: 2px solid transparent;
 }
 .cat-node > details > summary::-webkit-details-marker { display: none; }
@@ -280,10 +285,10 @@ hr { border-color: var(--rule); }
     display: flex;
     align-items: baseline;
     gap: 9px;
-    padding: 4px 16px 4px 6px;
+    padding: 2px 16px 2px 6px;
     color: var(--kngw-gray3);
     font-family: var(--mono);
-    font-size: 11.5px;
+    font-size: 11px;
     border-left: 2px solid transparent;
 }
 .cat-leaf a:hover { color: var(--kngw-fuji-white); background: var(--kngw-black2); }
@@ -296,15 +301,6 @@ hr { border-color: var(--rule); }
 /* "All Fic.Fantasy": the roll-up row that includes every descendant */
 .cat-all { font-style: italic; color: var(--kngw-black6); }
 .cat-leaf a:hover .cat-all { color: var(--kngw-orange); }
-
-.cat-node .badge, .cat-leaf .badge {
-    margin-left: auto;
-    background: transparent;
-    color: var(--kngw-gray3); /* counts carry information (AA) */
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 0;
-}
 
 /* ------------------------------------------------------------------ */
 /* The book grid: a ledger of covers                                  */

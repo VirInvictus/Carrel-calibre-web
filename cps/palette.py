@@ -20,8 +20,8 @@ import json
 
 from flask import Blueprint, Response
 
-from . import calibre_db, db, logger
-from .library_cache import LibraryCache, library_mtime
+from . import logger
+from .library_cache import LibraryCache, library_mtime, quarry
 from .usermanagement import login_required_if_no_ano
 
 palette = Blueprint("palette", __name__)
@@ -62,18 +62,25 @@ def _entries():
     for name in _wing_ids():
         rows.append({"t": name, "g": "wing", "h": "/wings/%s" % quote(name)})
 
-    session = calibre_db.session
-    for author in session.query(db.Authors).all():
+    # Entities come from cquarry's get_entities() (2026-09-13, the last ORM
+    # reads in the fork's Carrel modules): one query per kind, name-sorted,
+    # the same source the about-page counts and the OPDS letter feeds use.
+    quarry_db = quarry()
+    for author in quarry_db.get_entities("authors"):
         rows.append(
             {
-                "t": author.name.replace("|", ","),
+                "t": author["name"].replace("|", ","),
                 "g": "author",
-                "h": "/author/stored/%d" % author.id,
+                "h": "/author/stored/%d" % author["id"],
             }
         )
-    for series in session.query(db.Series).all():
+    for series in quarry_db.get_entities("series"):
         rows.append(
-            {"t": series.name, "g": "series", "h": "/series/stored/%d" % series.id}
+            {
+                "t": series["name"],
+                "g": "series",
+                "h": "/series/stored/%d" % series["id"],
+            }
         )
     # Categories jump to Carrel's roll-up browser rather than stock
     # calibre-web's /category/stored/<id>: the sidebar tree already goes there,
@@ -84,9 +91,13 @@ def _entries():
     # intermediate nodes (Fic.Fantasy) stay reachable through the tree and not
     # through Ctrl-K; indexing them too would grow the payload for a set of
     # destinations that are one click away in the sidebar.
-    for tag in session.query(db.Tags).all():
+    for tag in quarry_db.get_entities("tags"):
         rows.append(
-            {"t": tag.name, "g": "category", "h": "/categories/%s" % quote(tag.name)}
+            {
+                "t": tag["name"],
+                "g": "category",
+                "h": "/categories/%s" % quote(tag["name"]),
+            }
         )
 
     return rows

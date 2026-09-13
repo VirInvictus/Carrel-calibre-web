@@ -873,7 +873,42 @@ class SmallscopeTestCase(_ClientCase):
         self.assertEqual(self.client.get("/categories/Fic").status_code, 200)
         self.assertEqual(self.client.get("/categories/Nope.Nope").status_code, 404)
 
+    def test_categories_render_beneath_wings(self):
+        # Decision 2026-09-12: Wings lead the sidebar as the curated
+        # structure; the compact Categories index sits beneath them, above
+        # Saved Searches. Pinned against the nav-head markers, not bare
+        # strings, so prose elsewhere on the page cannot satisfy it.
+        page = self.client.get("/").get_data(as_text=True)
+        wings = page.index('<li class="nav-head hidden-xs">Wings</li>')
+        cats = page.index('<li class="nav-head hidden-xs">Categories</li>')
+        saved = page.index('<li class="nav-head hidden-xs">Saved Searches</li>')
+        self.assertLess(wings, cats)
+        self.assertLess(cats, saved)
+
     # --- command palette (spec 4.4) ----------------------------------------
+
+    def test_palette_entities_are_cquarry_served(self):
+        # The index is built from cquarry's get_entities() (2026-09-13), not
+        # the ORM: the same source as the about-page counts, which is what
+        # makes the sidebar's "served from the cquarry category counts" true.
+        # Lockstep with get_entities is the behavioral pin; if an ORM read
+        # creeps back with divergent names, this fails.
+        import json
+        import re
+
+        from cps.library_cache import quarry
+
+        body = self.client.get("/palette-data.js").get_data(as_text=True)
+        rows = json.loads(re.sub(r"^window\.PALETTE=|;$", "", body.strip()))
+        q = quarry()
+        expected = {
+            "author": {e["name"].replace("|", ",") for e in q.get_entities("authors")},
+            "series": {e["name"] for e in q.get_entities("series")},
+            "category": {e["name"] for e in q.get_entities("tags")},
+        }
+        for kind, names in expected.items():
+            got = {r["t"] for r in rows if r["g"] == kind}
+            self.assertEqual(got, names, kind)
 
     def test_palette_index_covers_every_navigable_kind(self):
         import json

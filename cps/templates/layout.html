@@ -137,24 +137,25 @@
           <nav class="navigation">
             <ul class="list-unstyled" id="scnd-nav" intent in-standard-append="nav.navigation" in-mobile-after="#main-nav" in-mobile-class="nav navbar-nav">
               {# Carrel (spec 4.4): the Browse ledger is gone. Wings are the
-                 curated structure and the only permanent furniture; every
-                 other axis (authors, series, categories, publishers, formats,
-                 read/unread) is a Ctrl-K palette destination instead, and the
-                 brand link returns to the whole library. The `sidebar` context
+                 curated structure and lead the sidebar; the compact Categories
+                 index sits beneath them (decision 2026-09-12), and every
+                 other axis (authors, series, publishers, formats, read/unread)
+                 is a Ctrl-K palette destination instead. The `sidebar` context
                  variable is still populated upstream if this is ever restored. #}
-              {# Carrel: category browser over the dot taxonomy (spec 4.4).
-                 Counts and membership roll descendants up, so Fic.Fantasy
-                 includes Fic.Fantasy.Epic. #}
-              {% if category_tree %}
-                <li class="nav-head hidden-xs">{{_('Categories')}}</li>
-                {% for item in category_tree %}{{ cat.node(item, 0) }}{% endfor %}
-              {% endif %}
               {# smallscope: shelves UI removed; Wings live here (kanagawa spec 8) #}
               {% if current_user.is_authenticated and wings_list %}
                 <li class="nav-head hidden-xs">{{_('Wings')}}</li>
                 {% for wing in wings_list %}
                   <li {% if page == 'wings' and wing_active is defined and wing_active == wing.name %}class="active"{% endif %}><a href="{{ url_for('wings.show_wing', name=wing.name) }}"><span class="glyphicon glyphicon-tower"></span> {{ wing.name|shortentitle(40) }} <span class="badge badge-sm">{{ wing.count }}</span></a></li>
                 {% endfor %}
+              {% endif %}
+              {# Carrel: category browser over the dot taxonomy (spec 4.4),
+                 beneath Wings in the compact register. Counts and membership
+                 roll descendants up, so Fic.Fantasy includes
+                 Fic.Fantasy.Epic. #}
+              {% if category_tree %}
+                <li class="nav-head hidden-xs">{{_('Categories')}}</li>
+                {% for item in category_tree %}{{ cat.node(item, 0) }}{% endfor %}
               {% endif %}
               {# Carrel: Calibre saved searches as browse sections (cquarry 1.1
                  interpolation — same engine as the search bar and Wings). #}

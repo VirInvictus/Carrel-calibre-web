@@ -1,4 +1,30 @@
 # Patchnotes (Carrel-calibre-web)
+## Categories beneath Wings, the palette off the ORM, the honest decorator count (2026-09-13, 0.6.41)
+
+The fork half of Carrel's v0.9.9 lane (decision 2026-09-12: a compact
+Categories section beneath Wings).
+
+- **The sidebar re-balances: Categories now renders beneath Wings.**
+  Wings lead as the curated structure; the compact Categories index sits
+  between them and Saved Searches. The compact register is the theme's
+  (tighter rows, a half-step down in type), shipped through the canonical
+  sheet and `just sync-theme`; a regression test pins the order against
+  the nav-head markers.
+- **palette.py's entity reads go through cquarry get_entities().** The
+  authors/series/tags queries were the fork's Carrel modules' last ORM
+  reads; the Ctrl-K index now shares one source with the about-page
+  counts and the OPDS feeds. Same payload set, name-ordered instead of
+  id-ordered; every palette href still lands on its own target (the
+  existing tests hold, and a new lockstep test pins the index to
+  get_entities' output).
+- **single_user.py's decorator count is corrected.** The header comment
+  claimed upstream carries 154 @login_required decorators across 10
+  modules; measured, it is 39 across 5 upstream modules (42 across 10 at
+  smallscope HEAD counting the fork's own). The roadmap's claim that
+  this fix shipped in 230c42bc was false; it lands here.
+- Screenshots regenerated for the new sidebar order (front page, detail,
+  statistics, category tree). Suite: 73 green.
+
 ## Phase 13 sealing release: eight routes sealed, send/convert dead, the invariants pinned (2026-09-11, 0.6.40)
 
 The fork half of the contract repo's Phase 13 hardening backlog (the

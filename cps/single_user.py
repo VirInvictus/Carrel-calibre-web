@@ -7,7 +7,8 @@
 # credential-management paths answer 404.
 #
 # The owner is authenticated on every request instead of stripping flask-login.
-# Upstream has 154 @login_required decorators across 10 modules; rewriting them
+# Upstream carries 39 @login_required decorators across 5 modules (42 across
+# 10 at smallscope HEAD, counting the fork's own additions); rewriting them
 # would turn every rebase onto a new upstream tag into a merge conflict, which
 # spec section 3 explicitly protects against. Leaving them in place and always
 # arriving authenticated makes them pass trivially.
