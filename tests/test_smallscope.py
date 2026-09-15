@@ -732,7 +732,11 @@ class SmallscopeTestCase(_ClientCase):
         self.assertIn("Dune", resp.get_data(as_text=True))
 
         with app.app_context():
-            owner = ub_mod.session.query(ub_mod.User).filter(ub_mod.User.name == "admin").one()
+            owner = (
+                ub_mod.session.query(ub_mod.User)
+                .filter(ub_mod.User.name == "admin")
+                .one()
+            )
             ub_mod.session.add(
                 ub_mod.ArchivedBook(user_id=owner.id, book_id=3, is_archived=True)
             )
@@ -1065,9 +1069,7 @@ class SmallscopeTestCase(_ClientCase):
         rather than an auth wall."""
         auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
         for path in ("/opds/hot", "/opds/discover", "/opds/rated", "/OPDS/Hot"):
-            self.assertEqual(
-                self.client.get(path, headers=auth).status_code, 404, path
-            )
+            self.assertEqual(self.client.get(path, headers=auth).status_code, 404, path)
 
     # --- category browser (spec 4.4) ---------------------------------------
 
@@ -1241,9 +1243,7 @@ class SmallscopeTestCase(_ClientCase):
             # every fixed destination proves it rendered the thing it
             # names, not just any 200: the page half of this loop used to
             # assert only not-500 and a sealed 404 passed for years.
-            self.assertIn(
-                PAGE_MARKERS[row["h"]], rv.get_data(as_text=True), row["h"]
-            )
+            self.assertIn(PAGE_MARKERS[row["h"]], rv.get_data(as_text=True), row["h"])
         self.assertEqual(
             {r["h"] for r in rows if r["g"] == "page"} - set(PAGE_MARKERS),
             set(),

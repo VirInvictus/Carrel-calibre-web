@@ -25,6 +25,10 @@ vendor/
 *.log
 cps/cache
 
+# tool caches (smallscope; a mis-cwd run once left one inside cps/templates/)
+.ruff_cache/
+.pytest_cache/
+
 .idea/
 *.bak
 *.log.*

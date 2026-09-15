@@ -50,11 +50,11 @@ the grammar's own message rather than quietly returning nothing.
 through the same engine, so a wing in the sidebar and a `vl:` search agree by
 construction.
 
-**Saved Searches.** Calibre’s named searches join them as a second sidebar section (`/saved/<name>`), resolved through cquarry 1.1’s `search:"Name"` interpolation with cycle detection, so the sidebar, the search bar and the desktop Calibre GUI can never disagree about what a saved search matches.
+**Saved Searches.** Calibre's named searches join them as a second sidebar section (`/saved/<name>`), resolved through cquarry 1.1's `search:"Name"` interpolation with cycle detection, so the sidebar, the search bar and the desktop Calibre GUI can never disagree about what a saved search matches.
 
-**Calibre-exact wing layout.** The sidebar follows the ordering stored in Calibre’s own preferences (`virt_libs_order`) and hides what Calibre hides (`virt_libs_hidden`), so the web room arranges wings exactly as the desktop does.
+**Calibre-exact wing layout.** The sidebar follows the ordering stored in Calibre's own preferences (`virt_libs_order`) and hides what Calibre hides (`virt_libs_hidden`), so the web room arranges wings exactly as the desktop does.
 
-**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`); both read through cquarry’s extractors, never guessed.
+**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`); both read through cquarry's extractors, never guessed. The browser reader opens at the device-recorded position when it has no bookmark of its own, and the front page carries a Continue Reading row driven by the same positions.
 
 **A category browser over the dot taxonomy.** Only leaf tags are assigned in
 this library (`Fic.Fantasy.Epic.Gods` exists; `Fic.Fantasy` does not), so every
@@ -62,8 +62,16 @@ path prefix becomes a browsable node that accumulates its descendants. The
 counts match the search engine exactly: Fic 3440, Fic.Fantasy 1368, NonFic
 3004.
 
+**OPDS.** Every non-browser device reaches the room through the OPDS catalog
+at `/opds`, and the feeds speak the same cquarry-backed data layer as the web
+pages: letter indexes, entity feeds, and search all resolve through one
+engine, so a feed and a web search agree by construction. The mirrors of the
+cut surfaces (Hot Books, Discover, Top Rated) are sealed exactly like their
+web siblings. The Calibre-Companion JSON handshake keeps its upstream shape.
+
 **Ctrl-K.** A fuzzy jumper over every wing, author, series, category and page,
-6,975 destinations for this library, cached on the database's mtime. Type
+6,975 destinations for this library, cached on the database's mtime and the
+library's identity UUID. Type
 something that is not a destination and it offers to search for it instead, so
 one keystroke reaches both.
 
@@ -86,12 +94,14 @@ focuses search, Ctrl-K opens the palette.
 | :---: | :---: |
 | <img src="docs/screenshots/categories.png" width="290" alt="The category tree, expanded"> | <img src="docs/screenshots/mobile.png" width="290" alt="Carrel on a phone"> |
 
-**Removed:** uploads, shelves, metadata editing, Kobo sync, Goodreads, email,
-registration, public sharing, the task queue, advanced search, Discover, Hot
-Books and Top Rated. Routes are disabled rather than deleted, so the diff
-against upstream stays small and rebase-friendly; the one deletion is the
-dead ORM behind the already-sealed advanced search, taken deliberately when
-its seal made the code unreachable.
+**Removed from the web UI:** uploads, shelves, metadata editing, Kobo sync,
+Goodreads, email, registration, public sharing, the task queue, advanced
+search, Discover, Hot Books and Top Rated. Routes are disabled rather than
+deleted, so the diff against upstream stays small and rebase-friendly; the
+one deletion is the dead ORM behind the already-sealed advanced search,
+taken deliberately when its seal made the code unreachable. The OPDS mirrors
+of the cut surfaces are sealed under the same prefix rule, and Kobo stays
+config-gated, not deleted.
 
 ## Running it
 
@@ -117,11 +127,11 @@ or `just serve` from the Carrel repo, which is the same command.
 ~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
 ```
 
-71 tests in about a second, against a fixture library built from a real Calibre
+86 tests in a few seconds, against a fixture library built from a real Calibre
 schema dump. They cover the enum read column and all four status badges, write
 refusal with checksum proof, the read-only attachment, the disabled routes,
 wing membership, category roll-up, the search grammar, the statistics metrics,
-the currently-reading shelf,
+the reading shelves, the OPDS feeds,
 and that every palette destination lands on the thing it names.
 
 The harness does not log in. That is deliberate: every assertion doubles as a

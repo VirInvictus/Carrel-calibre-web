@@ -93,9 +93,7 @@ def latest_position(book_id, book_format=None):
     if not positions:
         return None
     fmt = (book_format or "").upper()
-    matching = [
-        r for r in positions if (r.get("format") or "").upper() == fmt
-    ]
+    matching = [r for r in positions if (r.get("format") or "").upper() == fmt]
     pool = matching or positions
     return max(pool, key=lambda r: r.get("epoch") or 0).get("cfi") or None
 

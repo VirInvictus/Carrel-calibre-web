@@ -36,15 +36,17 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 | file | what it does |
 | --- | --- |
 | `cps/single_user.py` | authenticates the owner per request; seals the credential paths (`/login`, `/logout`, `/register`, `/admin/user/new`, `/admin/usertable`) and, since 0.6.40, the admin machinery (`/get_update_status`, `/get_updater_status`, the user AJAX trio, `/ajax/pathchooser`, `/shutdown`, `/reconnect`) |
-| `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch`, `/table`, `/ajax/listbooks`, `/ajax/table_settings` by path prefix |
+| `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch`, `/table`, `/ajax/listbooks`, `/ajax/table_settings` and, since 0.6.42, the OPDS mirrors `/opds/hot`, `/opds/discover`, `/opds/rated`, by path prefix |
 | `cps/carrel_search.py` | resolves the search bar through cquarry's engine |
+| `cps/library_cache.py` | the one cache rule (mtime + library UUID) every Carrel surface shares, plus the shared cquarry handle |
+| `cps/page_count.py` | cached native page counts for the detail page |
 | `cps/wings.py` | Calibre virtual libraries as browse sections |
 | `cps/saved_searches.py` | Calibre saved searches as browse sections (cquarry `search:"Name"` interpolation) |
-| `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors |
+| `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors; since 0.6.42 also the reader's position sync (`latest_position`) and the front page's Continue Reading rows |
 | `cps/categories.py` | the dot taxonomy as a tree, with descendant roll-up |
 | `cps/palette.py` | the Ctrl-K index, emitted as JS |
 | `cps/quarry_grid.py` | the cquarry-backed grid: entry adapters + pagination shim over `list_books()`; also backs the /search results page (SEARCH_SORTS maps the sort header) and the /basic fallback search |
-| `cps/reading_shelf.py` | the front page's Currently Reading shelf |
+| `cps/reading_shelf.py` | the front page's Currently Reading shelf and Continue Reading row |
 | `cps/series_info.py` | series position, holdings, gaps |
 | `cps/stats.py` | headless metrics plus the `/statistics` route |
 | `cps/static/js/` | `palette.js`, `cattree.js`, `keynav.js`, vanilla and self-contained |
@@ -56,7 +58,7 @@ idiom `wings.py` established and the cquarry 1.3 adoption generalized
 ## Rebase posture
 
 Against upstream tag `0.6.26`, four files carry the fork's mass and will
-conflict on any upstream touch: `web.py` (~2000 changed lines),
+conflict on any upstream touch: `web.py` (~2100 changed lines),
 `helper.py` (~1000), `opds.py` (~700), and the advsearch deletion in
 `search.py` (~450 lines gone). Budget a session for those. The done-right
 counterexamples: `main.py` (+32 lines, all registrations and seals),
@@ -68,10 +70,11 @@ events (Carrel spec 3), not routine pulls.
 
 - **calibre-web has two URL shapes.** Overview pages are bare (`/author`,
   `/series`, `/category`); an individual entity is `/<data>/<sort_param>/<id>`.
-  Getting it wrong does **not** 404: the id lands in `sort_param` and `book_id`
-  silently defaults to 1, so the page renders fine and shows the wrong thing.
-  This shipped once and was only caught by a human noticing that Stephen King
-  opened Troy Denning.
+  Getting it wrong used to render entity 1 without a 404 (the id lands in
+  `sort_param` and `book_id` silently defaulted to 1; Stephen King once opened
+  Troy Denning). Since 0.6.42 the entity datas 404 without a real id
+  (`cps/web.py` `_ENTITY_DATAS` + the 0 sentinel in the defaults loop), but
+  the shape rule still holds for anything new you wire up.
 - **Only leaf tags are assigned in this library.** `Fic.Fantasy.Epic.Gods`
   exists; `Fic.Fantasy` does not. Anything walking the taxonomy has to
   synthesise the intermediate nodes from path prefixes.
@@ -103,8 +106,9 @@ CALIBRE_DBPATH=~/.calibre-web ~/.local/share/carrel/venv/bin/python cps.py -i 0.
 The test harness mirrors `main()`'s blueprint registration and **must be kept
 in sync with it**. It has drifted twice: once when `seal_browse_surfaces` was
 added to `main.py` but not the harness, so the Phase 8 route cuts were never
-actually exercised. If you register something in `main.py`, register it there
-too.
+actually exercised. Since 0.6.40 a committed ast parity test fails the suite
+in both directions if the two lists diverge; still, if you register something
+in `main.py`, register it there too.
 
 The harness does not log in. Every assertion therefore doubles as a regression
 guard on `single_user.py`; commenting the shim out fails most of the suite.

@@ -564,9 +564,7 @@ def build_detail(book_id):
             if fmt.lower() in _READER_FORMATS
         ],
         audio_entries=[
-            fmt.lower()
-            for fmt in row["formats"] or []
-            if fmt.lower() in _AUDIO_FORMATS
+            fmt.lower() for fmt in row["formats"] or [] if fmt.lower() in _AUDIO_FORMATS
         ],
         read_status=False,
         read_status_label=None,
