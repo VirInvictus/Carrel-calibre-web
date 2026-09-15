@@ -638,6 +638,46 @@ class SmallscopeTestCase(_ClientCase):
         finally:
             config.config_books_per_page = old
 
+    def test_downloads_page_prune_never_eats_other_pages(self):
+        """render_downloaded_books built its prune set from the rendered
+        page but walked every download id: opening page 1 of a paged
+        download history deleted every later page's Downloads record. The
+        prune now asks the library which downloads still exist."""
+        from cps import ub as ub_mod
+
+        with app.app_context():
+            owner = (
+                ub_mod.session.query(ub_mod.User)
+                .filter(ub_mod.User.name == "admin")
+                .one()
+            )
+        self.assertEqual(owner.id, 1, "the route's defaulted user id is 1")
+        old = config.config_books_per_page
+        config.config_books_per_page = 1  # books 1 and 3 land on different pages
+        with app.app_context():
+            for book_id in (1, 3, 999):  # 999 left the library: a true orphan
+                ub_mod.session.add(ub_mod.Downloads(user_id=owner.id, book_id=book_id))
+            ub_mod.session.commit()
+        try:
+            resp = self.client.get("/download/stored")
+            self.assertEqual(resp.status_code, 200)
+            with app.app_context():
+                surviving = {
+                    row[0]
+                    for row in ub_mod.session.query(ub_mod.Downloads.book_id).all()
+                }
+            # book 3 renders on page 2; page 1's render must not prune it
+            self.assertIn(3, surviving)
+            # the vanished book's record is the only one that goes
+            self.assertNotIn(999, surviving)
+        finally:
+            config.config_books_per_page = old
+            with app.app_context():
+                ub_mod.session.query(ub_mod.Downloads).filter(
+                    ub_mod.Downloads.book_id.in_((1, 3))
+                ).delete(synchronize_session=False)
+                ub_mod.session.commit()
+
     def test_audio_listen_page_renders_archived_or_not(self):
         """The audio branch resolved the book through get_filtered_book,
         whose default filters hide archived books, and never passed the

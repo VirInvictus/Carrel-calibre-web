@@ -566,9 +566,13 @@ def render_downloaded_books(page, order, user_id):
             .all()
         ]
         entries, pagination = quarry_grid.grid(page, download_ids, preserve_order=True)
-        have = {entry.Books.id for entry in entries}
+        # The prune asks the library which downloads still exist, not the
+        # rendered page: `have` was built from the current page while this
+        # loop walked every download id, so opening page 1 deleted every
+        # later page's Downloads record.
+        library_ids = set(quarry_grid.all_ids())
         for book_id in download_ids:
-            if book_id not in have:
+            if book_id not in library_ids:
                 ub.delete_download(book_id)
         return render_title_template(
             "index.html",
