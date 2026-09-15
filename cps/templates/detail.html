@@ -130,10 +130,9 @@
                     </p>
                 </div>
             {% endif %}
-            {% if entry.series|length > 0 %}
-                <p>{{ _("Book %(index)s of %(range)s", index=entry.series_index|formatfloat(2), range=(url_for('web.books_list', data='series', sort_param='stored', book_id=entry.series[0].id)|escapedlink(entry.series[0].name))|safe) }}</p>
-
-            {% endif %}
+            {# smallscope: upstream's "Book N of SERIES" line removed; the
+               Carrel series ledger below is the one statement of series
+               placement (spec 6.2). #}
 
             {% if entry.languages|length > 0 %}
                 <div class="languages">
