@@ -642,7 +642,10 @@ def build_detail(book_id):
     try:
         pubdate = _dt.fromisoformat(pub_raw)
     except (TypeError, ValueError):
-        pubdate = None
+        # The ORM never handed templates None for a null pubdate; it sent
+        # the sentinel the templates check for. Match that, or the audio
+        # page's formatdate filter dies on None.
+        pubdate = _dt(101, 1, 1)
 
     return types.SimpleNamespace(
         id=row["id"],

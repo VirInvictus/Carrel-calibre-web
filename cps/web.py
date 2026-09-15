@@ -2090,6 +2090,22 @@ def profile():
 # ###################################Show single book ##################################################################
 
 
+def _book_is_archived(book_id):
+    # Archive state lives in the app DB; cquarry rows don't carry it. The
+    # detail page and the audio page both show it as a read-only flag.
+    archived = (
+        ub.session.query(ub.ArchivedBook.is_archived)
+        .filter(
+            and_(
+                ub.ArchivedBook.user_id == int(current_user.id),
+                ub.ArchivedBook.book_id == book_id,
+            )
+        )
+        .first()
+    )
+    return bool(archived and archived[0])
+
+
 @web.route("/read/<int:book_id>/<book_format>")
 @login_required_if_no_ano
 @viewer_required
@@ -2151,14 +2167,28 @@ def read_book(book_id, book_format):
     else:
         for fileExt in constants.EXTENSIONS_AUDIO:
             if book_format.lower() == fileExt:
-                entries = calibre_db.get_filtered_book(book_id)
+                # The audio branch resolves through the same cquarry surface
+                # as show_book: the ORM call here refused archived books (no
+                # allow_show_archived) and the template's cc/books_shelfs
+                # were never passed, so the Listen page died on
+                # UndefinedError. Everything the page shows is precomputed.
                 log.debug("Start mp3 listening for %d", book_id)
+                from .smallscope import read_column_is_enum
+
+                if config.config_read_column and read_column_is_enum(
+                    config.config_read_column
+                ):
+                    state = quarry_grid._read_status_map().get(book_id)
+                    book.read_status = state == "Read"
+                book.is_archived = _book_is_archived(book_id)
                 return render_title_template(
                     "listenmp3.html",
                     mp3file=book_id,
                     audioformat=book_format.lower(),
-                    entry=entries,
+                    entry=book,
                     bookmark=bookmark,
+                    cc=[],
+                    books_shelfs=[],
                 )
         for fileExt in ["cbr", "cbt", "cbz"]:
             if book_format.lower() == fileExt:
@@ -2211,7 +2241,7 @@ def show_book(book_id):
         else:
             entry.read_status = False
             entry.read_status_label = None
-        entry.is_archived = False
+        entry.is_archived = _book_is_archived(book_id)
         for lang_index in range(0, len(entry.languages)):
             entry.languages[lang_index].language_name = isoLanguages.get_language_name(
                 get_locale(), entry.languages[lang_index].lang_code

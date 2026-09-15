@@ -113,7 +113,13 @@ def build_fixture(path, extra_wings=None):
     )
     cur.executemany(
         "INSERT INTO data (book,format,name,uncompressed_size) VALUES (?,?,?,100)",
-        [(1, "EPUB", "x"), (2, "EPUB", "x"), (3, "EPUB", "x"), (4, "EPUB", "x")],
+        [
+            (1, "EPUB", "x"),
+            (2, "EPUB", "x"),
+            (3, "EPUB", "x"),
+            (3, "MP3", "x"),
+            (4, "EPUB", "x"),
+        ],
     )
     cur.executemany(
         "INSERT INTO comments (book,text) VALUES (?,?)",

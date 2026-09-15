@@ -595,7 +595,7 @@ class SmallscopeTestCase(_ClientCase):
         self.assertEqual(titles("/opds/ratings"), [])
         # the format index rolls the data table up; the language feed
         # resolves a language id to its books
-        self.assertEqual(titles("/opds/formats"), ["EPUB"])
+        self.assertEqual(titles("/opds/formats"), ["EPUB", "MP3"])
         self.assertEqual(len(titles("/opds/language/1")), 4)
 
     def test_opds_language_index_shows_names_not_codes(self):
@@ -637,6 +637,39 @@ class SmallscopeTestCase(_ClientCase):
                 self.assertEqual(resp.status_code, 200, path)
         finally:
             config.config_books_per_page = old
+
+    def test_audio_listen_page_renders_archived_or_not(self):
+        """The audio branch resolved the book through get_filtered_book,
+        whose default filters hide archived books, and never passed the
+        template its cc/books_shelfs: every Listen click died on
+        UndefinedError, archived books loudest. The page renders from the
+        cquarry surface now, and the app DB's archive state reaches the
+        template as the read-only flag it is."""
+        from cps import ub as ub_mod
+
+        resp = self.client.get("/read/3/mp3")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Dune", resp.get_data(as_text=True))
+
+        with app.app_context():
+            owner = ub_mod.session.query(ub_mod.User).filter(ub_mod.User.name == "admin").one()
+            ub_mod.session.add(
+                ub_mod.ArchivedBook(user_id=owner.id, book_id=3, is_archived=True)
+            )
+            ub_mod.session.commit()
+        try:
+            resp = self.client.get("/read/3/mp3")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_data(as_text=True)
+            self.assertIn("Dune", body)
+            self.assertIn("archived_cb", body)
+            self.assertIn("checked disabled", body)
+        finally:
+            with app.app_context():
+                ub_mod.session.query(ub_mod.ArchivedBook).filter(
+                    ub_mod.ArchivedBook.book_id == 3
+                ).delete()
+                ub_mod.session.commit()
 
     def test_basic_page_searches_through_the_cquarry_grammar(self):
         # The /basic fallback now speaks the one grammar (spec 13): a
