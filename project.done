@@ -1,0 +1,69 @@
+# project.done — Carrel-calibre-web (THE FINAL BLITZ)
+
+Completion date: 2026-09-14. Commit range 14bae57e..bc9262ff on
+`smallscope`, HEAD pushed, CI green on every push (ruff 0.15.20 +
+unittest on 3.14, actions v7, cquarry pinned @v1.21.0).
+
+## What shipped (release 0.6.42, tag v0.6.42)
+
+- HIGH: the OPDS truth lane. The mirrors of the cut surfaces
+  (/opds/hot, /opds/discover, /opds/rated) are sealed under the same
+  prefix rule as the web UI, and the seven remaining ORM OPDS feeds
+  (author/series/category letter drilldowns, publisher, rating, format,
+  language) read cquarry now. The Calibre-Companion JSON stays a
+  documented deliberate ORM read (its client needs the legacy object
+  shape). Decision 2026-09-14 (Brandon): seal the mirrors and swap the
+  rest.
+- HIGH: read_book's audio branch renders from the cquarry surface; the
+  archived-book 500 is gone and the Listen page works for every audio
+  book (the template's cc/books_shelfs had never been passed at all).
+  Archive state reads the app DB; the detail page's Archived checkbox
+  shows the truth.
+- MED: the Downloads prune scoped to the library instead of the
+  rendered page; cattree data-cat keys are stable full dot paths; the
+  palette's dead /table row is dropped and the destination test pins
+  200 + body markers; entity URLs without an id 404 instead of
+  rendering entity 1 (0 sentinel in the defaults loop); the dead
+  Phase 7 scaffold is fully swept (detail_entry, _detail_books_proxy,
+  the grid-side _IDENTIFIER_* half, the _Books reader/audio proxies,
+  carrel_grid_entries, the no-op self-assignment).
+- Feature (the one approved slot): reading-position sync (the reader
+  opens at the device-recorded CFI when it has no bookmark of its own)
+  plus the front page's Continue Reading row. Zero library writes.
+- LOW batches: feed pagination clamps a zero books-per-page; the
+  language feed shows names and no longer 500s (Lang objects never
+  carried id, a Phase 7 regression the audit under-recorded); 503 for
+  an unreadable library from wings/saved/categories; case-insensitive
+  category URLs; /basic's garbage ?page guarded; one library probe per
+  request (was six sqlite connections per render); the comment-truth
+  batch; the docs batch (README OPDS section, Removed scoped to the web
+  UI, CLAUDE.md module table complete, NEW-AUDIT.md errata); hygiene
+  (.gitignore tool caches, stray .ruff_cache deleted).
+- Environment/GitHub: gh default repo = the fork; cquarry CI pin
+  bumped to v1.21.0 (suite run green from the deployment venv);
+  branch-guard hooks installed host-side; description no longer claims
+  localhost-only; Releases cut for v0.6.40, v0.6.41, v0.6.42; topics
+  +4; wiki and Projects off; upstream FUNDING.yml and issue templates
+  deleted. palette.png and mobile.png regenerated against 0.6.42.
+
+## Reopen conditions (recorded, none blocking)
+
+- Releases backfill for v0.6.33-v0.6.39 stays declined (tag-only).
+- The branch-guard hooks live in this clone's .git/hooks, uncommitted
+  by design; a fresh clone must reinstall them (pre-commit +
+  reference-transaction refusing refs/heads/master).
+- The highlights viewer needs Carrel spec 8.5 amended (count ->
+  count-plus-excerpts) in the Carrel repo; declined this blitz along
+  with page-flip keys + help overlay, next-in-series, navigable
+  statistics, column-wise h/l, and the /basic pair. Kindle-path answer
+  (2026-09-14): the Oasis reads through Calibre's own web server and
+  KOReader's Calibre integration, so /basic is not a device surface.
+- The upstream security cherry-pick queue (8-9 recorded items,
+  including the serve_book /show/ bypass and the epub XXE surfaces)
+  stands as recorded; not this lane's scope.
+- Carrel-repo spec wording items (L3.4-7 of the audit) belong to the
+  Carrel lane; the codex homepage's stale decorator counts belong to
+  the VirInvictus.github.io lane.
+- Noticed outside the ranked scope, left: search_sort double-calls at
+  web.py:631-633 and :730-732; the palette cache-buster's int(mtime)
+  second truncation.
