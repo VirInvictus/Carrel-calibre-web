@@ -1,4 +1,94 @@
 # Patchnotes (Carrel-calibre-web)
+## The OPDS truth release: the mirrors sealed, the feeds swapped, the reader synced (2026-09-14, 0.6.42)
+
+THE FINAL AUDIT's lane, executed top-down: both contract-truth HIGHs,
+every MEDIUM, the one approved feature, and the LOW batches. The audit's
+own block (bottom of this file) is ticked in place.
+
+- **"Removed" is finally true at the OPDS boundary.** The Phase 8 seal
+  never matched /opds/*, so the feeds kept serving Hot Books, Discover
+  and Top Rated after the web UI lost them; the three mirrors now 404
+  under the same prefix rule as their web siblings. Decision 2026-09-14
+  (Brandon): seal the mirrors and swap the rest, keep the feeds.
+- **The seven remaining ORM OPDS feeds read cquarry now.** The author,
+  series and category letter drilldowns, the publisher, rating and
+  format indexes, and the language feeds resolve names, sorts, counts
+  and letter filters from the cached rows; the ORM group-bys are gone
+  from every live feed but the app-DB shelf surfaces and the
+  Calibre-Companion JSON (deliberate: it must serve that app's exact
+  legacy shape). The language index shows names instead of raw codes and
+  carries the language id its subsection link always needed: the feed
+  has 500ed since Phase 7 built its Lang objects without one. Feed
+  pagination clamps a zero books-per-page (the eleven ZeroDivide spots)
+  through _per_page()/_page() and a guard in Pagination.pages.
+- **read_book's audio branch renders from the cquarry surface.**
+  get_filtered_book without allow_show_archived answered None for
+  archived books and the template's cc and books_shelfs were never
+  passed at all, so the Listen page has been a 500 for every audio
+  book. The branch now renders the same precomputed namespace as
+  show_book (pubdate falls back to the 0101 sentinel the templates
+  guard on), passes cc=[] and books_shelfs=[] explicitly, and reads
+  archive state from the app DB; the detail page's Archived checkbox
+  shows the truth instead of a hardcoded False.
+- **The Downloads prune no longer eats other pages.**
+  render_downloaded_books built its prune set from the rendered page
+  while walking every download id, so opening page 1 of a paged history
+  deleted every later page's record; the prune now asks the library
+  which downloads still exist.
+- **Every category branch carries a stable data-cat key.** Implied
+  branches all rendered the literal "None" and collapsed cattree's
+  localStorage into one key; the sidebar list carries the full dot path.
+- **The palette's Books List row is gone** (it pointed at the sealed
+  /table and 404ed), and the destination test pins every page row to
+  200 plus a body marker naming the thing it links.
+- **Entity URLs without an id 404 instead of silently rendering entity
+  1**, the trap the fixture's second series exists to catch. The
+  defaults loop uses a 0 sentinel: werkzeug treats a None default as no
+  default, which would break the grid footer's pagination build.
+- **The dead Phase 7 scaffold is swept** (full sweep, Brandon's call):
+  detail_entry (crash-if-called twice over), _detail_books_proxy, the
+  grid-side _IDENTIFIER_* half with _Books.identifiers/ordered_authors,
+  the _Books reader and audio proxies, the carrel_grid_entries stub,
+  and the no-op ordered_authors self-assignment. build_detail now
+  derives reader_list/audio_entries from the surviving frozensets
+  instead of shipping empty placeholders for show_book to overwrite.
+- **Reading-position sync and a Continue Reading row**, the blitz's one
+  approved feature: with no app-DB bookmark, the epub reader opens at
+  the device-recorded position (last_read_positions via cquarry; the
+  browser's own saved position wins where it has one), and the front
+  page lists device-touched books most recent first with a percent.
+  Zero library writes. Slotted set recorded: only this pair; page-flip
+  keys, next-in-series, the highlights viewer (its spec 8.5 amendment
+  is still pending in the Carrel repo), navigable statistics, column
+  h/l and the /basic pair are declined this blitz. The Kindle-path
+  answer (2026-09-14): the Oasis reads through Calibre's own web server
+  and KOReader's Calibre integration, so /basic is not a device surface.
+- **The papercuts.** A vanished library answers 503 from the wings,
+  saved-search and category routes (the Phase 13 convention) instead of
+  a lying 404; category URLs match case-insensitively; /basic's garbage
+  ?page degrades to the first page; the context processors probe the
+  library once per request instead of opening a sqlite connection each;
+  the two rendered em-dashes (the palette placeholder, the statistics
+  tooltip) are recast.
+- **Comments say what the code does.** Five mtime-only cache headers
+  mention the UUID; series_info's "max" story is true; the cc block
+  records its waiver; the four "kanagawa spec" misnomers point at
+  Carrel's spec; the URL-shape trap comment sits at the defaults loop;
+  build_detail's docstring marks read_status/is_archived as route-owned
+  placeholders.
+- **Docs and environment.** README gains the OPDS section and scopes
+  its Removed list to the web UI; CLAUDE.md's module table catches up
+  on library_cache and page_count and records the hardening; the three
+  NEW-AUDIT.md pointers carry dated errata naming the real ledger. CI
+  moves to actions v7 and pins cquarry at v1.21.0, the tag the
+  deployment venv loads (suite run from that venv). The branch-guard
+  hooks are installed host-side (uncommitted, .git/hooks), gh's default
+  repo points at the fork, the description no longer claims
+  localhost-only, four topics joined, wiki and Projects toggles off,
+  and Releases exist for v0.6.40 and v0.6.41 (the backfill stays
+  declined). The upstream FUNDING.yml and issue templates are deleted.
+- **Version 0.6.42.** Suite 86 green.
+
 ## Categories beneath Wings, the palette off the ORM, the honest decorator count (2026-09-13, 0.6.41)
 
 The fork half of Carrel's v0.9.9 lane (decision 2026-09-12: a compact
@@ -427,18 +517,18 @@ behaviour; everything lives in Carrel-owned modules.
   reading positions; suite is stable across repeated runs.
 
 ## Final audit 2026-09-13 (THE FINAL AUDIT — logged, not shipped; full detail in audit-final/Carrel-calibre-web/FINAL-REPORT.md)
-- [ ] **HIGH — CONFIRMED: the contract's cut/OPDS claims are not yet true: nine OPDS routes still read through the ORM and still serve the "removed" surfaces (/opds/hot, discover, best-rated, the letter drilldowns, publisherindex, the Calibre-Companion JSON) because _SEALED_PREFIXES never matches /opds/*; reader CONTENT still streams via serve_book's ORM resolve while spec §6.3's blanket claim covers "the read surfaces"; README's "Removed" states web-UI-only truth as absolute.** Brandon's call: extend the seal to /opds/* vs swap the nine feeds to cquarry; either way the docs change.
-- [ ] **HIGH — CONFIRMED: read_book's audio branch 500s on archived books (web.py:2154, get_filtered_book without allow_show_archived → UndefinedError).** Fold into the boxed audio-branch swap.
-- [ ] MED — render_downloaded_books prunes the whole download history against the current page (web.py:562-572: `have` from one page, the delete loop walks ALL download_ids); scope the prune like render_hot_books.
-- [ ] MED — every implied-prefix category branch renders data-cat="None", collapsing cattree's localStorage into one key (expand one, they all re-open); emit a stable key.
-- [ ] MED — the dead-scaffold sweep (one commit): detail_entry + _detail_books_proxy (crash-if-called via __slots__, zero callers), the ENTIRE grid-side _IDENTIFIER_* half incl. _Books.identifiers/ordered_authors (zero consumers — this dissolves the recorded consolidation into a removal), carrel_grid_entries + its blueprint cascade, the web.py:2112 no-op self-assignment. Optionally _READER_FORMATS/_AUDIO_FORMATS + the two proxy properties (waive if kept for OPDS growth).
-- [ ] MED — palette "Books List" → sealed /table: drop or repoint; tighten the destination test to assert 200 + body marker.
-- [ ] MED — the entity-URL hardening (queued): abort(404) when book_id is absent in the add_url_rule defaults loop (16 data values × 2 rules silently default to 1).
-- [ ] MED — environment truth: gh's default repo for this working directory is UPSTREAM (gh repo set-default VirInvictus/Carrel-calibre-web); CI's cquarry pin is @v1.17.0 while the deployment venv loads 1.21.0 (bump + one suite run from the deployment venv); the "smallscope only" rule has zero enforcement while the deployment runs this working tree (local uncommitted branch-guard hook).
-- [ ] MED — GitHub: description still claims "localhost-only" (false since the 0.0.0.0 rebind; it is the <title> and social card); zero Releases behind 9 pushed tags (cut v0.6.40/41 verbatim; backfill decision Brandon's); the Sponsor button routes to upstream's PayPal (delete .github/FUNDING.yml, prune ISSUE_TEMPLATE); four topic additions; wiki + Projects toggles off; the codex page (live, gated item RESOLVED) still carries "154 decorators" and pre-rebalance counts (VirInvictus.github.io lane).
-- [ ] LOW — feed_languagesindex surfaces raw lang_codes ("eng" not "English"); basic.py:48 unguarded int(?page) → ValueError 500 (reuse _int_param); config_books_per_page=0 ZeroDivides in eleven OPDS spots; entry.is_archived hardcoded False on the detail page; read_ids hardcodes 'reading_status'/'Read' ignoring config_read_column; 404-vs-503 inconsistency across categories/wings/saved_searches; category URLs case-sensitive vs case-insensitive siblings; rendered em-dashes in palette.js/statistics.html; six context processors each re-open sqlite per render (one per-request snapshot); .gitignore lacks the tool-cache rules (stray cps/templates/.ruff_cache from a mis-cwd run).
-- [ ] LOW — comment truth: the harness comment says "enable the caliBlur theme" while the code sets config_theme = 0; series_info claims "max" is not exposed (it is returned and exposed, just unrendered); build_detail's docstring presents hardcoded read_status/is_archived as surface, not placeholders; five module headers say mtime-only (mtime+UUID since 0.6.28); the DetailProxy banner sits over the dead scaffold; the cc-block comment says "until a cc adapter lands" (WAIVED); the no-op elif in _entity_name_map; layout.html "kanagawa spec 8" misnames the contract; reader_state docstring says epoch_time (the key is epoch); one trap comment at the add_url_rule loop itself; quarry() examples predate the OPDS consumers. Organization: quarry_grid is three modules in one file (split or section-order); generate the blueprint mirror from one source.
-- [ ] LOW — docs: README lacks an OPDS section entirely (the fork's largest surface); "71 tests" vs 73 (update on release); curly-apostrophe paste seam at README:53-57; palette/mobile screenshots predate 0.6.29/0.6.41 (regenerate); CLAUDE.md module table missing library_cache.py + page_count.py; mtime-only cache wording; patchnotes reference NEW-AUDIT.md (exists in neither repo — tie to the errata policy); ci.yml actions v5→v7.
-- [ ] Feature candidates logged (FINAL-REPORT L4, ranked): reading-position sync (consume half of §8.5; the bookmark-fallback shape) + continue-reading row (one extractor); keynav page-flip keys + `?` overlay + palette prefix-aware fallback (one small release); next-held-book-in-series detail link (804 series); highlights viewer on the detail page (needs the §8.5 count→count-plus-excerpts amendment); navigable statistics rows (template-side links, §12.3 intact); column-wise h/l; the /basic pair (gated on the Kindle-path answer). Declined: palette title indexing, anything writing reading_status (waived), OPDS additions (waived 2026-09-11).
+- [x] **HIGH — CONFIRMED: the contract's cut/OPDS claims are not yet true: nine OPDS routes still read through the ORM and still serve the "removed" surfaces (/opds/hot, discover, best-rated, the letter drilldowns, publisherindex, the Calibre-Companion JSON) because _SEALED_PREFIXES never matches /opds/*; reader CONTENT still streams via serve_book's ORM resolve while spec §6.3's blanket claim covers "the read surfaces"; README's "Removed" states web-UI-only truth as absolute.** Brandon's call: extend the seal to /opds/* vs swap the nine feeds to cquarry; either way the docs change.
+- [x] **HIGH — CONFIRMED: read_book's audio branch 500s on archived books (web.py:2154, get_filtered_book without allow_show_archived → UndefinedError).** Fold into the boxed audio-branch swap.
+- [x] MED — render_downloaded_books prunes the whole download history against the current page (web.py:562-572: `have` from one page, the delete loop walks ALL download_ids); scope the prune like render_hot_books.
+- [x] MED — every implied-prefix category branch renders data-cat="None", collapsing cattree's localStorage into one key (expand one, they all re-open); emit a stable key.
+- [x] MED — the dead-scaffold sweep (one commit): detail_entry + _detail_books_proxy (crash-if-called via __slots__, zero callers), the ENTIRE grid-side _IDENTIFIER_* half incl. _Books.identifiers/ordered_authors (zero consumers — this dissolves the recorded consolidation into a removal), carrel_grid_entries + its blueprint cascade, the web.py:2112 no-op self-assignment. Optionally _READER_FORMATS/_AUDIO_FORMATS + the two proxy properties (waive if kept for OPDS growth).
+- [x] MED — palette "Books List" → sealed /table: drop or repoint; tighten the destination test to assert 200 + body marker.
+- [x] MED — the entity-URL hardening (queued): abort(404) when book_id is absent in the add_url_rule defaults loop (16 data values × 2 rules silently default to 1).
+- [x] MED — environment truth: gh's default repo for this working directory is UPSTREAM (gh repo set-default VirInvictus/Carrel-calibre-web); CI's cquarry pin is @v1.17.0 while the deployment venv loads 1.21.0 (bump + one suite run from the deployment venv); the "smallscope only" rule has zero enforcement while the deployment runs this working tree (local uncommitted branch-guard hook).
+- [x] MED — GitHub: description still claims "localhost-only" (false since the 0.0.0.0 rebind; it is the <title> and social card); zero Releases behind 9 pushed tags (cut v0.6.40/41 verbatim; backfill decision Brandon's); the Sponsor button routes to upstream's PayPal (delete .github/FUNDING.yml, prune ISSUE_TEMPLATE); four topic additions; wiki + Projects toggles off; the codex page (live, gated item RESOLVED) still carries "154 decorators" and pre-rebalance counts (VirInvictus.github.io lane).
+- [x] LOW — feed_languagesindex surfaces raw lang_codes ("eng" not "English"); basic.py:48 unguarded int(?page) → ValueError 500 (reuse _int_param); config_books_per_page=0 ZeroDivides in eleven OPDS spots; entry.is_archived hardcoded False on the detail page; read_ids hardcodes 'reading_status'/'Read' ignoring config_read_column; 404-vs-503 inconsistency across categories/wings/saved_searches; category URLs case-sensitive vs case-insensitive siblings; rendered em-dashes in palette.js/statistics.html; six context processors each re-open sqlite per render (one per-request snapshot); .gitignore lacks the tool-cache rules (stray cps/templates/.ruff_cache from a mis-cwd run).
+- [x] LOW — comment truth: the harness comment says "enable the caliBlur theme" while the code sets config_theme = 0; series_info claims "max" is not exposed (it is returned and exposed, just unrendered); build_detail's docstring presents hardcoded read_status/is_archived as surface, not placeholders; five module headers say mtime-only (mtime+UUID since 0.6.28); the DetailProxy banner sits over the dead scaffold; the cc-block comment says "until a cc adapter lands" (WAIVED); the no-op elif in _entity_name_map; layout.html "kanagawa spec 8" misnames the contract; reader_state docstring says epoch_time (the key is epoch); one trap comment at the add_url_rule loop itself; quarry() examples predate the OPDS consumers. Organization: quarry_grid is three modules in one file (split or section-order); generate the blueprint mirror from one source.
+- [x] LOW — docs: README lacks an OPDS section entirely (the fork's largest surface); "71 tests" vs 73 (update on release); curly-apostrophe paste seam at README:53-57; palette/mobile screenshots predate 0.6.29/0.6.41 (regenerate); CLAUDE.md module table missing library_cache.py + page_count.py; mtime-only cache wording; patchnotes reference NEW-AUDIT.md (exists in neither repo — tie to the errata policy); ci.yml actions v5→v7.
+- [x] Feature candidates logged (FINAL-REPORT L4, ranked): reading-position sync (consume half of §8.5; the bookmark-fallback shape) + continue-reading row (one extractor); keynav page-flip keys + `?` overlay + palette prefix-aware fallback (one small release); next-held-book-in-series detail link (804 series); highlights viewer on the detail page (needs the §8.5 count→count-plus-excerpts amendment); navigable statistics rows (template-side links, §12.3 intact); column-wise h/l; the /basic pair (gated on the Kindle-path answer). Declined: palette title indexing, anything writing reading_status (waived), OPDS additions (waived 2026-09-11).
 
 **CONFIRMED-prior (final-audit verification):** the audio-branch 500, the OPDS seal gap, the /table row, the entity-URL trap, the ORM OPDS surfaces, detail_entry, metadata_backup bodies, the GitHub batch. WITHDRAWN/REFUTED cross-repo: the Carrel-side decorator HIGH (the numbers verify under the if_no_ano spelling: 39-across-5 at the merge-base, 42-across-10 at HEAD) and the Carrel-side checksum-proof LOW (the md5 tests exist at tests/test_smallscope.py:190-211). Audit-side correction: the sheet's "108 collected, 60 unique" is stale (73 collected and executed). Slop-reader verdict: human end to end; the smart-quote paste block and the stale test count are the only prose work.
