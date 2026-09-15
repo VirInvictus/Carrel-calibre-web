@@ -830,6 +830,18 @@ class SmallscopeTestCase(_ClientCase):
         for url in ("/advsearch", "/hot/stored", "/rated/stored", "/discover/stored"):
             self.assertEqual(self.client.get(url).status_code, 404, url)
 
+    def test_opds_mirrors_of_cut_surfaces_are_sealed(self):
+        """The Phase 8 prefixes never matched /opds/*, so the feeds kept
+        serving hot/discover/rated to OPDS readers after the web UI lost
+        them. Auth matters in this assertion: with credentials these feeds
+        answer 200 when the seal is missing, so the 404 proves the seal
+        rather than an auth wall."""
+        auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        for path in ("/opds/hot", "/opds/discover", "/opds/rated", "/OPDS/Hot"):
+            self.assertEqual(
+                self.client.get(path, headers=auth).status_code, 404, path
+            )
+
     # --- category browser (spec 4.4) ---------------------------------------
 
     def test_category_rollup_includes_descendants(self):

@@ -24,6 +24,13 @@ _SEALED_PREFIXES = (
     "/table",
     "/ajax/listbooks",
     "/ajax/table_settings",
+    # The OPDS mirrors of the cut surfaces join the seal (final audit): the
+    # Phase 8 prefixes never matched /opds/*, so the feeds kept serving
+    # hot/discover/rated to readers after the web UI lost them. Only the
+    # mirrors of cut surfaces are sealed; the rest of the feeds stay.
+    "/opds/hot",
+    "/opds/discover",
+    "/opds/rated",
 )
 
 
