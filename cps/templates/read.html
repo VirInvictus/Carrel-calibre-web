@@ -151,6 +151,7 @@
             bookmarkUrl: "{{ url_for('web.set_bookmark', book_id=bookid, book_format=book_format) }}",
             bookUrl: "{{ url_for('web.serve_book', book_id=bookid, book_format=book_format, anyname='file.epub') }}",
             bookmark: "{{ bookmark.bookmark_key if bookmark != None }}",
+            libraryCfi: "{{ library_cfi or '' }}",
             useBookmarks: "{{ current_user.is_authenticated | tojson }}"
         };
 

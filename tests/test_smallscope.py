@@ -750,6 +750,38 @@ class SmallscopeTestCase(_ClientCase):
                 ).delete()
                 ub_mod.session.commit()
 
+    # --- reading-position sync + continue row (0.6.42) -----------------------
+
+    def test_latest_position_prefers_format_then_recency(self):
+        from cps.reader_state import latest_position
+
+        # book 1: kobo at epoch 100, phone at epoch 200 (fixture rows)
+        self.assertEqual(latest_position(1, "EPUB"), "epubcfi(/6/9)")
+        self.assertEqual(latest_position(1), "epubcfi(/6/9)")
+        self.assertIsNone(latest_position(3, "EPUB"))  # no rows at all
+        self.assertIsNone(latest_position(999))
+
+    def test_reader_opens_at_the_device_position_without_a_bookmark(self):
+        # The harness never sets an app-DB bookmark, so the reader page
+        # must carry the library's latest CFI for the epub.js reader to
+        # open at; books without device positions carry none.
+        page = self.client.get("/read/1/epub").get_data(as_text=True)
+        self.assertIn("epubcfi(/6/9)", page)
+        page = self.client.get("/read/3/epub").get_data(as_text=True)
+        self.assertIn('libraryCfi: ""', page)
+
+    def test_continue_reading_row_renders_recent_first(self):
+        from cps.reader_state import continue_reading
+
+        rows = continue_reading()
+        self.assertEqual([r["id"] for r in rows], [1])
+        self.assertEqual(rows[0]["percent"], 90)
+        self.assertEqual(rows[0]["device"], "phone")
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertIn("Continue reading", page)
+        self.assertIn("Ancillary Justice", page)
+        self.assertIn("90%", page)
+
     def test_basic_page_searches_through_the_cquarry_grammar(self):
         # The /basic fallback now speaks the one grammar (spec 13): a
         # field-prefixed query resolves and pages through quarry_grid.

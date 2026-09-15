@@ -11,6 +11,9 @@ var reader;
     reader = ePubReader(calibre.bookUrl, {
         restore: true,
         bookmarks: calibre.bookmark ? [calibre.bookmark] : [],
+        // Carrel: with no local save, open at the device-recorded position
+        // (applySavedSettings overrides this where the browser has one).
+        previousLocationCfi: calibre.libraryCfi || undefined,
     });
 
     Object.keys(themes).forEach(function (theme) {

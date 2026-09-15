@@ -30,6 +30,23 @@
     </ul>
   </div>
 {% endif %}
+{# Carrel (0.6.42): the Continue Reading row. Device-recorded positions are
+   the source of truth here; a book the reader left off on another device
+   shows its percent even when Calibre's status column says nothing. #}
+{% if carrel_continue and page == 'newest' %}
+  <div class="shelf">
+    <h2 class="shelf-h">Continue reading</h2>
+    <ul class="shelf-list">
+      {% for b in carrel_continue %}
+      <li>
+        <a href="{{ url_for('web.show_book', book_id=b.id) }}">{{ b.title }}</a>
+        <span class="shelf-a">{{ b.author }}</span>
+        <span class="shelf-a">{{ b.percent }}%</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
 {% if current_user.show_detail_random() and page != "discover" %}
 <div class="discover random-books">
   <h2 class="random-books">{{_('Discover (Random Books)')}}</h2>

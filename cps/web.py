@@ -2162,12 +2162,22 @@ def read_book(book_id, book_format):
         )
     if book_format.lower() == "epub" or book_format.lower() == "kepub":
         log.debug("Start [k]epub reader for %d", book_id)
+        # Reading-position sync: with no bookmark of its own, the reader
+        # opens at the device-recorded position. The browser's own saved
+        # position still wins where it has one (the reader applies saved
+        # settings over passed options).
+        library_cfi = None
+        if bookmark is None:
+            from .reader_state import latest_position
+
+            library_cfi = latest_position(book_id, book_format)
         return render_title_template(
             "read.html",
             bookid=book_id,
             title=book.title,
             bookmark=bookmark,
             book_format=book_format,
+            library_cfi=library_cfi,
         )
     elif book_format.lower() == "pdf":
         log.debug("Start pdf reader for %d", book_id)
