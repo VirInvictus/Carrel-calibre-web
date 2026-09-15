@@ -73,8 +73,10 @@ def show_saved(name, page):
     try:
         resolved = _saved_ids()
     except Exception as ex:
+        # an unreadable library is not an unknown search: 503, the
+        # instance's degraded convention (/search, /basic, /statistics)
         log.error("Saved searches unavailable: %s", ex)
-        resolved = {}
+        abort(503)
     # Case-insensitive like wings (Phase 13); the canonical spelling wins.
     key = next((k for k in resolved if k.lower() == name.lower()), None)
     if key is None:

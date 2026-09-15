@@ -961,6 +961,13 @@ class SmallscopeTestCase(_ClientCase):
             self.assertEqual(rv.get_data(as_text=True), "window.PALETTE=[];")
             # Browsing still works; the sidebar just goes quiet.
             self.assertEqual(self.client.get("/").status_code, 200)
+            # The entity routes answer the degraded convention too (503 for
+            # an unreadable library, never a 404 masquerading as a bad
+            # address): /search and /basic already did; wings, saved
+            # searches and categories now agree.
+            self.assertEqual(self.client.get("/wings/SciFi").status_code, 503)
+            self.assertEqual(self.client.get("/saved/Hugo Winners").status_code, 503)
+            self.assertEqual(self.client.get("/categories/Fic").status_code, 503)
         finally:
             library_cache.library_path = orig
 
@@ -1118,6 +1125,20 @@ class SmallscopeTestCase(_ClientCase):
     def test_category_page_renders_and_unknown_404s(self):
         self.assertEqual(self.client.get("/categories/Fic").status_code, 200)
         self.assertEqual(self.client.get("/categories/Nope.Nope").status_code, 404)
+
+    def test_category_urls_are_case_insensitive(self):
+        # like wings and saved searches (Phase 13): the canonical spelling
+        # drives the title and the active marker
+        resp = self.client.get("/categories/fic.scifi")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Category: Fic.SciFi", resp.get_data(as_text=True))
+
+    def test_basic_page_garbage_page_number_degrades(self):
+        # ?page=abc used to ValueError-500 out of the bare int(); the
+        # guard mirrors _int_param's degrade-to-first-page contract
+        resp = self.client.get("/basic?query=Dune&page=abc")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Dune", resp.get_data(as_text=True))
 
     def test_categories_render_beneath_wings(self):
         # Decision 2026-09-12: Wings lead the sidebar as the curated

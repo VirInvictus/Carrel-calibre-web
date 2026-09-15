@@ -124,11 +124,19 @@ def show_category(name, page):
     try:
         _unused, counts = _build()
     except Exception as ex:
+        # an unreadable library is not a bad address: answer the instance's
+        # standard degraded status (the /search and /statistics convention),
+        # and keep 404 for a genuinely unknown category below
         log.error("Category tree unavailable: %s", ex)
-        abort(404)
+        abort(503)
     ids = counts.get(name)
     if ids is None:
-        abort(404)
+        # case-insensitive like wings and saved searches (Phase 13); the
+        # canonical spelling drives the title and the active marker
+        key = next((k for k in counts if k.lower() == name.lower()), None)
+        if key is None:
+            abort(404)
+        name, ids = key, counts[key]
     entries, pagination = quarry_grid.grid(page, ids)
     return render_title_template(
         "index.html",

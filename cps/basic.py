@@ -45,7 +45,12 @@ log = logger.create()
 def index():
     term = request.args.get("query", "")  # default to showing all books
     limit = 15
-    page = int(request.args.get("page") or 1)
+    try:
+        page = max(1, int(request.args.get("page") or 1))
+    except (TypeError, ValueError):
+        # garbage ?page degrades to the first page, the same contract
+        # _int_param gives the OPDS feeds
+        page = 1
     # Phase 7 swap: the fallback page searches through cquarry's engine too
     # (spec 13's one-grammar rule applied to the last holdout) and pages via
     # quarry_grid. Fixed title-sort: the basic page has no sort header.

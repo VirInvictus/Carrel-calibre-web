@@ -88,8 +88,10 @@ def show_wing(name, page):
     try:
         resolved = _wing_ids()
     except Exception as ex:
+        # an unreadable library is not an unknown wing: 503, the instance's
+        # degraded convention (/search, /basic, /statistics), not a 404
         log.error("Wings unavailable: %s", ex)
-        resolved = {}
+        abort(503)
     # Wing URLs are case-insensitive like every surface beneath them
     # (Phase 13): the sidebar spells the wing its own way and the route
     # matches any casing. The canonical spelling drives the title and the
