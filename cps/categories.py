@@ -87,17 +87,22 @@ def _nav_tree():
     return _cache.get()[2]
 
 
-def _as_list(node, counts):
-    """Nested dicts -> sorted list the template can walk."""
+def _as_list(node, counts, prefix=""):
+    """Nested dicts -> sorted list the template can walk. `key` is the
+    node's full dot path even for implied branches, whose `name` is None:
+    cattree.js keys its localStorage on data-cat, and every implied branch
+    used to render the literal "None", collapsing them into one key."""
     out = []
     for label, entry in sorted(node.items()):
         name = entry["name"]
+        path = prefix + label
         out.append(
             {
                 "label": label,
                 "name": name,
+                "key": name or path,
                 "count": len(counts.get(name, ())) if name else 0,
-                "children": _as_list(entry["children"], counts),
+                "children": _as_list(entry["children"], counts, path + "."),
             }
         )
     return out

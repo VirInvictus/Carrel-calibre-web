@@ -1029,6 +1029,21 @@ class SmallscopeTestCase(_ClientCase):
         }
         self.assertEqual(opened_home, set(), "home must not pre-expand a category")
 
+    def test_category_data_cat_keys_are_stable_per_branch(self):
+        """cattree.js keys its localStorage on data-cat; implied branches
+        have no name, and every one of them used to render the literal
+        "None", so expanding Fic silently re-opened Gaming.Achievements
+        after navigation. Every branch now carries its full dot path."""
+        import re
+
+        page = self.client.get("/categories/Fic.SciFi.Space").get_data(as_text=True)
+        keys = re.findall(r'<details data-cat="([^"]*)"', page)
+        self.assertTrue(keys)
+        self.assertNotIn("None", keys)
+        self.assertEqual(len(keys), len(set(keys)), "keys must be unique")
+        self.assertIn("Fic", keys)
+        self.assertIn("Fic.SciFi", keys)
+
     def test_category_page_renders_and_unknown_404s(self):
         self.assertEqual(self.client.get("/categories/Fic").status_code, 200)
         self.assertEqual(self.client.get("/categories/Nope.Nope").status_code, 404)

@@ -4,7 +4,7 @@
 {% macro node(item, depth) %}
   {% if item.children %}
     <li class="cat-node">
-      <details data-cat="{{ item.name }}"
+      <details data-cat="{{ item.key }}"
         {%- if category_active is defined and category_active and (category_active == item.name or category_active.startswith(item.name ~ ".")) %} open{% endif %}>
         <summary>
           <span class="cat-label">{{ item.label }}</span>
