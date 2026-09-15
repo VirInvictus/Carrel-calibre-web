@@ -913,8 +913,25 @@ def index(page):
     return render_books_list("newest", sort_param, 1, page)
 
 
+# Datas whose page is one entity: the id IS the page. The defaults loop
+# below used to hand these 1, so a wrong-shaped URL (/series/2, the id
+# landing in sort_param) silently rendered entity 1 instead of 404ing.
+_ENTITY_DATAS = frozenset(
+    {"author", "publisher", "series", "ratings", "formats", "category", "language"}
+)
+
+
 @login_required_if_no_ano
 def books_list(data, sort_param, book_id, page):
+    # 0 is the defaulted sentinel (no book id starts at 0); werkzeug
+    # treats a None default as no default at all, which would make
+    # book_id required and break url_for_other_page's footer build.
+    if book_id == 0:
+        if data in _ENTITY_DATAS:
+            abort(404)
+        # the non-entity datas keep their defaulted id (the download
+        # page's user id among them), exactly as before
+        book_id = 1
     return render_books_list(data, sort_param, book_id, page)
 
 
@@ -941,12 +958,12 @@ for d in data:
     web.add_url_rule(
         "/{}/<sort_param>".format(d),
         view_func=books_list,
-        defaults={"page": 1, "book_id": 1, "data": d},
+        defaults={"page": 1, "book_id": 0, "data": d},
     )
     web.add_url_rule(
         "/{}/<sort_param>/".format(d),
         view_func=books_list,
-        defaults={"page": 1, "book_id": 1, "data": d},
+        defaults={"page": 1, "book_id": 0, "data": d},
     )
     web.add_url_rule(
         "/{}/<sort_param>/<book_id>".format(d),

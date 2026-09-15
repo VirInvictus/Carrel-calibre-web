@@ -657,6 +657,26 @@ class SmallscopeTestCase(_ClientCase):
         finally:
             config.config_books_per_page = old
 
+    def test_entity_urls_without_an_id_404_not_render_entity_1(self):
+        # /series/2 puts the id in sort_param and the defaults loop handed
+        # book_id 1, so the page rendered The Broken Earth and looked fine
+        # doing it. The fixture carries a second series precisely so id != 1
+        # can detect the trap; the hardening is: no id, no page.
+        for url in (
+            "/series/2",
+            "/author/stored",
+            "/category/stored",
+            "/language/stored",
+        ):
+            self.assertEqual(self.client.get(url).status_code, 404, url)
+        # non-entity datas keep their defaulted id
+        self.assertEqual(self.client.get("/read/stored").status_code, 200)
+        self.assertEqual(self.client.get("/archived/stored").status_code, 200)
+        # the correctly-shaped entity page still renders entity 2
+        page = self.client.get("/series/stored/2").get_data(as_text=True)
+        self.assertIn("Dune", page)
+        self.assertNotIn("The Broken Earth", page)
+
     def test_downloads_page_prune_never_eats_other_pages(self):
         """render_downloaded_books built its prune set from the rendered
         page but walked every download id: opening page 1 of a paged
