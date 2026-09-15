@@ -379,7 +379,14 @@ def ids_with(field, value):
 
 def read_ids(are_read):
     """Book ids for the read/unread grids: 'Read' in the library's
-    reading_status enumeration (or its complement)."""
+    reading_status enumeration (or its complement).
+
+    Coupled to admin's read-column choice by convention, not by lookup:
+    this reads the column labelled reading_status and its 'Read' value,
+    which is what the instance is configured with (spec 5.2). Pointing
+    config_read_column at a different column would need this lookup
+    retaught, not just repointed.
+    """
     status = _read_status_map()
     read = {i for i, v in status.items() if v == "Read"}
     if are_read:

@@ -50,7 +50,7 @@
   veil.innerHTML =
     '<div class="cp" role="dialog" aria-modal="true" aria-label="Command palette">' +
     '<div class="cp-head"><span class="cp-gt">&gt;</span>' +
-    '<input class="cp-in" type="text" placeholder="jump anywhere — a authors · s series · c categories · w wings" ' +
+    '<input class="cp-in" type="text" placeholder="jump anywhere: a authors · s series · c categories · w wings" ' +
     'spellcheck="false" autocomplete="off" aria-label="Search the library"></div>' +
     '<div class="cp-list" role="listbox"></div>' +
     '<div class="cp-foot"><span>&#8593;&#8595; navigate &middot; &#8629; open &middot; esc close</span>' +

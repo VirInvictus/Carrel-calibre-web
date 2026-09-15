@@ -71,6 +71,34 @@ def library_uuid():
         return None
 
 
+def _signature():
+    """(mtime, uuid) for the library right now."""
+    return os.path.getmtime(library_path()), library_uuid()
+
+
+def _signature_for_request():
+    """The library signature, probed at most once per request.
+
+    The context processors and the routes they serve each probed on every
+    cache hit: an os.stat plus a fresh sqlite connection for the UUID,
+    six-odd times per page render. The first probe now answers for the
+    whole request, which also gives one request one consistent view of
+    the library. Outside a request context, every get() probes directly.
+    """
+    try:
+        from flask import g, has_request_context
+
+        if has_request_context():
+            signature = getattr(g, "_carrel_library_signature", None)
+            if signature is None:
+                signature = _signature()
+                g._carrel_library_signature = signature
+            return signature
+    except RuntimeError:
+        pass
+    return _signature()
+
+
 _quarry_cache = None
 
 
@@ -122,8 +150,7 @@ class LibraryCache:
             return self._get_locked()
 
     def _get_locked(self):
-        mtime = os.path.getmtime(library_path())
-        uuid = library_uuid()
+        mtime, uuid = _signature_for_request()
         if self._mtime == mtime and self._uuid == uuid:
             return self._value
 
