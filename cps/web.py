@@ -2146,8 +2146,6 @@ def read_book(book_id, book_format):
         )
         return redirect(url_for("web.index"))
 
-    book.ordered_authors = book.ordered_authors  # already precomputed
-
     # check if book has a bookmark
     bookmark = None
     if current_user.is_authenticated:
