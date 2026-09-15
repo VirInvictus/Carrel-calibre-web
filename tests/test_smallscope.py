@@ -121,6 +121,25 @@ def _md5(path):
         return hashlib.md5(fh.read()).hexdigest()
 
 
+# One body marker per palette page row: what each fixed destination must
+# render for the href to count as reaching its target. Kept beside the
+# palette test so a new row and its marker land in the same commit.
+PAGE_MARKERS = {
+    "/": "Ancillary Justice",
+    "/author": "Ann Leckie",
+    "/series": "The Broken Earth",
+    "/category": "Fic.SciFi",
+    "/publisher": "Publishers",
+    "/language": "English",
+    "/ratings": "Ratings list",
+    "/formats": "File formats list",
+    "/read/stored": "Ancillary Justice",
+    "/unread/stored": "Dune",
+    "/archived/stored": "Archived",
+    "/statistics": "Statistics",
+}
+
+
 def tearDownModule():
     # create_app starts non-daemon threads (updater, APScheduler); stop them
     # or the interpreter hangs in threading shutdown after the run.
@@ -1144,7 +1163,18 @@ class SmallscopeTestCase(_ClientCase):
 
         for row in [r for r in rows if r["g"] == "page"]:
             rv = self.client.get(row["h"], follow_redirects=True)
-            self.assertNotEqual(rv.status_code, 500, row["h"])
+            self.assertEqual(rv.status_code, 200, row["h"])
+            # every fixed destination proves it rendered the thing it
+            # names, not just any 200: the page half of this loop used to
+            # assert only not-500 and a sealed 404 passed for years.
+            self.assertIn(
+                PAGE_MARKERS[row["h"]], rv.get_data(as_text=True), row["h"]
+            )
+        self.assertEqual(
+            {r["h"] for r in rows if r["g"] == "page"} - set(PAGE_MARKERS),
+            set(),
+            "every palette page row needs a body marker in this test",
+        )
 
     def test_palette_index_is_cacheable(self):
         rv = self.client.get("/palette-data.js")

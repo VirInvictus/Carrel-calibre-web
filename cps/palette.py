@@ -50,7 +50,8 @@ def _entries():
         ("Read Books", "/read/stored"),
         ("Unread Books", "/unread/stored"),
         ("Archived Books", "/archived/stored"),
-        ("Books List", "/table"),
+        # ("Books List", "/table") is gone: the table view is a sealed
+        # surface, and the row sent Ctrl-K to a 404.
         ("Statistics", "/statistics"),
     ):
         rows.append({"t": title, "g": "page", "h": href})
