@@ -151,6 +151,8 @@ committed tests.
   across NEW-AUDIT.md and these patchnotes is purged (about 40 instances
   recast to colons/semicolons), plus a duplicated instruction passage, a
   duplicated resolution line, a future-dated line, and one "robust".
+  *(Erratum 2026-09-14: NEW-AUDIT.md exists in neither repo; the audit
+  ledger meant here is audit-final/Carrel-calibre-web/FINAL-REPORT.md.)*
 - **Version 0.6.36.** Suite 108 green.
 
 ## Phase 7: OPDS through cquarry (2026-09-03, 0.6.35)
@@ -200,7 +202,9 @@ committed tests.
   branch: any configured read column is now simply read-only here.
 - **Version 0.6.34.** Suite 102 green. Remaining Phase 7: opds.py (the
   biggest piece), show_book/read_book detail surface, /ajax/listbooks,
-  adv_search: planned in NEW-AUDIT.md's Stage 6 box.
+  adv_search: planned in NEW-AUDIT.md's Stage 6 box. *(Erratum
+  2026-09-14: NEW-AUDIT.md exists in neither repo; the Stage 6 map lives
+  in audit-final/Carrel-calibre-web/FINAL-REPORT.md.)*
 
 ## Phase 7: the browse grids join the swap (2026-09-03, 0.6.33)
 
@@ -278,7 +282,9 @@ committed tests.
 
 ## Phase 7 begins: the data-layer swap's first increments (2026-09-03, 0.6.30)
 
-The NEW-AUDIT Stage 6 boundary map classified every cps/db.py call site;
+The NEW-AUDIT Stage 6 boundary map classified every cps/db.py call site
+*(erratum 2026-09-14: NEW-AUDIT.md exists in neither repo; the map is the
+audit ledger at audit-final/Carrel-calibre-web/FINAL-REPORT.md)*;
 this release lands the riders and the first two swap increments. The live
 swap surface (web.py, opds.py, search.py) remains future work by design.
 
