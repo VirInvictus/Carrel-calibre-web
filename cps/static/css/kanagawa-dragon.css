@@ -3,7 +3,9 @@
  *
  * An owned stylesheet over STOCK calibre-web templates (spec §4.1).
  * caliBlur is not loaded; config_theme is 0. This sheet loads last, after
- * bootstrap.min.css and style.css, and is the only thing styling the app.
+ * bootstrap.min.css and style.css, and is the only thing styling the app
+ * surfaces (the EPUB reader keeps its isolated epub_themes.css; /basic
+ * renders stock basic.css, a recorded exception).
  * Canonical copy: Carrel/theme/. The fork's cps/static/css/ copy is
  * vendored via `just sync-theme`; never hand-edit it there.
  *
@@ -38,7 +40,8 @@
     --kngw-yellow: #c4b28a;
 
     /* Sequential ramp for magnitude (spec §4.3). Monotonic in OKLab.
-       Steps 3-5 clear 4.5:1 on black1 and may carry a label on the fill. */
+       Steps 4-5 clear 4.5:1 on black1 and may carry a label on the fill;
+       gold 3 measures 4.37:1, so its values are stated outside the fill. */
     --gold-1: #3a3222;
     --gold-2: #5d5039;
     --gold-3: #8a7853;
@@ -94,7 +97,7 @@ body {
    piece of chrome goes mono. This split is what makes the instrumentation
    read as instrumentation (spec §4.4). */
 .navbar, .navigation, #scnd-nav, .badge, .btn, label, th,
-.pagination, .filterheader, .nav-head, footer, .modal-title,
+.pagination, .filterheader, .nav-head, .modal-title, .dropdown-menu,
 input, select, textarea, .book .meta .series {
     font-family: var(--mono);
 }
@@ -366,6 +369,14 @@ hr { border-color: var(--rule); }
     border-radius: var(--radius);
     font-family: var(--mono);
     font-size: 10px;
+}
+
+/* Except the tick itself, which is a Bootstrap glyphicon (\e013). The badge
+   rules above are 0-2-0 and outrank Bootstrap's .glyphicon (0-1-0), which
+   used to push the codepoint through --mono onto whatever Nerd Font happened
+   to be installed. Counts stay mono; icons stay in the icon font. */
+.badge.glyphicon {
+    font-family: "Glyphicons Halflings";
 }
 
 /* ------------------------------------------------------------------ */
@@ -643,6 +654,29 @@ hr { border-color: var(--rule); }
     color: var(--kngw-black0);
 }
 
+/* Dropdowns: the multi-format Download menu and the Read/Listen-in-Browser
+   menus on the detail page. Neither stock style.css nor this sheet had a
+   .dropdown-menu rule, so Bootstrap's white ground, #333 text, #f5f5f5 hover,
+   4px radius and hard drop shadow rendered untouched: the last stock-white
+   surface (spec §4.4). Items share the .btn register they open from. */
+.dropdown-menu {
+    background: var(--kngw-black2);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    box-shadow: none;
+}
+.dropdown-menu > li > a {
+    color: var(--kngw-gray);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus {
+    background: var(--kngw-black4);
+    color: var(--kngw-orange);
+}
+
 /* ------------------------------------------------------------------ */
 /* Detail page                                                        */
 /* ------------------------------------------------------------------ */
@@ -660,7 +694,9 @@ hr { border-color: var(--rule); }
 .book-meta > .publishers,
 .book-meta > .publishing-date,
 .book-meta > .real_custom_columns,
-.book-meta > .series { order: 3; }
+.book-meta > .series,
+.book-meta > .page-count,
+.book-meta > .reader-state { order: 3; }
 .book-meta > .btn-toolbar { order: 4; margin: 20px 0 8px; }
 
 /* The metadata ledger is one block: give every row the same measure so the
@@ -670,7 +706,9 @@ hr { border-color: var(--rule); }
 .book-meta > .tags,
 .book-meta > .publishers,
 .book-meta > .publishing-date,
-.book-meta > .real_custom_columns { max-width: 620px; }
+.book-meta > .real_custom_columns,
+.book-meta > .page-count,
+.book-meta > .reader-state { max-width: 620px; }
 
 .book-meta h2 {
     font-family: var(--serif);
@@ -694,7 +732,9 @@ hr { border-color: var(--rule); }
 .book-meta .real_custom_columns,
 .book-meta .publishers,
 .book-meta .identifiers p,
-.book-meta .tags p {
+.book-meta .tags p,
+.book-meta .page-count p,
+.book-meta .reader-state p {
     font-family: var(--mono);
     font-size: 11px;
     letter-spacing: 0.06em;
