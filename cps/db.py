@@ -640,7 +640,7 @@ class CalibreDB:
                                          connect_args={'check_same_thread': False, 'uri': True},
                                          poolclass=StaticPool)
             with check_engine.begin() as connection:
-                connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (kanagawa spec 7)
+                connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (Carrel spec 7)
                 connection.execute(text("attach database '{}' as app_settings;".format(app_db_path)))
                 local_session = scoped_session(sessionmaker())
                 local_session.configure(bind=connection)
@@ -694,7 +694,7 @@ class CalibreDB:
                                        poolclass=StaticPool)
             with engine.begin() as connection:
                 connection.execute(text('PRAGMA cache_size = 10000;'))
-                connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (kanagawa spec 7)
+                connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (Carrel spec 7)
                 connection.execute(text("attach database '{}' as app_settings;".format(app_db_path)))
 
             conn = engine.connect()

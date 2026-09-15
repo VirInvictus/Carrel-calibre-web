@@ -796,7 +796,7 @@ def render_read_books(page, are_read, as_xml=False, order=None):
             from .smallscope import read_column_is_enum
 
             if read_column_is_enum(config.config_read_column):
-                # smallscope: enumeration read column; Read == 'Read' (kanagawa spec 5.2)
+                # smallscope: enumeration read column; Read == 'Read' (Carrel spec 5.2)
                 if are_read:
                     db_filter = db.cc_classes[config.config_read_column].value == "Read"
                 else:
@@ -955,6 +955,9 @@ data = [
     "newest",
 ]
 for d in data:
+    # The id-less rules default book_id to the 0 sentinel books_list reads:
+    # a wrong-shaped URL (/series/2, the id landing in sort_param) must not
+    # quietly render entity 1, the trap this loop carried for years.
     web.add_url_rule(
         "/{}/<sort_param>".format(d),
         view_func=books_list,

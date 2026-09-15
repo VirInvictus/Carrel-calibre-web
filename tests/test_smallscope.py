@@ -97,8 +97,9 @@ for blueprint in (
 ):
     app.register_blueprint(blueprint)
 
-# Point the instance at the fixture library, link the enum column, enable
-# the caliBlur theme and the Read/Unread sidebar sections for admin.
+# Point the instance at the fixture library, link the enum column, keep
+# Carrel's own sheet (caliBlur has been off since Phase 8) and enable the
+# Read/Unread sidebar sections for admin.
 config.config_calibre_dir = LIB
 config.config_read_column = 2
 config.config_theme = 0  # Carrel owns the sheet since Phase 8; caliBlur is off

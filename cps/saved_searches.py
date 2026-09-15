@@ -9,7 +9,8 @@
 # through the same grammar evaluation as Wings.
 #
 # Same shape as wings.py: resolve once per library revision, cache on
-# metadata.db's mtime, expose a sidebar list plus one route per search.
+# the library's mtime and identity UUID, expose a sidebar list plus one
+# route per search.
 
 from flask import Blueprint, abort
 from flask_babel import gettext as _

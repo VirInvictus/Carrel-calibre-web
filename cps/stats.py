@@ -211,7 +211,8 @@ _cache = LibraryCache(_rebuild)
 
 
 def collect():
-    """Everything the statistics surfaces need, cached on metadata.db's mtime."""
+    """Everything the statistics surfaces need, cached on the library's
+    mtime and identity UUID like every LibraryCache consumer."""
     return _cache.get()
 
 

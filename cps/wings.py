@@ -5,8 +5,9 @@
 # preferences table and are evaluated by CalibreQuarry's stdlib port of
 # Calibre's search grammar (including vl: cross-references, so the
 # self-referential Unsorted wing parses). cquarry opens its own mode=ro
-# connection; results are cached keyed on metadata.db's mtime, so any
-# library change invalidates on the next request.
+# connection; results are cached on metadata.db's mtime and the
+# library's identity UUID (the LibraryCache rule), so any library change
+# invalidates on the next request.
 
 from flask import Blueprint, abort
 from flask_babel import gettext as _

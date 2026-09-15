@@ -10,8 +10,8 @@
 # So counts and membership both roll descendants up, matching cquarry's
 # anchored hierarchical semantics (tags:Fic.Fantasy covers Fic.Fantasy and
 # anything prefixed Fic.Fantasy.). Membership comes from one pass over the
-# tag link table rather than a search per tag, and is cached on metadata.db's
-# mtime exactly as wings.py is.
+# tag link table rather than a search per tag, and is cached through
+# the same LibraryCache rule as wings.py (mtime plus identity UUID).
 
 from flask import Blueprint, abort
 from flask_babel import gettext as _

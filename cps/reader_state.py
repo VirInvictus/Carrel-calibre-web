@@ -48,7 +48,7 @@ def carrel_reader_state(book_id):
     """Highlights and latest progress for one book id, or None.
 
     Returns {'annotations': [...], 'progress': float|None, 'device': str|None}.
-    Progress is the most recent pos_frac across devices (epoch_time wins).
+    Progress is the most recent pos_frac across devices (epoch wins).
     """
     try:
         quarry = _quarry()

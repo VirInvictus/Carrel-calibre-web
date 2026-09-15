@@ -72,8 +72,8 @@ def carrel_series(entry):
         if not info:
             return None
         index = entry.series_index
-        # "max" is deliberately not exposed to the template: it is the highest
-        # index held, not the length of the series, and rendering it as
+        # "max" travels in the dict, but the template must not render it:
+        # it is the highest index held, not the length of the series, and
         # "of N" states a fact the library cannot know.
         return {
             "id": s.id,

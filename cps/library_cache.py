@@ -106,7 +106,8 @@ def quarry():
     """A shared cquarry CalibreDB, rebuilt when the library moves.
 
     One open read-only connection for the surfaces that only need a handle
-    (cover resolution, analytics, series rollups) — mtime/UUID-keyed like
+    (cover resolution, analytics, series rollups, the OPDS entity feeds) —
+    mtime/UUID-keyed like
     every cache here, so a library swap rebuilds it. Modules that own a
     specific engine (carrel_search, page_count, reader_state) keep their own
     caches; this is for the callers that would otherwise open a fresh

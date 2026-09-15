@@ -142,7 +142,7 @@
                  other axis (authors, series, publishers, formats, read/unread)
                  is a Ctrl-K palette destination instead. The `sidebar` context
                  variable is still populated upstream if this is ever restored. #}
-              {# smallscope: shelves UI removed; Wings live here (kanagawa spec 8) #}
+              {# smallscope: shelves UI removed; Wings live here (Carrel spec 8) #}
               {% if current_user.is_authenticated and wings_list %}
                 <li class="nav-head hidden-xs">{{_('Wings')}}</li>
                 {% for wing in wings_list %}

@@ -208,7 +208,8 @@ class _Books(_Proxy):
 
     def __getitem__(self, key):
         # custom_column_N access (feed.xml's cc block): the cquarry-backed
-        # feed passes cc=[], so this stays empty until a cc adapter lands.
+        # feeds pass cc=[]; a cc adapter was considered and waived, so this
+        # stays empty by decision, not for lack of a follow-up.
         return []
 
     def get(self, key, default=None):
@@ -321,12 +322,9 @@ def _entity_name_map(kind):
     quarry_db = quarry()
     out = {}
     for e in quarry_db.get_entities(kind):
-        value = e["name"]
-        if kind == "ratings":
-            # get_entities surfaces the rating value as its name (text).
-            value = int(value)
-        elif kind in ("authors", "series"):
-            value = e["name"]
+        # get_entities surfaces a rating's value as its name (text); every
+        # other kind matches on the name as-is.
+        value = int(e["name"]) if kind == "ratings" else e["name"]
         out[e["id"]] = value
     return out
 
@@ -464,7 +462,10 @@ def build_detail(book_id):
     display names, ordered_authors with ids, identifiers with URLs and
     labels, publishers, tags, series, rating, pubdate datetime,
     reader_list, audio_entries), or None for unknown books. All data is
-    precomputed here; the template just reads.
+    precomputed here; the template just reads. read_status,
+    read_status_label, and is_archived are placeholders: the routes own
+    that truth (the enum read column, the app DB's archive flag) and
+    overwrite them before rendering.
     """
     from datetime import datetime as _dt
 

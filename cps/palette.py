@@ -8,8 +8,9 @@
 # asset with no fetch and no API surface.
 #
 # Ported in shape from Brandon's Athenaeum static site, which builds the same
-# index at generation time. Here it is built from metadata.db instead, cached
-# on the database's mtime exactly as wings.py does, so any library edit
+# index at generation time. Here it is built from metadata.db instead,
+# cached through the same LibraryCache rule as wings.py (the database's
+# mtime plus the library's identity UUID), so any library edit
 # invalidates it on the next request.
 #
 # The payload is deliberately whole rather than paged: the fuzzy match runs
