@@ -61,6 +61,36 @@ def _int_param(name, default=0):
         return default
 
 
+def _per_page():
+    """The configured books-per-page, clamped: every feed's pagination
+    arithmetic divides by it, and a 0 or garbage config value used to
+    ZeroDivision-error the feeds. 60 is the instance default."""
+    try:
+        return int(config.config_books_per_page) or 60
+    except (TypeError, ValueError):
+        return 60
+
+
+def _page():
+    """The 1-based feed page for the request's ?offset."""
+    return _int_param("offset") // _per_page() + 1
+
+
+def _letter_rows(kind, book_id):
+    """One kind's entity rows for a letter drilldown ("00" = all), ordered
+    by the entity's sort when it has one, as the ORM drilldowns ordered
+    them. Names, sorts, and the letter filter resolve from cquarry's
+    cached rows; the ORM group-bys are gone."""
+    wanted = None if book_id == "00" else book_id.upper()
+    rows = [
+        e
+        for e in quarry().get_entities(kind)
+        if wanted is None or (e["sort"] or e["name"] or "").upper().startswith(wanted)
+    ]
+    rows.sort(key=lambda e: e["sort"] or e["name"])
+    return rows
+
+
 @opds.route("/opds/")
 @opds.route("/opds")
 @requires_basic_auth_if_no_ano
@@ -106,8 +136,6 @@ def feed_letter_books(book_id):
     # Phase 7: ids + paging through cquarry's grid (include_comments feeds
     # the content block; cc=[] skips the custom-column block until a cc
     # adapter exists).
-    off = _int_param("offset")
-    page = int(off / (int(config.config_books_per_page)) + 1)
     all_ids = quarry_grid.all_ids()
     if book_id != "00":
         rows = quarry().get_all_books()
@@ -119,7 +147,7 @@ def feed_letter_books(book_id):
         ids = sorted(wanted)
     else:
         ids = all_ids
-    entries, pagination = quarry_grid.grid(page, ids, include_comments=True)
+    entries, pagination = quarry_grid.grid(_page(), ids, include_comments=True)
     cc = []
     return render_xml_template(
         "feed.xml", entries=entries, pagination=pagination, cc=cc
@@ -131,10 +159,8 @@ def feed_letter_books(book_id):
 def feed_new():
     if not auth.current_user().check_visibility(constants.SIDEBAR_RECENT):
         abort(404)
-    off = _int_param("offset")
-    page = int(off / (int(config.config_books_per_page)) + 1)
     entries, pagination = quarry_grid.grid(
-        page, None, sort=("timestamp",), descending=True, include_comments=True
+        _page(), None, sort=("timestamp",), descending=True, include_comments=True
     )
     cc = []
     return render_xml_template(
@@ -229,32 +255,20 @@ def feed_authorindex():
 def feed_letter_author(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_AUTHOR):
         abort(404)
+    rows = _letter_rows("authors", book_id)
+    per_page = _per_page()
     off = _int_param("offset")
-    letter = (
-        true() if book_id == "00" else func.upper(db.Authors.sort).startswith(book_id)
-    )
-    entries = (
-        calibre_db.session.query(db.Authors)
-        .join(db.books_authors_link)
-        .join(db.Books)
-        .filter(calibre_db.common_filters())
-        .filter(letter)
-        .group_by(text("books_authors_link.author"))
-        .order_by(db.Authors.sort)
-    )
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        entries.count(),
-    )
-    entries = entries.limit(config.config_books_per_page).offset(off).all()
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
+    pagination = Pagination(_page(), per_page, len(rows))
+    entries = [
+        FeedObject(e["id"], e["name"].replace("|", ","))
+        for e in rows[off : off + per_page]
+    ]
     return render_xml_template(
         "feed.xml",
         listelements=entries,
         folder="opds.feed_author",
         pagination=pagination,
-        cc=cc,
+        cc=[],
     )
 
 
@@ -269,29 +283,19 @@ def feed_author(book_id):
 def feed_publisherindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_PUBLISHER):
         abort(404)
+    rows = sorted(
+        quarry().get_entities("publishers"), key=lambda e: e["sort"] or e["name"]
+    )
+    per_page = _per_page()
     off = _int_param("offset")
-    entries = (
-        calibre_db.session.query(db.Publishers)
-        .join(db.books_publishers_link)
-        .join(db.Books)
-        .filter(calibre_db.common_filters())
-        .group_by(text("books_publishers_link.publisher"))
-        .order_by(db.Publishers.sort)
-        .limit(config.config_books_per_page)
-        .offset(off)
-    )
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        len(calibre_db.session.query(db.Publishers).all()),
-    )
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
+    pagination = Pagination(_page(), per_page, len(rows))
+    entries = [FeedObject(e["id"], e["name"]) for e in rows[off : off + per_page]]
     return render_xml_template(
         "feed.xml",
         listelements=entries,
         folder="opds.feed_publisher",
         pagination=pagination,
-        cc=cc,
+        cc=[],
     )
 
 
@@ -315,30 +319,17 @@ def feed_categoryindex():
 def feed_letter_category(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_CATEGORY):
         abort(404)
+    rows = _letter_rows("tags", book_id)
+    per_page = _per_page()
     off = _int_param("offset")
-    letter = true() if book_id == "00" else func.upper(db.Tags.name).startswith(book_id)
-    entries = (
-        calibre_db.session.query(db.Tags)
-        .join(db.books_tags_link)
-        .join(db.Books)
-        .filter(calibre_db.common_filters())
-        .filter(letter)
-        .group_by(text("books_tags_link.tag"))
-        .order_by(db.Tags.name)
-    )
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        entries.count(),
-    )
-    entries = entries.offset(off).limit(config.config_books_per_page).all()
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
+    pagination = Pagination(_page(), per_page, len(rows))
+    entries = [FeedObject(e["id"], e["name"]) for e in rows[off : off + per_page]]
     return render_xml_template(
         "feed.xml",
         listelements=entries,
         folder="opds.feed_category",
         pagination=pagination,
-        cc=cc,
+        cc=[],
     )
 
 
@@ -364,43 +355,26 @@ def feed_seriesindex():
 def feed_letter_series(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_SERIES):
         abort(404)
+    rows = _letter_rows("series", book_id)
+    per_page = _per_page()
     off = _int_param("offset")
-    letter = (
-        true() if book_id == "00" else func.upper(db.Series.sort).startswith(book_id)
-    )
-    entries = (
-        calibre_db.session.query(db.Series)
-        .join(db.books_series_link)
-        .join(db.Books)
-        .filter(calibre_db.common_filters())
-        .filter(letter)
-        .group_by(text("books_series_link.series"))
-        .order_by(db.Series.sort)
-    )
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        entries.count(),
-    )
-    entries = entries.offset(off).limit(config.config_books_per_page).all()
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
+    pagination = Pagination(_page(), per_page, len(rows))
+    entries = [FeedObject(e["id"], e["name"]) for e in rows[off : off + per_page]]
     return render_xml_template(
         "feed.xml",
         listelements=entries,
         folder="opds.feed_series",
         pagination=pagination,
-        cc=cc,
+        cc=[],
     )
 
 
 @opds.route("/opds/series/<int:book_id>")
 @requires_basic_auth_if_no_ano
 def feed_series(book_id):
-    off = _int_param("offset")
-    page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_for_entity("series", book_id)
     entries, pagination = quarry_grid.grid(
-        page, ids, sort=("series_index",), include_comments=True
+        _page(), ids, sort=("series_index",), include_comments=True
     )
     cc = []
     return render_xml_template(
@@ -413,36 +387,20 @@ def feed_series(book_id):
 def feed_ratingindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_RATING):
         abort(404)
+    rows = [e for e in quarry().get_entities("ratings") if e["count"]]
+    per_page = _per_page()
     off = _int_param("offset")
-    entries = (
-        calibre_db.session.query(
-            db.Ratings,
-            func.count("books_ratings_link.book").label("count"),
-            (db.Ratings.rating / 2).label("name"),
-        )
-        .join(db.books_ratings_link)
-        .join(db.Books)
-        .filter(calibre_db.common_filters())
-        .group_by(text("books_ratings_link.rating"))
-        .order_by(db.Ratings.rating)
-        .all()
-    )
-
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        len(entries),
-    )
-    element = list()
-    for entry in entries:
-        element.append(FeedObject(entry[0].id, _("{} Stars").format(entry.name)))
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
+    pagination = Pagination(_page(), per_page, len(rows))
+    entries = [
+        FeedObject(e["id"], _("{} Stars").format(int(e["name"]) // 2))
+        for e in rows[off : off + per_page]
+    ]
     return render_xml_template(
         "feed.xml",
-        listelements=element,
+        listelements=entries,
         folder="opds.feed_ratings",
         pagination=pagination,
-        cc=cc,
+        cc=[],
     )
 
 
@@ -457,41 +415,28 @@ def feed_ratings(book_id):
 def feed_formatindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_FORMAT):
         abort(404)
+    formats = sorted(
+        {fmt for row in quarry().get_all_books() for fmt in row["formats"] or []}
+    )
+    per_page = _per_page()
     off = _int_param("offset")
-    entries = (
-        calibre_db.session.query(db.Data)
-        .join(db.Books)
-        .filter(calibre_db.common_filters())
-        .group_by(db.Data.format)
-        .order_by(db.Data.format)
-        .all()
-    )
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        len(entries),
-    )
-    element = list()
-    for entry in entries:
-        element.append(FeedObject(entry.format, entry.format))
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
+    pagination = Pagination(_page(), per_page, len(formats))
+    entries = [FeedObject(fmt, fmt) for fmt in formats[off : off + per_page]]
     return render_xml_template(
         "feed.xml",
-        listelements=element,
+        listelements=entries,
         folder="opds.feed_format",
         pagination=pagination,
-        cc=cc,
+        cc=[],
     )
 
 
 @opds.route("/opds/formats/<book_id>")
 @requires_basic_auth_if_no_ano
 def feed_format(book_id):
-    off = _int_param("offset")
-    page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_with("formats", book_id.upper())
     entries, pagination = quarry_grid.grid(
-        page, ids, sort=("timestamp",), descending=True, include_comments=True
+        _page(), ids, sort=("timestamp",), descending=True, include_comments=True
     )
     cc = []
     return render_xml_template(
@@ -505,11 +450,23 @@ def feed_format(book_id):
 def feed_languagesindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_LANGUAGE):
         abort(404)
-    off = _int_param("offset")
-    # Phase 7: language facets from cquarry's entity rollup.
+    # Phase 7: language facets from cquarry's entity rollup. Display names
+    # resolve through the same locale mapping the ORM path used; a raw
+    # "eng" used to surface where every sibling surface shows "English".
     if auth.current_user().filter_language() == "all":
         languages = [
-            type("Lang", (), {"lang_code": e["name"], "name": e["name"]})()
+            type(
+                "Lang",
+                (),
+                {
+                    # id is load-bearing: feed.xml's listelements branch
+                    # builds each entry's subsection link from entry.id, and
+                    # its absence has 500ed this feed since the Phase 7 swap.
+                    "id": e["id"],
+                    "lang_code": e["name"],
+                    "name": isoLanguages.get_language_name(get_locale(), e["name"]),
+                },
+            )()
             for e in quarry().get_entities("languages")
             if e["count"]
         ]
@@ -526,11 +483,7 @@ def feed_languagesindex():
                 },
             )
         ]
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        len(languages),
-    )
+    pagination = Pagination(_page(), _per_page(), len(languages))
     cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
     return render_xml_template(
         "feed.xml",
@@ -544,19 +497,14 @@ def feed_languagesindex():
 @opds.route("/opds/language/<int:book_id>")
 @requires_basic_auth_if_no_ano
 def feed_languages(book_id):
-    off = _int_param("offset")
-    entries, __, pagination = calibre_db.fill_indexpage(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        0,
-        db.Books,
-        db.Books.languages.any(db.Languages.id == book_id),
-        [db.Books.timestamp.desc()],
-        True,
-        config.config_read_column,
+    # Phase 7 shape, language flavour: ids resolve rows-side and the page
+    # comes from cquarry's grid, like the other entity detail feeds.
+    ids = quarry_grid.ids_for_entity("languages", book_id)
+    entries, pagination = quarry_grid.grid(
+        _page(), ids, sort=("timestamp",), descending=True, include_comments=True
     )
-    cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
     return render_xml_template(
-        "feed.xml", entries=entries, pagination=pagination, cc=cc
+        "feed.xml", entries=entries, pagination=pagination, cc=[]
     )
 
 
@@ -565,7 +513,6 @@ def feed_languages(book_id):
 def feed_shelfindex():
     if not (auth.current_user().is_authenticated or g.allow_anonymous):
         abort(404)
-    off = _int_param("offset")
     shelf = (
         ub.session.query(ub.Shelf)
         .filter(
@@ -574,12 +521,7 @@ def feed_shelfindex():
         .order_by(ub.Shelf.name)
         .all()
     )
-    number = len(shelf)
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        number,
-    )
+    pagination = Pagination(_page(), _per_page(), len(shelf))
     cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
     return render_xml_template(
         "feed.xml",
@@ -595,7 +537,6 @@ def feed_shelfindex():
 def feed_shelf(book_id):
     if not (auth.current_user().is_authenticated or g.allow_anonymous):
         abort(404)
-    off = _int_param("offset")
     if auth.current_user().is_anonymous:
         shelf = (
             ub.session.query(ub.Shelf)
@@ -621,8 +562,8 @@ def feed_shelf(book_id):
     # user is allowed to access shelf
     if shelf:
         result, __, pagination = calibre_db.fill_indexpage(
-            (int(off) / (int(config.config_books_per_page)) + 1),
-            config.config_books_per_page,
+            _page(),
+            _per_page(),
             db.Books,
             ub.BookShelf.shelf == shelf.id,
             [ub.BookShelf.order.asc()],
@@ -708,10 +649,7 @@ def feed_read_books():
         and not auth.current_user().is_anonymous
     ):
         return abort(403)
-    off = _int_param("offset")
-    result, pagination = render_read_books(
-        int(off) / (int(config.config_books_per_page)) + 1, True, True
-    )
+    result, pagination = render_read_books(_page(), True, True)
     cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
     return render_xml_template("feed.xml", entries=result, pagination=pagination, cc=cc)
 
@@ -724,10 +662,7 @@ def feed_unread_books():
         and not auth.current_user().is_anonymous
     ):
         return abort(403)
-    off = _int_param("offset")
-    result, pagination = render_read_books(
-        int(off) / (int(config.config_books_per_page)) + 1, False, True
-    )
+    result, pagination = render_read_books(_page(), False, True)
     cc = calibre_db.get_cc_columns(config, filter_config_custom_read=True)
     return render_xml_template("feed.xml", entries=result, pagination=pagination, cc=cc)
 
@@ -760,7 +695,7 @@ def feed_search(term):
             ids = resolve(term)
         except (SearchError, LibraryUnavailable):
             ids = []
-        page = _int_param("offset") // (config.config_books_per_page or 60) + 1
+        page = _page()
         entries, pagination = quarry_grid.grid(page, ids, include_comments=True)
         cc = []
         return render_xml_template(
@@ -799,11 +734,9 @@ _DATASET_KINDS = {
 
 def render_xml_dataset(data_table, book_id):
     # Phase 7: entity id sets resolve rows-side via quarry_grid.
-    off = _int_param("offset")
-    page = int(off / (int(config.config_books_per_page)) + 1)
     ids = quarry_grid.ids_for_entity(_DATASET_KINDS[data_table], book_id)
     entries, pagination = quarry_grid.grid(
-        page, ids, sort=("timestamp",), descending=True, include_comments=True
+        _page(), ids, sort=("timestamp",), descending=True, include_comments=True
     )
     cc = []
     return render_xml_template(
@@ -821,20 +754,15 @@ def _letter_elements(letters, folder):
     offsets slice letters, and the cc list is empty on cquarry-backed
     feeds until a cc adapter exists."""
     off = _int_param("offset")
+    per_page = _per_page()
     elements = []
     shift = 0
     if off == 0 and letters:
         elements.append({"id": "00", "name": _("All")})
         shift = 1
-    for letter in letters[
-        off + shift - 1 : int(off + int(config.config_books_per_page) - shift)
-    ]:
+    for letter in letters[off + shift - 1 : off + per_page - shift]:
         elements.append({"id": letter, "name": letter})
-    pagination = Pagination(
-        (int(off) / (int(config.config_books_per_page)) + 1),
-        config.config_books_per_page,
-        len(letters) + 1,
-    )
+    pagination = Pagination(_page(), per_page, len(letters) + 1)
     cc = []
     return render_xml_template(
         "feed.xml",

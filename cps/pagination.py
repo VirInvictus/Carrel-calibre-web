@@ -47,6 +47,10 @@ class Pagination(object):
 
     @property
     def pages(self):
+        # A 0 books-per-page used to ZeroDivision-error every feed template
+        # that asked has_next; degrade to one page instead.
+        if self.per_page <= 0:
+            return 1
         return int(ceil(self.total_count / float(self.per_page)))
 
     @property

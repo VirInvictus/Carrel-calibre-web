@@ -563,6 +563,81 @@ class SmallscopeTestCase(_ClientCase):
             data = resp.get_data(as_text=True)
             self.assertIn("<entry>", data, path)
 
+    def test_opds_entity_feeds_resolve_through_cquarry(self):
+        """The letter drilldowns and the publisher/rating/format/language
+        feeds read cquarry's cached rows now; the ORM query machinery is
+        gone from every live feed but the app-DB shelf surfaces and the
+        Calibre-Companion JSON."""
+        import xml.etree.ElementTree as ET
+
+        auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        ns = "{http://www.w3.org/2005/Atom}"
+
+        def titles(path):
+            root = ET.fromstring(
+                self.client.get(path, headers=auth).get_data(as_text=True)
+            )
+            return [e.find(f"{ns}title").text for e in root.findall(f"{ns}entry")]
+
+        # the author drilldown pages entities by their sort's letter
+        self.assertEqual(titles("/opds/author/letter/L"), ["Ann Leckie"])
+        # series and categories filter the same way
+        self.assertEqual(titles("/opds/series/letter/B"), ["The Broken Earth"])
+        self.assertEqual(
+            sorted(titles("/opds/category/letter/F")),
+            ["Fic.Fantasy.Epic", "Fic.SciFi", "Fic.SciFi.Space"],
+        )
+        # "00" is All
+        self.assertEqual(len(titles("/opds/author/letter/00")), 3)
+        # publisher and rating indexes render valid feeds (the fixture has
+        # neither publisher nor rating rows: empty, not 500s)
+        self.assertEqual(titles("/opds/publisher"), [])
+        self.assertEqual(titles("/opds/ratings"), [])
+        # the format index rolls the data table up; the language feed
+        # resolves a language id to its books
+        self.assertEqual(titles("/opds/formats"), ["EPUB"])
+        self.assertEqual(len(titles("/opds/language/1")), 4)
+
+    def test_opds_language_index_shows_names_not_codes(self):
+        import xml.etree.ElementTree as ET
+
+        auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        root = ET.fromstring(
+            self.client.get("/opds/language", headers=auth).get_data(as_text=True)
+        )
+        ns = "{http://www.w3.org/2005/Atom}"
+        titles = [e.find(f"{ns}title").text for e in root.findall(f"{ns}entry")]
+        self.assertEqual(titles, ["English"])
+
+    def test_opds_feeds_survive_a_zero_books_per_page(self):
+        """config_books_per_page=0 used to ZeroDivision-error the feeds'
+        pagination arithmetic; every live feed clamps now."""
+        auth = {"Authorization": "Basic YWRtaW46YWRtaW4xMjM="}
+        old = config.config_books_per_page
+        config.config_books_per_page = 0
+        try:
+            for path in (
+                "/opds/new",
+                "/opds/books",
+                "/opds/books/letter/00",
+                "/opds/author",
+                "/opds/author/letter/L",
+                "/opds/series/letter/B",
+                "/opds/category/letter/F",
+                "/opds/publisher",
+                "/opds/ratings",
+                "/opds/formats",
+                "/opds/language",
+                "/opds/language/1",
+                "/opds/search/Dune",
+                "/opds/readbooks",
+                "/opds/unreadbooks",
+            ):
+                resp = self.client.get(path, headers=auth)
+                self.assertEqual(resp.status_code, 200, path)
+        finally:
+            config.config_books_per_page = old
+
     def test_basic_page_searches_through_the_cquarry_grammar(self):
         # The /basic fallback now speaks the one grammar (spec 13): a
         # field-prefixed query resolves and pages through quarry_grid.
