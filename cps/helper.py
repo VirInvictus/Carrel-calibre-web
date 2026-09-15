@@ -366,11 +366,9 @@ def edit_book_read_status(book_id, read_status=None):
     else:
         # Any configured read column is read-only here (smallscope: the
         # enum column is curated in Calibre). The old bool-column write
-        # branch was unreachable in this fork and was removed (0.6.34).
-        from .smallscope import read_column_is_enum
-
-        if read_column_is_enum(config.config_read_column):
-            return _("Read status is managed in Calibre and is read-only here")
+        # branch was unreachable in this fork and was removed (0.6.34);
+        # the enum special-case that used to sit here returned the same
+        # string either way and went with it (2026-09-15).
         return _("Read status is managed in Calibre and is read-only here")
     return ""
 
