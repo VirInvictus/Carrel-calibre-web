@@ -1,4 +1,19 @@
 # Patchnotes (Carrel-calibre-web)
+## Cross-repo blitz touches (2026-09-15, logged per grant #117; no release)
+
+Two touches from the Carrel contract repo's final-blitz lane (the fork's
+own lane closed 2026-09-14 with 0.6.42); both committed on `smallscope`,
+neither version-bumped, and recorded on the Carrel side of the contract:
+
+- e7949b95: the upstream "Book N of SERIES" detail line is removed; the
+  Carrel series ledger is the one statement of series placement. The same
+  fact used to render twice for in-series books.
+- ac000655: the canonical theme is vendored fresh (`just sync-theme`),
+  carrying the dropdown theming (the last stock-white surface), the
+  glyphicon tick font fix, the page-count/reader-state ledger rows, the
+  ramp-comment truth, and the dead footer selector's removal. Fork suite
+  86 green after both.
+
 ## The OPDS truth release: the mirrors sealed, the feeds swapped, the reader synced (2026-09-14, 0.6.42)
 
 THE FINAL AUDIT's lane, executed top-down: both contract-truth HIGHs,
