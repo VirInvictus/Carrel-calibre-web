@@ -3,7 +3,9 @@
 Fork of janeczku/calibre-web carrying the code side of Carrel, a single-user
 reading room for Brandon's curated Calibre library. **The contract lives in the
 companion repo:** `~/.gitrepos/Carrel/` (`spec.md`, `roadmap.md`, `CLAUDE.md`).
-Read those before changing anything here.
+Read those before changing anything here. This repo's own open work lives in
+`roadmap.md` (created 2026-09-29 during the parity scoping); the companion
+roadmap keeps the contract-side record and the historical fork blocks.
 
 ## Hard rules
 
