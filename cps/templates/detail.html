@@ -146,9 +146,16 @@
                 <div class="identifiers">
                     <p>
                         <span class="glyphicon glyphicon-link"></span>
+                        {# Carrel 0.6.43: identifiers link through cquarry's canonical
+                           table; types it does not know show as plain values, never
+                           as a button hrefing the raw value. #}
                         {% for identifier in entry.identifiers %}
-                            <a href="{{ identifier|escape }}" target="_blank" class="btn btn-xs btn-success"
-                               role="button">{{ identifier.format_type() }}</a>
+                            {% if identifier.has_link() %}
+                                <a href="{{ identifier|escape }}" target="_blank" class="btn btn-xs btn-success"
+                                   role="button">{{ identifier.format_type() }}</a>
+                            {% else %}
+                                <span class="label label-default">{{ identifier.format_type() }}: {{ identifier.val }}</span>
+                            {% endif %}
                         {% endfor %}
                     </p>
                 </div>

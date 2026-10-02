@@ -22,7 +22,7 @@ from datetime import datetime
 
 from flask import Blueprint
 
-from cquarry.helpers import unpipe_author
+from cquarry.helpers import identifier_link, unpipe_author
 
 from . import config, logger
 from .library_cache import quarry
@@ -447,18 +447,31 @@ def search_sort(sort_param):
 
 
 class _DetailIdentifier:
-    """Stands in for the ORM Identifiers object on the detail page."""
+    """Stands in for the ORM Identifiers object on the detail page.
+
+    Since 0.6.43 the label/URL pair comes from cquarry's canonical
+    IDENTIFIER_LINKS table (helpers.identifier_link): the ISBN button
+    links to Open Library per Brandon's 2026-09-29 canonical call, where
+    this file's private table said WorldCat, and the private table is
+    retired. Types the canonical table does not know (kobo, douban, the
+    long tail the library carries) keep their value visible but lose the
+    button -- the same no-link answer Hermitage's canonical consumer
+    gives, and never a button hrefing the raw value.
+    """
 
     def __init__(self, id_type, val):
         self.type = id_type
         self.val = val
+        self._link = identifier_link(id_type, val)
+
+    def has_link(self):
+        return self._link is not None
 
     def format_type(self):
-        return _ID_LABELS.get(self.type.lower(), self.type)
+        return self._link[0] if self._link else self.type
 
     def __str__(self):
-        url_tpl = _ID_URLS.get(self.type.lower())
-        return url_tpl.format(self.val) if url_tpl else self.val
+        return self._link[1] if self._link else self.val
 
 
 def build_detail(book_id):
@@ -578,28 +591,6 @@ def build_detail(book_id):
         is_archived=False,
         path=row["path"],
     )
-
-
-_ID_LABELS = {
-    "amazon": "Amazon",
-    "asin": "Amazon",
-    "isbn": "ISBN",
-    "doi": "DOI",
-    "goodreads": "Goodreads",
-    "google": "Google Books",
-    "kobo": "Kobo",
-    "barnesnoble": "Barnes & Noble",
-    "douban": "Douban",
-    "babelio": "Babelio",
-}
-_ID_URLS = {
-    "isbn": "https://www.worldcat.org/isbn/{0}",
-    "doi": "https://dx.doi.org/{0}",
-    "goodreads": "https://www.goodreads.com/book/show/{0}",
-    "amazon": "https://amazon.com/dp/{0}",
-    "kobo": "https://www.kobo.com/ebook/{0}",
-    "google": "https://books.google.com/books?id={0}",
-}
 
 
 def grid(

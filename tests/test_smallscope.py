@@ -1182,6 +1182,56 @@ class SmallscopeTestCase(_ClientCase):
             got = {r["t"] for r in rows if r["g"] == kind}
             self.assertEqual(got, names, kind)
 
+    def test_detail_identifiers_come_from_the_canonical_table(self):
+        # 0.6.43: the label/URL pair is cquarry's IDENTIFIER_LINKS. ISBN
+        # moved WorldCat -> Open Library (Brandon's 2026-09-29 call);
+        # types the canonical table does not know keep the raw value and
+        # no button.
+        from cps.quarry_grid import _DetailIdentifier
+
+        isbn = _DetailIdentifier("isbn", "9781841499789")
+        self.assertTrue(isbn.has_link())
+        self.assertEqual(isbn.format_type(), "Open Library")
+        self.assertEqual(str(isbn), "https://openlibrary.org/isbn/9781841499789")
+        kobo = _DetailIdentifier("kobo", "some-slug")
+        self.assertFalse(kobo.has_link())
+        self.assertEqual(kobo.format_type(), "kobo")
+        self.assertEqual(str(kobo), "some-slug")
+        # The helper normalizes case, matching the old table's lowercased
+        # lookup: an upper-cased stored type still links.
+        self.assertTrue(_DetailIdentifier("ISBN", "9781841499789").has_link())
+
+    def test_detail_renders_canonical_identifier_buttons(self):
+        # End to end on the fixture: an isbn identifier renders the Open
+        # Library button; a kobo identifier renders as text, not a button
+        # hrefing its slug. Rows restore in a finally so the shared
+        # fixture is untouched for the rest of the suite.
+        import os
+        import sqlite3 as sq
+
+        con = sq.connect(DBPATH)
+        try:
+            con.executemany(
+                "INSERT INTO identifiers (book, type, val) VALUES (?, ?, ?)",
+                [(1, "isbn", "9781841499789"), (1, "kobo", "some-slug")],
+            )
+            con.commit()
+            con.close()
+            os.utime(DBPATH, None)  # the LibraryCache rule: mtime invalidates
+            page = self.client.get("/book/1").get_data(as_text=True)
+            self.assertIn("https://openlibrary.org/isbn/9781841499789", page)
+            self.assertIn("Open Library", page)
+            self.assertNotIn("worldcat.org", page)
+            self.assertIn(">kobo: some-slug</span>", page)
+        finally:
+            con = sq.connect(DBPATH)
+            con.execute(
+                "DELETE FROM identifiers WHERE book = 1 AND type IN ('isbn', 'kobo')"
+            )
+            con.commit()
+            con.close()
+            os.utime(DBPATH, None)
+
     def test_unpipe_author_filter_is_registered(self):
         # cquarry 1.25's promoted helper is the templates' pipe-flattener
         # (0.6.43 consumer wave); the filter hangs off the quarry_grid
