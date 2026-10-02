@@ -35,16 +35,11 @@ def _rollup():
     accumulates its descendants' books. That is the same rule cquarry applies
     for `tags:Fic.Fantasy`, so the browser and the search agree.
     """
-    rolled = {}
-    # Phase 7 swap: the tag->book pairs come from cquarry's cached rows
-    # (every book row carries its tags as a native list) instead of an ORM
-    # session query. Same implied-prefix rule as before.
-    for book in quarry().get_all_books():
-        for name in book["tags"] or []:
-            parts = name.split(".")
-            for i in range(1, len(parts) + 1):
-                rolled.setdefault(".".join(parts[:i]), set()).add(book["id"])
-    return {k: frozenset(v) for k, v in rolled.items()}
+    # The Phase 7 swap moved the pairs onto cquarry's cached rows; cquarry
+    # 1.25 then promoted the whole implied-prefix rule to
+    # CalibreDB.tag_rollup_ids, and the 0.6.43 consumer wave retired this
+    # file's private loop onto it.
+    return quarry().tag_rollup_ids()
 
 
 def _tree(names):
