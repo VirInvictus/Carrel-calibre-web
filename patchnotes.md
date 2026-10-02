@@ -1,3 +1,44 @@
+## The cquarry 1.25 consumer wave: the four helpers land, ISBN moves to Open Library (2026-10-02, 0.6.43)
+
+The Cross-Repo Implementation Rule's fork half, executed against cquarry
+1.25.0 (the CI pin moved v1.21.0 -> v1.25.0 with the first adoption; the
+runtime venv already rode the editable sibling tree). All four Phase 16
+promotions cquarry shipped under the 2026-10-01 waiver are now consumed,
+and every private copy this fork carried of them is retired.
+
+- **`ordered_virtual_library_names`.** `_resolve_wings`' private
+  sidebar-order copy (stored tab position first, hidden dropped,
+  unknowns alphabetical) retires onto the cquarry method promoted from
+  that very file. Render-identical; the wing tests pin the behavior.
+- **`tag_rollup_ids`.** `_rollup`'s private implied-prefix loop retires
+  onto the cquarry method promoted from it; the category-tree test pins
+  the rendered tree.
+- **`unpipe_author`.** Every display site that flattened Calibre's
+  legacy pipe separator inline now calls the promoted helper
+  (render-identical: a bare comma, no space): seven code sites
+  (quarry_grid, reader_state, palette, stats, and the upstream-surface
+  web.py/opds.py pair, heredoc-patched per the rebase rule) and thirteen
+  template lines across ten templates through a new app-wide
+  `unpipe_author` Jinja filter. The palette test's expected-set mirror
+  adopts the helper too -- the fork no longer owns the pipe rule,
+  cquarry's suite does -- and a new test pins the filter. cps/editbooks.py
+  keeps its copies: registered-but-disabled, left venerated.
+- **The canonical identifier table; ISBN moves to Open Library.**
+  `_ID_LABELS`/`_ID_URLS` retire onto `helpers.identifier_link`
+  (Hermitage's mapping, promoted). The decided render changes land:
+  ISBN buttons link to openlibrary.org/isbn/ instead of WorldCat
+  (Brandon's 2026-09-29 canonical call), doi moves off dx.doi.org, and
+  types the canonical table links but the fork never did (storygraph,
+  mobi-asin, fictiondb, hardcover, url/uri) gain their buttons. Types
+  the canonical table does not know -- kobo at 82 books, douban at 2 --
+  keep their value visible as muted text instead of a button hrefing
+  the raw value; babelio never matched (the library spells it
+  babelio_id). Two new tests cover the pair mapping and the end-to-end
+  detail render.
+
+Suite 86 -> 89. The preserve_order retirement and the load_custom_column
+swaps stay queued (their own roadmap rows, unrelated to this wave).
+
 # Patchnotes (Carrel-calibre-web)
 ## Cross-repo blitz touches (2026-09-15, logged per grant #117; no release)
 

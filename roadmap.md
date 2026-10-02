@@ -44,13 +44,22 @@ program").
       leak; the non-admin stacktrace leak; CSP entropy; comment-column escaping;
       the download-path staged-tmp/cover-sibling pair). Recorded in both
       project.done files; re-check at the next upstream tag. Size M.
-- [ ] **Helper adoptions when cquarry Phase 16 promotes them** (the Cross-Repo
+- [x] **Helper adoptions when cquarry Phase 16 promotes them** (the Cross-Repo
       Implementation Rule's fork half): the ordered-VL-names helper (retires
-      `cps/wings.py:33-47`), the unpiped-author display helper (retires the nine
+      `cps/wings.py:33-47`), the unpiped-author display helper (retires the
       `replace("|", ",")` sites), the tag-membership id-set rollup (retires
       `cps/categories.py:29-52`), and the **Open Library ISBN switch**: `_ID_URLS`
       at `quarry_grid.py:581` moves WorldCat -> `openlibrary.org/isbn/` per
-      Brandon's 2026-09-29 canonical call. Size XS each.
+      Brandon's 2026-09-29 canonical call. Size XS each. **Shipped 0.6.43**
+      against cquarry 1.25.0 (the CI pin moved v1.21.0 -> v1.25.0 with the first
+      adoption). Actuals vs the row: the pipe sites numbered twenty, not nine
+      (7 code, 1 filter-mirroring test, and 13 lines across 10 templates now
+      using the registered `unpipe_author` Jinja filter; cps/editbooks.py keeps
+      its copies -- registered-but-disabled, left venerated), and the ISBN
+      switch carried the canonical table's whole shape with it: storygraph/
+      mobi-asin/fictiondb/hardcover/url/uri gain buttons, kobo and douban keep
+      their values as muted text without a button (babelio never matched; the
+      library spells it babelio_id).
 - [ ] **cquarry residue trio pull-hook**: `get_book_by_uuid`, the entity-to-ids
       resolver, and the bulk formats map are ungated in cquarry's Phase 14; this
       fork adopts whichever a surface needs (the Calibre-Companion endpoint wants
