@@ -26,25 +26,13 @@ def _resolve_wings():
     from cquarry.db import CalibreDB
 
     with CalibreDB(library_path()) as quarry:
-        names = quarry.get_virtual_libraries()
-        # Mirror the Calibre GUI's own sidebar (cquarry 1.1): drop libraries
-        # the user hid and follow the stored tab order; anything unknown to
-        # that state keeps alphabetical order after the known ones.
-        ui = quarry.get_vl_ui_state()
-        hidden = {str(h).lower() for h in ui.get("hidden", [])}
-        order = ui.get("order") or {}
-
-        def sort_key(name):
-            for key, pos in order.items():
-                if str(key).lower() == name.lower():
-                    try:
-                        return (0, float(pos), name.lower())
-                    except (TypeError, ValueError):
-                        return (1, 0.0, name.lower())
-            return (1, 0.0, name.lower())
-
+        # Mirror the Calibre GUI's own sidebar: drop libraries the user hid
+        # and follow the stored tab order; anything unknown to that state
+        # keeps alphabetical order after the known ones. cquarry 1.25
+        # promoted this exact rule to CalibreDB.ordered_virtual_library_names
+        # (the 0.6.43 consumer wave retired this file's private copy of it).
         resolved = {}
-        for name in sorted((n for n in names if n.lower() not in hidden), key=sort_key):
+        for name in quarry.ordered_virtual_library_names():
             # Per-name fault isolation: a wing whose expression cannot be
             # evaluated (a vl: target renamed or deleted in Calibre, a
             # corrupted preference) is skipped and logged. Before Phase 13
