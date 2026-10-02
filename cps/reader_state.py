@@ -12,6 +12,8 @@
 # series_info pattern: the template asks, this module either answers or says
 # None, and a broken extractor degrades to "no state shown" instead of a 500.
 
+from cquarry.helpers import unpipe_author
+
 from . import logger
 from .library_cache import LibraryCache, library_path, quarry
 
@@ -132,7 +134,7 @@ def _continue_rebuild():
                 "id": book,
                 "title": info["title"],
                 "author": info.get("author_sort")
-                or (info["authors"] or [""])[0].replace("|", ","),
+                or unpipe_author((info["authors"] or [""])[0]),
                 "href": "/book/%d" % book,
                 "percent": int(round(float(frac) * 100)) if frac is not None else 0,
                 "device": row.get("device"),

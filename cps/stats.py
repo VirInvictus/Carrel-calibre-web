@@ -12,6 +12,8 @@
 # 2% rated, so those would be charts of a single slice. They are readouts.
 # See spec 12.1 for the split and the counts that justify it.
 
+from cquarry.helpers import unpipe_author
+
 from flask import Blueprint, abort
 from flask_babel import gettext as _
 from sqlalchemy import text
@@ -86,7 +88,7 @@ def _top(table, link, col, label_col="name"):
         % (label_col, table, link, col, label_col),
         n=TOP_N,
     )
-    return [{"label": (v or "").replace("|", ","), "value": n} for v, n in rows]
+    return [{"label": unpipe_author(v), "value": n} for v, n in rows]
 
 
 def _hour_histogram():

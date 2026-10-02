@@ -51,7 +51,7 @@
               {% if not loop.first %}
                 <span class="author-hidden-divider">&amp;</span>
 			  {% endif %}
-              <a class="author-name author-hidden" href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id) }}">{{author.name.replace('|',',')|shortentitle(30)}}</a>
+              <a class="author-name author-hidden" href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id) }}">{{author.name|unpipe_author|shortentitle(30)}}</a>
               {% if loop.last %}
                 <a href="#" class="author-expand" data-authors-max="{{g.config_authors_max}}" data-collapse-caption="({{_('reduce')}})">(...)</a>
               {% endif %}
@@ -59,7 +59,7 @@
               {% if not loop.first %}
                 <span>&amp;</span>
               {% endif %}
-              <a class="author-name" href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id) }}">{{author.name.replace('|',',')|shortentitle(30)}}</a>
+              <a class="author-name" href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id) }}">{{author.name|unpipe_author|shortentitle(30)}}</a>
             {% endif %}
           {% endfor %}
           {% if entry.Books.data|music %}
@@ -94,7 +94,7 @@
 
 {% if other_books and author is not none %}
 <div class="discover">
-  <h3>{{_("More by")}} {{ author.name.replace('|',',') }}</h3>
+  <h3>{{_("More by")}} {{ author.name|unpipe_author }}</h3>
   <div class="row">
     {% for entry in other_books %}
     <div class="col-sm-3 col-lg-2 col-xs-6 book session">
@@ -108,12 +108,12 @@
         <p class="author">
 		  {% for author in entry.authors %}
 			{% if loop.index > g.config_authors_max and g.config_authors_max != 0 %}
-				<a class="author-name author-hidden" href="https://www.goodreads.com/author/show/{{ author.gid }}" target="_blank" rel="noopener">{{author.name.replace('|',',')}}</a>
+				<a class="author-name author-hidden" href="https://www.goodreads.com/author/show/{{ author.gid }}" target="_blank" rel="noopener">{{author.name|unpipe_author}}</a>
 				{% if loop.last %}
 					<a href="#" class="author-expand" data-authors-max="{{g.config_authors_max}}" data-collapse-caption="({{_('reduce')}})">(...)</a>
 				{% endif %}
 			{% else %}
-				<a class="author-name" href="https://www.goodreads.com/author/show/{{ author.gid }}" target="_blank" rel="noopener">{{author.name.replace('|',',')}}</a>
+				<a class="author-name" href="https://www.goodreads.com/author/show/{{ author.gid }}" target="_blank" rel="noopener">{{author.name|unpipe_author}}</a>
 		    {% endif %}
           {% endfor %}
         </p>

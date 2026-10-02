@@ -19,6 +19,8 @@
 
 import json
 
+from cquarry.helpers import unpipe_author
+
 from flask import Blueprint, Response
 
 from . import logger
@@ -71,7 +73,7 @@ def _entries():
     for author in quarry_db.get_entities("authors"):
         rows.append(
             {
-                "t": author["name"].replace("|", ","),
+                "t": unpipe_author(author["name"]),
                 "g": "author",
                 "h": "/author/stored/%d" % author["id"],
             }

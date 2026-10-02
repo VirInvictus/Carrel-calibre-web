@@ -34,7 +34,7 @@
         <p title="{{entry.Books.title}}" class="title">{{entry.Books.title|shortentitle}}</p>
         <p class="author">
           {% for author in entry.Books.authors %}
-            <a href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id) }}">{{author.name.replace('|',',')}}</a>
+            <a href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id) }}">{{author.name|unpipe_author}}</a>
             {% if not loop.last %}
               &amp;
             {% endif %}

@@ -37,6 +37,7 @@ from .helper import get_download_link, get_book_cover
 from .pagination import Pagination
 from .web import render_read_books
 from . import quarry_grid
+from cquarry.helpers import unpipe_author  # Carrel: the pipe-flattening display helper (0.6.43)
 from .library_cache import quarry
 
 
@@ -260,7 +261,7 @@ def feed_letter_author(book_id):
     off = _int_param("offset")
     pagination = Pagination(_page(), per_page, len(rows))
     entries = [
-        FeedObject(e["id"], e["name"].replace("|", ","))
+        FeedObject(e["id"], unpipe_author(e["name"]))
         for e in rows[off : off + per_page]
     ]
     return render_xml_template(

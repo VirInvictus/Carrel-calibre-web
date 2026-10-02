@@ -22,10 +22,17 @@ from datetime import datetime
 
 from flask import Blueprint
 
+from cquarry.helpers import unpipe_author
+
 from . import config, logger
 from .library_cache import quarry
 
 quarry_grid = Blueprint("quarry_grid", __name__)
+
+# Templates flatten Calibre's legacy pipe separator through cquarry 1.25's
+# promoted helper (the 0.6.43 consumer wave retired the inline .replace
+# copies across the templates): {{ author.name|unpipe_author }}.
+quarry_grid.app_template_filter("unpipe_author")(unpipe_author)
 log = logger.create()
 
 # The blueprint carries no routes; main() registers it and the harness
@@ -493,7 +500,7 @@ def build_detail(book_id):
     authors_list = [
         types.SimpleNamespace(
             id=entity_maps["authors"].get(name),
-            name=name.replace("|", ","),
+            name=unpipe_author(name),
         )
         for name in row["authors"] or []
     ]

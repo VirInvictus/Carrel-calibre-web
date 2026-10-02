@@ -28,6 +28,8 @@ DBPATH = os.path.join(LIB, "metadata.db")
 
 # One import of one module: importing it both bare (`import fixture`, resolved
 # via the tests dir) and package-qualified loaded it twice under two names.
+from cquarry.helpers import unpipe_author  # noqa: E402
+
 from tests import fixture  # noqa: E402
 
 fixture.build_fixture(DBPATH)
@@ -1172,13 +1174,24 @@ class SmallscopeTestCase(_ClientCase):
         rows = json.loads(re.sub(r"^window\.PALETTE=|;$", "", body.strip()))
         q = quarry()
         expected = {
-            "author": {e["name"].replace("|", ",") for e in q.get_entities("authors")},
+            "author": {unpipe_author(e["name"]) for e in q.get_entities("authors")},
             "series": {e["name"] for e in q.get_entities("series")},
             "category": {e["name"] for e in q.get_entities("tags")},
         }
         for kind, names in expected.items():
             got = {r["t"] for r in rows if r["g"] == kind}
             self.assertEqual(got, names, kind)
+
+    def test_unpipe_author_filter_is_registered(self):
+        # cquarry 1.25's promoted helper is the templates' pipe-flattener
+        # (0.6.43 consumer wave); the filter hangs off the quarry_grid
+        # blueprint app-wide and is None-safe like the helper itself.
+        # The harness builds one module-level app (line 39); its jinja_env
+        # is what every template renders through.
+        flatten = app.jinja_env.filters["unpipe_author"]
+        self.assertEqual(flatten("John K|Fallen"), "John K,Fallen")
+        self.assertEqual(flatten("Plain Name"), "Plain Name")
+        self.assertEqual(flatten(None), "")
 
     def test_palette_index_covers_every_navigable_kind(self):
         import json

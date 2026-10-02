@@ -24,7 +24,7 @@
                   {% endif %}
                   <br>
                   {% for author in entry['Books']['author'] %}
-                    {{author.name.replace('|',',')}}
+                    {{author.name|unpipe_author}}
                     {% if not loop.last %}
                       &amp;
                     {% endif %}

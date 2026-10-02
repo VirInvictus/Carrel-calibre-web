@@ -52,6 +52,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from . import constants, logger, isoLanguages, services
 from . import db, ub, config, app
 from . import calibre_db, kobo_sync_status, quarry_grid
+from cquarry.helpers import unpipe_author  # Carrel: the pipe-flattening display helper (0.6.43)
 from .search import render_search_results
 from .gdriveutils import getFileFromEbooksFolder, do_gdrive_download
 from .helper import (
@@ -600,7 +601,7 @@ def render_author_books(page, author_id, order):
             category="error",
         )
         return redirect(url_for("web.index"))
-    author_name = author_name.replace("|", ",")
+    author_name = unpipe_author(author_name)
     ids = quarry_grid.ids_for_entity("authors", author_id)
     base_keys, descending = quarry_grid.search_sort(order[1])
     keys = tuple(dict.fromkeys(base_keys + ("series", "series_index")))
@@ -1164,7 +1165,7 @@ def author_list():
         # starts a change session
         author_copy = copy.deepcopy(entries)
         for entry in author_copy:
-            entry.Authors.name = entry.Authors.name.replace("|", ",")
+            entry.Authors.name = unpipe_author(entry.Authors.name)
         return render_title_template(
             "list.html",
             entries=author_copy,

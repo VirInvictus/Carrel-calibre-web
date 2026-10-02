@@ -20,7 +20,7 @@
 
 {% for entry in entries %}
   {% if entry.Books.authors %}
-    {% set author = entry.Books.authors[0].name.replace('|',',')|shortentitle(30) %}
+    {% set author = entry.Books.authors[0].name|unpipe_author|shortentitle(30) %}
   {% else %}
     {% set author = '' %}
   {% endif %}

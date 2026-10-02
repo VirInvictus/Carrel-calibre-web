@@ -38,7 +38,7 @@
       <h2 id="title">{{entry.title}}</h2>
       <p class="author">
           {% for author in entry.ordered_authors %}
-            <a href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id ) }}">{{author.name.replace('|',',')}}</a>
+            <a href="{{url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id ) }}">{{author.name|unpipe_author}}</a>
             {% if not loop.last %}
               &amp;
             {% endif %}
@@ -310,7 +310,7 @@
 
   <div class="sm2-playlist-wrapper">
     <ul class="sm2-playlist-bd">
-      <li><a href="{{ url_for('web.serve_book', book_id=mp3file,book_format=audioformat)}}"><b>{% for author in entry.ordered_authors %}{{author.name.replace('|',',')}}
+      <li><a href="{{ url_for('web.serve_book', book_id=mp3file,book_format=audioformat)}}"><b>{% for author in entry.ordered_authors %}{{author.name|unpipe_author}}
         {% if not loop.last %} & {% endif %} {% endfor %}</b> - {{entry.title}}</a></li>
     </ul>
   </div>
