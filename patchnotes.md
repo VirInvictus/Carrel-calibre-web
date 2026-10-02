@@ -1,3 +1,4 @@
+# Patchnotes (Carrel-calibre-web)
 ## The cquarry 1.25 consumer wave: the four helpers land, ISBN moves to Open Library (2026-10-02, 0.6.43)
 
 The Cross-Repo Implementation Rule's fork half, executed against cquarry
@@ -39,7 +40,6 @@ and every private copy this fork carried of them is retired.
 Suite 86 -> 89. The preserve_order retirement and the load_custom_column
 swaps stay queued (their own roadmap rows, unrelated to this wave).
 
-# Patchnotes (Carrel-calibre-web)
 ## Cross-repo blitz touches (2026-09-15, logged per grant #117; no release)
 
 Three touches from the Carrel contract repo's final-blitz lane (the fork's
