@@ -6,7 +6,7 @@ Waves 17-18) plus the fork's patchnotes and project.done; it now lives here. The
 contract still lives in `~/.gitrepos/Carrel/` (spec.md authoritative: §6.3 the
 cquarry data layer, §8.5 reader state, §11 single-user, §12.3 the stats boundary,
 §13 search parity); this file records open work only. Fork point 0.6.26; branch
-`smallscope`; fork version 0.6.43 (`cps/constants.py`); suite 101 tests.
+`smallscope`; fork version 0.6.44 (`cps/constants.py`); suite 103 tests.
 
 **Parity lane (2026-09-29):** the web reading room, against Calibre's own Content
 Server (`src/calibre/srv` in the reference clone). The read paths are

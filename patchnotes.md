@@ -1,4 +1,65 @@
 # Patchnotes (Carrel-calibre-web)
+## The sealing lane's tail and the upstream security wave (2026-10-07, 0.6.44)
+
+Both Size-M lanes from roadmap.md, the two Size-S cleanups riding behind
+them, and a sibling pair the code-review pass surfaced mid-wave. The CI
+pin moved v1.25.0 -> v1.26.0 inside this release's range (cquarry's
+parity-audit fix wave); every cquarry API this fork calls is verified
+present at the v1.26.0 tag.
+
+- **The serve/cover/download paths leave the ORM.** serve_book reads
+  cquarry's get_book/get_formats and serves the catalogue's own path
+  resolution: extension case now follows the catalogue, so an upper-case
+  /show/ URL serves the same file the grid links. get_book_cover, the
+  series-cover member pick (lowest id with a cover, where the ORM's
+  unordered first() was the query planner's choice) and get_download_link
+  (the /download/ route and the OPDS acquisition pair) read cquarry
+  behind SimpleNamespace adapters. The /show/ access check (upstream
+  84777319) folds into the swap as a book-existence rule, which is the
+  whole visibility rule for the unfiltered single-user grid. /basic_book
+  stays ORM by the standing ruling.
+- **The nine parked upstream security fixes, each verified against live
+  fork routes before applying.** SQLI via dbpath (b5da0df4: the calibre
+  attach was already safe through quote()'s URI encoding; the two
+  unprotected app_settings literals gain the apostrophe escape), XXE
+  (224915bb: safe parsers in epub.py, epub_helper.py, fb2.py and
+  goodreads_support.py), the debug_info credential leak (d85bef6c:
+  to_dict drops token/secret keys), the non-admin stacktrace leak
+  (fd744af7: the 500 page's stack is admin-only; the owner is the admin,
+  so the room is unchanged), CSP entropy (c23d35db: RemoteAuthToken 32
+  -> 128 bits, on the sealed kobo/remote-login paths), comment-column
+  escaping (42dc36cc), staged-tmp cleanup (674b47bd) and the cover-sibling
+  --dont-save-cover (570371cc).
+- **Two review-surfaced siblings on the same surfaces.** 7c715f34
+  sanitizes the MAIN book description (the live comments surface; values
+  arrive from Calibre imports of arbitrary epubs) before |safe, with img
+  joining the allowed tags, and 8cff413c adds the attribute allowlist so
+  sanitized descriptions keep their hrefs and img srcs. The clean_string
+  filter this fork already carried in clean_html.py is registered as a
+  Jinja filter and prepended to |safe across four templates (six call
+  sites): detail, listenmp3, basic_detail and the OPDS feed.
+- **The download embed-metadata staging branches are declined
+  structurally**, the 0.6.40 send/convert stub family's missing member:
+  downloads serve the file the library holds, and no external binary ever
+  runs against the library from that path. Found while testing the swap:
+  the test app auto-detects /opt/calibre binaries and the module default
+  flips embed-metadata on, so /download invoked the real calibredb
+  export, which rebuilds the triggerless fixture schema destructively
+  (books emptied). The harness now pins config_embed_metadata = False,
+  mirroring the live instance.
+- **The two Size-S boxes ride along.** quarry_grid's preserve_order
+  re-sort shim retires onto list_books(sort="ids") (cquarry 1.21's
+  caller-order mode; the parameter and the shim are gone, both callers
+  pass sort=("ids",), and a test pins the mode's contract); reading_shelf
+  and the stats custom-column breakdown read load_custom_column()
+  (reading_shelf's normalized/direct branch pair is gone and the module
+  no longer imports sqlalchemy; the breakdown expands multi-valued
+  list[str] columns per value, matching the old link-table counts).
+- Suite 89 -> 103: serve/download/cover pins (including the
+  case-insensitive /show/ and the TXT re-encode branch), one pin per
+  security fix, the sort-ids contract, and the refuse-to-stage download
+  test that flips embed-metadata on and proves the library untouched.
+
 ## The cquarry 1.25 consumer wave: the four helpers land, ISBN moves to Open Library (2026-10-02, 0.6.43)
 
 The Cross-Repo Implementation Rule's fork half, executed against cquarry
