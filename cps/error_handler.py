@@ -27,6 +27,8 @@ except ImportError:
 
 from . import config, app, logger, services
 
+from .cw_login import current_user
+
 
 log = logger.create()
 
@@ -57,6 +59,16 @@ def internal_error(error):
                                error_stack="",
                                instance=config.config_calibre_web_title
                                ), 500
+    log.error("500 Internal Server Error: %s", traceback.format_exc())
+    # smallscope: upstream fd744af7 -- the stack is the admin's diagnostic,
+    # not the body of every 500. The owner is the admin, so the reading
+    # room is unchanged; any unauthenticated request stops leaking it.
+    error_stack = ""
+    try:
+        if current_user.is_authenticated and current_user.role_admin():
+            error_stack = traceback.format_exc().split("\n")
+    except Exception:
+        pass
     return render_template('http_error.html',
                            error_code="500 Internal Server Error",
                            error_name='The server encountered an internal error and was unable to complete your '
@@ -64,7 +76,7 @@ def internal_error(error):
                            issue=True,
                            goto_admin=False,
                            unconfigured=False,
-                           error_stack=traceback.format_exc().split("\n"),
+                           error_stack=error_stack,
                            instance=config.config_calibre_web_title
                            ), 500
 

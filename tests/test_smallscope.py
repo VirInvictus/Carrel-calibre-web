@@ -105,6 +105,12 @@ for blueprint in (
 config.config_calibre_dir = LIB
 config.config_read_column = 2
 config.config_theme = 0  # Carrel owns the sheet since Phase 8; caliBlur is off
+# Mirror the live instance (embed metadata off): with the module default
+# (True) plus auto-detected /opt/calibre binaries, /download would invoke
+# the real calibredb export against the fixture, whose triggerless schema
+# calibre rebuilds destructively (books emptied). Downloads in tests must
+# serve held files only, exactly as the deployment does.
+config.config_embed_metadata = False
 config.save()
 # Bind the config to the library; sessions connect lazily per request.
 calibre_db.update_config(config, LIB, ub.app_DB_path)
@@ -1656,6 +1662,301 @@ class TestPageCountAndCacheIdentity(unittest.TestCase):
             con.commit()
             con.close()
             _os.remove(saved)
+
+
+class TestServeDownloadCover(_ClientCase):
+    """/show/, /download/ and the cover chain through cquarry (the sealing
+    lane's tail): files resolve from the catalogue's own path layout, misses
+    answer exactly as the ORM pair did, and the series-cover pick is the
+    lowest member id that carries a cover."""
+
+    def _make_book_file(self, book_id, filename, payload):
+        book_dir = pathlib.Path(LIB) / "a" / ("b (%d)" % book_id)
+        book_dir.mkdir(parents=True, exist_ok=True)
+        target = book_dir / filename
+        target.write_bytes(payload)
+        return target
+
+    def test_show_serves_the_format_file(self):
+        # The fixture catalogues book 1 as EPUB with data.name "x" under
+        # path "a/b (1)"; /show/ must resolve and stream that file.
+        target = self._make_book_file(1, "x.epub", b"EPUB-BYTES-1")
+        try:
+            resp = self.client.get("/show/1/EPUB")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, b"EPUB-BYTES-1")
+            # Extension case follows the catalogue now, not the request:
+            # the lower-case URL serves the same file the ORM path 404ed on.
+            resp = self.client.get("/show/1/epub")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, b"EPUB-BYTES-1")
+        finally:
+            target.unlink()
+
+    def test_show_misses_answer_not_in_database(self):
+        for url in ("/show/999/EPUB", "/show/1/MOBI"):
+            resp = self.client.get(url)
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.get_data(as_text=True), "File not in Database")
+
+    def test_show_txt_reencodes_to_utf8(self):
+        con = sqlite3.connect(DBPATH)
+        try:
+            con.execute(
+                "INSERT INTO data (book,format,name,uncompressed_size) "
+                "VALUES (1,'TXT','x',100)"
+            )
+            con.commit()
+        finally:
+            con.close()
+        target = self._make_book_file(1, "x.txt", "caf\xe9".encode("latin-1"))
+        try:
+            resp = self.client.get("/show/1/TXT")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, "café".encode("utf-8"))
+        finally:
+            target.unlink()
+            con = sqlite3.connect(DBPATH)
+            try:
+                con.execute("DELETE FROM data WHERE book=1 AND format='TXT'")
+                con.commit()
+            finally:
+                con.close()
+
+    def test_series_cover_picks_lowest_member_with_cover(self):
+        con = sqlite3.connect(DBPATH)
+        try:
+            con.execute("UPDATE books SET has_cover=1 WHERE id IN (1,2)")
+            con.commit()
+        finally:
+            con.close()
+        # Series 1 ("The Broken Earth") holds books 1 and 2; each gets a
+        # distinct cover so the pick is observable.
+        c1 = self._make_book_file(1, "cover.jpg", b"COVER-1")
+        c2 = self._make_book_file(2, "cover.jpg", b"COVER-2")
+        try:
+            resp = self.client.get("/series_cover/1")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, b"COVER-1")
+            # A series with no covered member degrades to the generic cover,
+            # never a 500.
+            resp = self.client.get("/series_cover/2")
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("image/", resp.headers["Content-Type"])
+        finally:
+            c1.unlink()
+            c2.unlink()
+            con = sqlite3.connect(DBPATH)
+            try:
+                con.execute("UPDATE books SET has_cover=0 WHERE id IN (1,2)")
+                con.commit()
+            finally:
+                con.close()
+
+    def test_download_serves_held_format(self):
+        target = self._make_book_file(1, "x.epub", b"EPUB-BYTES-1")
+        try:
+            resp = self.client.get("/download/1/epub")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, b"EPUB-BYTES-1")
+            self.assertIn("attachment", resp.headers.get("Content-Disposition", ""))
+            self.assertIn(".epub", resp.headers.get("Content-Disposition", ""))
+        finally:
+            target.unlink()
+        resp = self.client.get("/download/999/epub")
+        self.assertEqual(resp.status_code, 404)
+
+    def test_download_refuses_to_stage_even_when_config_ask(self):
+        # The embed-metadata staging branches are declined by contract
+        # (held formats only): flipping the config back on must not run
+        # calibredb/kepubify against the library. With the branches live,
+        # this request once invoked the real calibredb export, which
+        # rebuilds the triggerless fixture schema destructively.
+        from cps import config as cps_config
+
+        target = self._make_book_file(1, "x.epub", b"EPUB-BYTES-1")
+        cps_config.config_embed_metadata = True
+        try:
+            resp = self.client.get("/download/1/epub")
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, b"EPUB-BYTES-1")
+            con = sqlite3.connect(DBPATH)
+            try:
+                books = con.execute("SELECT count(*) FROM books").fetchone()[0]
+            finally:
+                con.close()
+            self.assertEqual(books, 4, "the library was touched by a download")
+        finally:
+            cps_config.config_embed_metadata = False
+            target.unlink()
+
+    def test_grid_sort_ids_returns_caller_order(self):
+        # cquarry's list_books(sort="ids") mode, through the grid: the
+        # rows come back in the CALLER's id sequence (not title-sort), an
+        # id the library no longer holds is skipped, and a duplicated id
+        # keeps its first slot. This is the mode that retired the grid's
+        # fork-side re-sort shim (hot books, downloads).
+        from cps.quarry_grid import grid
+
+        entries, pagination = grid(1, [3, 999, 1, 3], sort=("ids",), per_page=10)
+        self.assertEqual([e.Books.id for e in entries], [3, 1])
+        self.assertEqual(pagination.total_count, 2)
+
+
+class TestUpstreamSecurityPins(_ClientCase):
+    """The upstream security cherry-pick wave (recorded 2026-09-14, applied
+    0.6.44): each pin holds one adapted upstream fix to its live fork
+    surface."""
+
+    def test_remote_auth_token_carries_128_bits(self):
+        # upstream c23d35db: urandom(4) -> urandom(16)
+        token = ub.RemoteAuthToken()
+        self.assertEqual(len(token.auth_token), 32)  # 16 bytes hex-encoded
+
+    def test_config_to_dict_hides_token_and_secret_keys(self):
+        # upstream d85bef6c: debug_info must not carry credentials
+        from cps.config_sql import ConfigSQL
+
+        obj = object.__new__(ConfigSQL)
+        obj.__dict__.update(
+            {
+                "config_calibre_web_title": "Carrel",
+                "config_kobo_token": "kobo-secret-value",
+                "config_goodreads_secret": "gr-secret-value",
+                "config_api_token": "api-secret-value",
+                "visible_key_e": "ephemeral, already filtered",
+                "_private": "underscore, already filtered",
+            }
+        )
+        stored = obj.to_dict()
+        self.assertIn("config_calibre_web_title", stored)
+        for key in ("config_kobo_token", "config_goodreads_secret", "config_api_token"):
+            self.assertNotIn(key, stored, "%s leaked through to_dict()" % key)
+
+    def test_internal_error_stack_is_admin_only(self):
+        # upstream fd744af7: the 500 page's stacktrace is the admin's
+        # diagnostic, not the response body of every error
+        from cps import error_handler
+        from cps.cw_login import login_user
+        from werkzeug.exceptions import InternalServerError
+
+        err = InternalServerError(original_exception=ValueError("irrelevant"))
+        # Anonymous (single_user's login happens in before_request dispatch;
+        # calling the handler directly exercises the unauthenticated case)
+        with app.test_request_context("/"):
+            try:
+                raise ValueError("leak-marker-5173")
+            except ValueError:
+                body, code = error_handler.internal_error(err)
+            self.assertEqual(code, 500)
+            self.assertNotIn("leak-marker-5173", body)
+        # The owner (admin) keeps the stack
+        with app.test_request_context("/"):
+            owner = ub.session.query(ub.User).filter(ub.User.name == "admin").one()
+            login_user(owner)
+            try:
+                raise ValueError("leak-marker-5173")
+            except ValueError:
+                body, code = error_handler.internal_error(err)
+            self.assertEqual(code, 500)
+            self.assertIn("leak-marker-5173", body)
+
+    def test_epub_parsing_does_not_resolve_external_entities(self):
+        # upstream 224915bb: server-side epub parsing must not resolve
+        # external entities. The control half proves the fixture is a real
+        # XXE vector under a default parser.
+        import zipfile
+        from lxml import etree
+        from cps.epub_helper import get_content_opf
+
+        secret = pathlib.Path(_TMP) / "xxe-secret.txt"
+        secret.write_text("XXE-SECRET-PAYLOAD")
+        opf = (
+            '<?xml version="1.0"?>\n'
+            '<!DOCTYPE package [<!ENTITY xxe SYSTEM "file://%s">]>\n'
+            '<package xmlns="http://www.idpf.org/2007/opf" version="2.0">'
+            "<metadata>&xxe;</metadata></package>" % secret
+        )
+        container = (
+            '<?xml version="1.0"?>\n'
+            '<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'
+            '<rootfiles><rootfile full-path="content.opf"/></rootfiles></container>'
+        )
+        epub = pathlib.Path(_TMP) / "xxe.epub"
+        with zipfile.ZipFile(epub, "w") as zf:
+            zf.writestr("META-INF/container.xml", container)
+            zf.writestr("content.opf", opf)
+        try:
+            # Control: a DTD-loading parser resolves the file entity into
+            # the tree (the exfiltration a vulnerable parser performs).
+            raw = zipfile.ZipFile(epub).read("content.opf")
+            control = etree.fromstring(
+                raw, parser=etree.XMLParser(load_dtd=True, resolve_entities=True)
+            )
+            self.assertIn(
+                b"XXE-SECRET-PAYLOAD", etree.tostring(control), "control lost its bite"
+            )
+            # The served path parses the same bytes without resolving it:
+            # the entity reference survives inertly, the file never opens.
+            tree, cf_name = get_content_opf(str(epub))
+            self.assertEqual(cf_name, "content.opf")
+            self.assertNotIn(b"XXE-SECRET-PAYLOAD", etree.tostring(tree))
+        finally:
+            epub.unlink()
+            secret.unlink()
+
+    def test_clean_string_filter_registered_and_strips_script(self):
+        # upstream 42dc36cc wiring: comments-typed custom columns sanitize
+        # before the template's |safe
+        env = app.jinja_env
+        self.assertIn("clean_string", env.filters)
+        rendered = env.from_string("{{ payload|clean_string|safe }}").render(
+            payload="<p>kept</p><script>alert(1)</script>"
+        )
+        self.assertIn("<p>kept</p>", rendered)
+        # bleach escapes disallowed tags inertly (upstream's exact behavior):
+        # no executable script element survives the filter
+        self.assertNotIn("<script>", rendered)
+        # upstream 7c715f34: img joins the allowed tags (descriptions
+        # legitimately embed cover images)
+        rendered = env.from_string("{{ payload|clean_string|safe }}").render(
+            payload='<img src="cover.jpg" alt="c"><p>kept</p>'
+        )
+        self.assertIn('<img src="cover.jpg" alt="c">', rendered)
+
+    def test_detail_description_is_sanitized(self):
+        # upstream 7c715f34: the MAIN book description sanitizes before
+        # |safe, on the live comments surface (values arrive from Calibre
+        # imports of arbitrary epubs)
+        con = sqlite3.connect(DBPATH)
+        try:
+            con.execute(
+                "UPDATE comments SET text=? WHERE book=1",
+                ("<p>COMMENT-KEPT</p><script>alert(1)</script>",),
+            )
+            con.commit()
+        finally:
+            con.close()
+        try:
+            page = self.client.get("/book/1").get_data(as_text=True)
+            self.assertIn("COMMENT-KEPT", page)
+            self.assertNotIn("<script>alert", page)
+        finally:
+            con = sqlite3.connect(DBPATH)
+            try:
+                con.execute("UPDATE comments SET text='text' WHERE book=1")
+                con.commit()
+            finally:
+                con.close()
+
+    def test_app_settings_attach_escapes_apostrophes(self):
+        # upstream b5da0df4: an apostrophe in the app-db path must not
+        # terminate the ATTACH literal. The calibre attach is already safe
+        # (quote() percent-encodes into the file: URI); the two app_settings
+        # literals are the fixed pair.
+        with open("cps/db.py", encoding="utf-8") as fh:
+            source = fh.read()
+        self.assertEqual(2, source.count('app_db_path.replace("\'", "\'\'")'))
 
 
 if __name__ == "__main__":

@@ -120,30 +120,34 @@ def _acquisition():
 
 def _custom_column_breakdown(label):
     """[(value, count)] for an enumeration/text custom column, or []."""
-    got = _rows(
-        "SELECT id, datatype, normalized FROM custom_columns WHERE label = :l",
-        l=label,
-    )
-    if not got:
-        return []
-    cid, normalized = got[0][0], got[0][2]
+    from collections import Counter
+
+    from .library_cache import quarry
+
     try:
-        if normalized:
-            rows = _rows(
-                "SELECT v.value, count(DISTINCT l.book) c"
-                " FROM books_custom_column_%d_link l"
-                " JOIN custom_column_%d v ON v.id = l.value"
-                " GROUP BY v.value ORDER BY c DESC" % (cid, cid)
-            )
-        else:
-            rows = _rows(
-                "SELECT value, count(*) c FROM custom_column_%d"
-                " GROUP BY value ORDER BY c DESC" % cid
-            )
+        values = quarry().load_custom_column(label)
     except Exception as ex:
+        # Missing column (ValueError) and unreadable library both mean the
+        # metric simply has no data.
         log.info("custom column %s unreadable: %s", label, ex)
         return []
-    return [{"label": str(v), "value": n} for v, n in rows if v is not None]
+
+    def _flat():
+        # Multi-valued columns carry list[str] per book (cquarry 1.16): a
+        # book counts once per value it holds, like the link-table join
+        # this replaced counted DISTINCT books per value.
+        for value in values.values():
+            if value is None:
+                continue
+            if isinstance(value, list):
+                yield from (v for v in value if v is not None)
+            else:
+                yield value
+
+    return [
+        {"label": str(value), "value": count}
+        for value, count in Counter(_flat()).most_common()
+    ]
 
 
 def _pace_by_year():

@@ -599,15 +599,16 @@ def grid(
     sort=("sort",),
     descending=False,
     per_page=None,
-    preserve_order=False,
     include_comments=False,
 ):
     """(entries, pagination) for one page of the given book-id set.
 
     `ids=None` means the whole library; an EMPTY set means an empty page.
     Sorted by Calibre's title-sort unless the caller passes a sort shape
-    (see SEARCH_SORTS). Page size is the instance's configured
-    books-per-page.
+    (see SEARCH_SORTS). `sort=("ids",)` is cquarry's caller-order mode
+    (1.21): rows come back in the caller's id sequence — a duplicated id
+    keeps its first slot, ids the library no longer holds are skipped —
+    which retired this grid's fork-side re-sort shim.
     """
     per_page = per_page or config.config_books_per_page or 60
     quarry_db = quarry()
@@ -620,12 +621,6 @@ def grid(
     total = len(all_rows)
     offset = (max(1, page) - 1) * per_page
     rows = all_rows[offset : offset + per_page]
-    # Callers that carry their own ordering (download counts, shelf order)
-    # get their id sequence back verbatim; list_books otherwise sorts by
-    # its keys.
-    if preserve_order and wanted:
-        row_order = {bid: n for n, bid in enumerate(wanted)}
-        rows = sorted(rows, key=lambda r: row_order.get(r["id"], len(row_order)))
 
     status = _read_status_map()
     comments = None

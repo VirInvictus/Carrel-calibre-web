@@ -641,7 +641,7 @@ class CalibreDB:
                                          poolclass=StaticPool)
             with check_engine.begin() as connection:
                 connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (Carrel spec 7)
-                connection.execute(text("attach database '{}' as app_settings;".format(app_db_path)))
+                connection.execute(text("attach database '{}' as app_settings;".format(app_db_path.replace("'", "''"))))  # smallscope: upstream b5da0df4, apostrophes in the app-db path
                 local_session = scoped_session(sessionmaker())
                 local_session.configure(bind=connection)
                 database_uuid = local_session().query(Library_Id).one_or_none()
@@ -695,7 +695,7 @@ class CalibreDB:
             with engine.begin() as connection:
                 connection.execute(text('PRAGMA cache_size = 10000;'))
                 connection.execute(text("attach database 'file:{}?mode=ro' as calibre;".format(quote(dbpath))))  # smallscope: library is read-only by contract (Carrel spec 7)
-                connection.execute(text("attach database '{}' as app_settings;".format(app_db_path)))
+                connection.execute(text("attach database '{}' as app_settings;".format(app_db_path.replace("'", "''"))))  # smallscope: upstream b5da0df4, apostrophes in the app-db path
 
             conn = engine.connect()
             # conn.text_factory = lambda b: b.decode(errors = 'ignore') possible fix for #1302

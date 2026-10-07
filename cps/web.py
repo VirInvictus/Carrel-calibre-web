@@ -530,7 +530,7 @@ def render_hot_books(page, order):
         )
         ordered_ids = [row[0] for row in count_rows]
         page_ids = ordered_ids[off : off + config.config_books_per_page]
-        entries, grid_pagination = quarry_grid.grid(page, page_ids, preserve_order=True)
+        entries, grid_pagination = quarry_grid.grid(page, page_ids, sort=("ids",))
         have = {entry.Books.id for entry in entries}
         for book_id in page_ids:
             if book_id not in have:
@@ -566,7 +566,7 @@ def render_downloaded_books(page, order, user_id):
             .filter(ub.Downloads.user_id == user_id)
             .all()
         ]
-        entries, pagination = quarry_grid.grid(page, download_ids, preserve_order=True)
+        entries, pagination = quarry_grid.grid(page, download_ids, sort=("ids",))
         # The prune asks the library which downloads still exist, not the
         # rendered page: `have` was built from the current page while this
         # loop walked every download id, so opening page 1 deleted every
@@ -1564,15 +1564,22 @@ def get_robots():
 @viewer_required
 def serve_book(book_id, book_format, anyname):
     book_format = book_format.split(".")[0]
-    book = calibre_db.get_book(book_id)
-    data = calibre_db.get_book_format(book_id, book_format.upper())
-    if not data:
+    # smallscope: the /show/ data pair reads cquarry (the last ORM reads on
+    # this route; get_book/get_book_format retired here). A miss answers
+    # exactly as before, which also carries upstream 84777319's access
+    # check: this fork's browse layer is the unfiltered single-user grid,
+    # so book existence is the whole visibility rule.
+    from .library_cache import quarry
+
+    book = quarry().get_book(book_id)
+    data = quarry().get_formats(book_id).get(book_format.upper())
+    if not book or not data:
         return "File not in Database"
     range_header = request.headers.get("Range", None)
     if not range_header:
         log.info(
             "Serving book: '%s' to %s - %s",
-            data.name,
+            data["name"],
             current_user.name,
             request.headers.get("X-Forwarded-For", request.remote_addr),
         )
@@ -1584,25 +1591,25 @@ def serve_book(book_id, book_format, anyname):
             )
             if not range_header:
                 headers["Accept-Ranges"] = "bytes"
-            df = getFileFromEbooksFolder(book.path, data.name + "." + book_format)
+            df = getFileFromEbooksFolder(
+                book["path"], data["name"] + "." + book_format
+            )
             return do_gdrive_download(df, headers, (book_format.upper() == "TXT"))
         except AttributeError as ex:
             log.error_or_exception(ex)
             return "File Not Found"
     else:
+        # data["path"] is cquarry's canonical <root>/<books.path>/<name>.<fmt>
+        # resolution: the extension case follows the catalogue, so an
+        # upper-case /show/ request now finds the same file the grid links.
         if book_format.upper() == "TXT":
             try:
-                rawdata = open(
-                    os.path.join(
-                        config.get_book_path(), book.path, data.name + "." + book_format
-                    ),
-                    "rb",
-                ).read()
+                rawdata = open(data["path"], "rb").read()
                 result = chardet.detect(rawdata)
                 try:
                     text_data = rawdata.decode(result["encoding"]).encode("utf-8")
                 except UnicodeDecodeError as e:
-                    log.error("Encoding error in text file {}: {}".format(book.id, e))
+                    log.error("Encoding error in text file {}: {}".format(book_id, e))
                     if "surrogate" in e.reason:
                         text_data = rawdata.decode(
                             result["encoding"], "surrogatepass"
@@ -1618,8 +1625,8 @@ def serve_book(book_id, book_format, anyname):
         # enable byte range read of pdf
         response = make_response(
             send_from_directory(
-                os.path.join(config.get_book_path(), book.path),
-                data.name + "." + book_format,
+                os.path.dirname(data["path"]),
+                os.path.basename(data["path"]),
             )
         )
         if not range_header:

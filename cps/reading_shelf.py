@@ -10,9 +10,8 @@
 # Headless like stats.py: plain data in, template decides the rendering.
 
 from flask import Blueprint
-from sqlalchemy import text
 
-from . import calibre_db, logger
+from . import logger
 from .library_cache import LibraryCache
 
 reading_shelf = Blueprint("reading_shelf", __name__)
@@ -24,48 +23,34 @@ LIMIT = 12
 
 def _build():
     """[{id, title, author, href}] for the books Calibre marks Reading."""
+    from .library_cache import quarry
+
     try:
-        col = calibre_db.session.execute(
-            text(
-                "SELECT id, normalized FROM custom_columns"
-                " WHERE label = 'reading_status'"
-            )
-        ).fetchone()
+        quarry_db = quarry()
+        statuses = quarry_db.load_custom_column("reading_status")
     except Exception as ex:
+        # An unconfigured column, an unnormalized one, an unreadable
+        # library: all degrade to the absent shelf.
         log.info("reading_status column unreadable: %s", ex)
         return []
-    if not col:
+    reading = [bid for bid, value in statuses.items() if value == SHELF_VALUE]
+    if not reading:
         return []
-    cid, normalized = col[0], col[1]
-    if normalized:
-        sql = (
-            "SELECT b.id, b.title, MIN(a.sort) AS author"
-            " FROM books b"
-            " JOIN books_authors_link bal ON bal.book = b.id"
-            " JOIN authors a ON a.id = bal.author"
-            " JOIN books_custom_column_%d_link l ON l.book = b.id"
-            " JOIN custom_column_%d v ON v.id = l.value"
-            " WHERE v.value = :v"
-            " GROUP BY b.id, b.title ORDER BY b.sort" % (cid, cid)
-        )
-    else:
-        sql = (
-            "SELECT b.id, b.title, MIN(a.sort) AS author"
-            " FROM books b"
-            " JOIN books_authors_link bal ON bal.book = b.id"
-            " JOIN authors a ON a.id = bal.author"
-            " JOIN custom_column_%d v ON v.book = b.id"
-            " WHERE v.value = :v"
-            " GROUP BY b.id, b.title ORDER BY b.sort" % cid
-        )
-    try:
-        rows = calibre_db.session.execute(text(sql), {"v": SHELF_VALUE}).fetchall()
-    except Exception as ex:
-        log.info("currently-reading query failed: %s", ex)
-        return []
+    by_id = {row["id"]: row for row in quarry_db.get_all_books()}
+    # title_sort is the column the SQL this replaced ordered by (b.sort);
+    # author is the leading author-sort, the MIN(a.sort) of the old query.
+    picked = sorted(
+        (by_id[bid] for bid in reading if bid in by_id),
+        key=lambda row: (row["title_sort"] is None, row["title_sort"] or ""),
+    )[:LIMIT]
     return [
-        {"id": r[0], "title": r[1], "author": r[2], "href": "/book/%d" % r[0]}
-        for r in rows[:LIMIT]
+        {
+            "id": row["id"],
+            "title": row["title"],
+            "author": min(row["author_sorts"]) if row["author_sorts"] else None,
+            "href": "/book/%d" % row["id"],
+        }
+        for row in picked
     ]
 
 

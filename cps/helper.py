@@ -30,7 +30,7 @@ import requests
 import unidecode
 from uuid import uuid4
 
-from flask import send_from_directory, make_response, abort, url_for, Response, request
+from flask import send_from_directory, make_response, abort, url_for, Response, request, after_this_request
 from flask_babel import gettext as _
 from flask_babel import lazy_gettext as N_
 from flask_babel import get_locale
@@ -879,7 +879,25 @@ def get_cover_on_failure():
 
 
 def get_book_cover(book_id, resolution=None):
-    book = calibre_db.get_filtered_book(book_id, allow_show_archived=True)
+    # smallscope: the book row behind a cover (has_cover, path for the
+    # gdrive branch, id for the thumbnail cache) reads cquarry; the
+    # attribute contract get_book_cover_internal expects is preserved on a
+    # namespace. Covers stay archived-agnostic, as allow_show_archived
+    # always made them.
+    from types import SimpleNamespace
+
+    from .library_cache import quarry
+
+    row = quarry().get_book(book_id)
+    book = (
+        SimpleNamespace(
+            id=book_id,
+            has_cover=bool(row["has_cover"]),
+            path=row["path"],
+        )
+        if row
+        else None
+    )
     return get_book_cover_internal(book, resolution=resolution)
 
 
@@ -965,14 +983,30 @@ def get_book_cover_thumbnail(book, resolution):
 
 
 def get_series_thumbnail_on_failure(series_id, resolution):
-    book = (
-        calibre_db.session.query(db.Books)
-        .join(db.books_series_link)
-        .join(db.Series)
-        .filter(db.Series.id == series_id)
-        .filter(db.Books.has_cover == 1)
-        .first()
+    # smallscope: the "first member with a cover" pick reads cquarry
+    # (series id -> name -> members). Lowest id wins, where the ORM's
+    # unordered .first() was the query planner's choice; unknown series
+    # degrade to the generic cover exactly as before.
+    from types import SimpleNamespace
+
+    from .library_cache import quarry
+
+    quarry_handle = quarry()
+    name = next(
+        (e["name"] for e in quarry_handle.get_entities("series") if e["id"] == series_id),
+        None,
     )
+    book = None
+    if name is not None:
+        for member_id in sorted(quarry_handle.get_entity_book_ids("series", name)):
+            row = quarry_handle.get_book(member_id)
+            if row and row.get("has_cover"):
+                book = SimpleNamespace(
+                    id=member_id,
+                    has_cover=True,
+                    path=row.get("path"),
+                )
+                break
     return get_book_cover_internal(book, resolution=resolution)
 
 
@@ -1135,23 +1169,10 @@ def do_download_file(book, book_format, client, data, headers):
         df = gd.getFileFromEbooksFolder(book.path, data.name + "." + book_format)
         # log.debug('%s', time.time() - startTime)
         if df:
-            if config.config_embed_metadata and (
-                (book_format == "kepub" and config.config_kepubifypath)
-                or (book_format != "kepub" and config.config_binariesdir)
-            ):
-                output_path = os.path.join(config.config_calibre_dir, book.path)
-                if not os.path.exists(output_path):
-                    os.makedirs(output_path)
-                output = os.path.join(
-                    config.config_calibre_dir, book.path, book_name + "." + book_format
-                )
-                gd.downloadFile(book.path, book_name + "." + book_format, output)
-                if book_format == "kepub" and config.config_kepubifypath:
-                    filename, download_name = do_kepubify_metadata_replace(book, output)
-                elif book_format != "kepub" and config.config_binariesdir:
-                    filename, download_name = do_calibre_export(book.id, book_format)
-            else:
-                return gd.do_gdrive_download(df, headers)
+            # smallscope: held formats only here too (see the local branch
+            # below); the embed-metadata staging half of this branch is
+            # declined by the same contract.
+            return gd.do_gdrive_download(df, headers)
         else:
             abort(404)
     else:
@@ -1168,23 +1189,26 @@ def do_download_file(book, book_format, client, data, headers):
                 ".kepub", ".kepub.epub"
             )
 
-        if (
-            book_format == "kepub"
-            and config.config_kepubifypath
-            and config.config_embed_metadata
-        ):
-            filename, download_name = do_kepubify_metadata_replace(
-                book, os.path.join(filename, book_name + "." + book_format)
-            )
-        elif (
-            book_format != "kepub"
-            and config.config_binariesdir
-            and config.config_embed_metadata
-        ):
-            filename, download_name = do_calibre_export(book.id, book_format)
-        else:
-            download_name = book_name
+        # smallscope: the embed-metadata staging branches (kepubify rewrite,
+        # calibre export) are declined by contract: downloads serve the file
+        # the library holds, no conversion-on-download, and no external
+        # binary ever runs against the library from this path (the 0.6.40
+        # send/convert stub family; the download test refuses to stage).
+        download_name = book_name
 
+    # Clean up staged copies in /tmp/calibre_web after the response is sent
+    # (kepubify / calibre-export branches) so the temp dir does not grow unbounded.
+    # smallscope: upstream 674b47bd verbatim; unreachable in this fork since
+    # the embed staging branches are stubbed, kept for rebase parity.
+    if filename == get_temp_dir():
+        _tmp_path = os.path.join(filename, download_name + "." + book_format)
+        @after_this_request
+        def _cleanup_staged_download(resp):
+            try:
+                os.remove(_tmp_path)
+            except OSError as ex:
+                log.warning('Failed to remove staged download %s: %s', _tmp_path, ex)
+            return resp
     response = make_response(
         send_from_directory(filename, download_name + "." + book_format)
     )
@@ -1365,28 +1389,41 @@ def check_valid_domain(domain_text):
 
 def get_download_link(book_id, book_format, client):
     book_format = book_format.split(".")[0]
-    book = calibre_db.get_filtered_book(book_id, allow_show_archived=True)
-    if book:
-        data1 = calibre_db.get_book_format(book.id, book_format.upper())
-        if data1:
-            # collect downloaded books only for registered user and not for anonymous user
-            if current_user.is_authenticated:
-                ub.update_download(book_id, int(current_user.id))
-            file_name = book.title
-            if len(book.authors) > 0:
-                file_name = file_name + " - " + book.authors[0].name
-            file_name = get_valid_filename(
-                file_name, replace_whitespace=False, force_unidecode=True
-            )
-            quoted_file_name = file_name if client == "kindle" else quote(file_name)
-            headers = Headers()
-            headers["Content-Type"] = mimetypes.types_map.get(
-                "." + book_format, "application/octet-stream"
-            )
-            headers["Content-Disposition"] = (
-                "attachment; filename=\"{}.{}\"; filename*=UTF-8''{}.{}"
-            ).format(file_name, book_format, quoted_file_name, book_format)
-            return do_download_file(book, book_format, client, data1, headers)
+    # smallscope: the download pair reads cquarry, same swap as /show/.
+    # Archived books download as before (allow_show_archived was the old
+    # filter's only live effect for this single user); do_download_file's
+    # book/data attribute uses are carried on namespaces.
+    from types import SimpleNamespace
+
+    from .library_cache import quarry
+
+    row = quarry().get_book(book_id)
+    data1 = quarry().get_formats(book_id).get(book_format.upper())
+    if row and data1:
+        # collect downloaded books only for registered user and not for anonymous user
+        if current_user.is_authenticated:
+            ub.update_download(book_id, int(current_user.id))
+        file_name = row["title"]
+        if len(row["authors"]) > 0:
+            file_name = file_name + " - " + row["authors"][0]
+        file_name = get_valid_filename(
+            file_name, replace_whitespace=False, force_unidecode=True
+        )
+        quoted_file_name = file_name if client == "kindle" else quote(file_name)
+        headers = Headers()
+        headers["Content-Type"] = mimetypes.types_map.get(
+            "." + book_format, "application/octet-stream"
+        )
+        headers["Content-Disposition"] = (
+            "attachment; filename=\"{}.{}\"; filename*=UTF-8''{}.{}"
+        ).format(file_name, book_format, quoted_file_name, book_format)
+        return do_download_file(
+            SimpleNamespace(id=book_id, path=row["path"]),
+            book_format,
+            client,
+            SimpleNamespace(name=data1["name"]),
+            headers,
+        )
     else:
         log.error("Book id {} not found for downloading".format(book_id))
     abort(404)

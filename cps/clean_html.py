@@ -35,8 +35,15 @@ def clean_string(unsafe_text, book_id=0):
     try:
         if bleach:
             allowed_tags = list(ALLOWED_TAGS)
-            allowed_tags.extend(["p", "span", "div", "pre", "br", "h1", "h2", "h3", "h4", "h5", "h6"])
-            safe_text = clean_html(unsafe_text, tags=set(allowed_tags))
+            allowed_tags.extend(["p", "span", "div", "pre", "br", "h1", "h2", "h3", "h4", "h5", "h6", "img"])  # smallscope: upstream 7c715f34 adds img
+            # smallscope: upstream 8cff413c sanitizes attributes too, with an
+            # allowlist instead of stripping them all
+            allowed_attributes = {
+                "*": ["class", "style"],
+                "a": ["href", "title", "rel"],
+                "img": ["src", "alt", "title", "width", "height"],
+            }
+            safe_text = clean_html(unsafe_text, tags=set(allowed_tags), attributes=allowed_attributes)
         else:
             safe_text = clean_html(unsafe_text)
     except ParserError as e:
