@@ -1,1 +1,133 @@
-CLAUDE.md
+# AGENTS.md (Carrel-calibre-web)
+
+Fork of janeczku/calibre-web carrying the code side of Carrel, a single-user
+reading room for Brandon's curated Calibre library. **The contract lives in the
+companion repo:** `~/.gitrepos/Carrel/` (`spec.md`, `roadmap.md`, `AGENTS.md`).
+Read those before changing anything here. This repo's own open work lives in
+`roadmap.md` (created 2026-09-29 during the parity scoping); the companion
+roadmap keeps the contract-side record and the historical fork blocks.
+
+## Hard rules
+
+- Work only on the `smallscope` branch (cut from tag `0.6.26`). `master`
+  tracks upstream; never commit to it. The branch and `cps/smallscope.py` keep
+  their original names on purpose: renaming them would churn the upstream diff
+  for no benefit.
+- `metadata.db` is attached read-only by design and must stay that way. No code
+  path may write the library, and no test may touch `~/docs/Calibre Library/`.
+  Tests use the fixture DB in `tests/`.
+- `cps/static/css/kanagawa-dragon.css` is VENDORED from `Carrel/theme/` via
+  `just sync-theme`; edit it there, not here.
+- Keep the diff rebase-friendly: disable routes rather than delete files, put
+  new code in new modules. (The one deletion is the dead ORM behind the
+  sealed advsearch, 0.6.36: deliberate, patchnoted, and amended into
+  Carrel's spec 6.2 on 2026-09-11.)
+- Upstream code style applies in upstream files (GPL-3.0 third-party code;
+  match what is there, not the personal conventions).
+- The formatter hook is LIVE again (re-registered 2026-09-20 as the local
+  format-on-edit plugin) and reformats Python touched via agent Edit/Write
+  tools, churning whole upstream files and poisoning rebases. **Patch
+  upstream `.py` files via shell (python heredoc) regardless**; the
+  rebase-cleanliness motive stands on its own. Templates, CSS, and our own
+  new modules are fine to edit normally.
+
+## The modules that are ours
+
+Everything Carrel adds lives in its own file, so the upstream diff stays small.
+
+| file | what it does |
+| --- | --- |
+| `cps/single_user.py` | authenticates the owner per request; seals the credential paths (`/login`, `/logout`, `/register`, `/admin/user/new`, `/admin/usertable`) and, since 0.6.40, the admin machinery (`/get_update_status`, `/get_updater_status`, the user AJAX trio, `/ajax/pathchooser`, `/shutdown`, `/reconnect`) |
+| `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch`, `/table`, `/ajax/listbooks`, `/ajax/table_settings` and, since 0.6.42, the OPDS mirrors `/opds/hot`, `/opds/discover`, `/opds/rated`, by path prefix |
+| `cps/carrel_search.py` | resolves the search bar through cquarry's engine |
+| `cps/library_cache.py` | the one cache rule (mtime + library UUID) every Carrel surface shares, plus the shared cquarry handle |
+| `cps/page_count.py` | cached native page counts for the detail page |
+| `cps/wings.py` | Calibre virtual libraries as browse sections |
+| `cps/saved_searches.py` | Calibre saved searches as browse sections (cquarry `search:"Name"` interpolation) |
+| `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors; since 0.6.42 also the reader's position sync (`latest_position`) and the front page's Continue Reading rows |
+| `cps/categories.py` | the dot taxonomy as a tree, with descendant roll-up |
+| `cps/palette.py` | the Ctrl-K index, emitted as JS |
+| `cps/quarry_grid.py` | the cquarry-backed grid: entry adapters + pagination shim over `list_books()`; also backs the /search results page (SEARCH_SORTS maps the sort header) and the /basic fallback search |
+| `cps/reading_shelf.py` | the front page's Currently Reading shelf and Continue Reading row |
+| `cps/series_info.py` | series position, holdings, gaps |
+| `cps/stats.py` | headless metrics plus the `/statistics` route |
+| `cps/static/js/` | `palette.js`, `cattree.js`, `keynav.js`, vanilla and self-contained |
+
+All of them cache on `metadata.db`'s mtime **and the library's UUID**, the
+idiom `wings.py` established and the cquarry 1.3 adoption generalized
+(mtime-only is the documented degraded mode).
+
+## Rebase posture
+
+Against upstream tag `0.6.26`, four files carry the fork's mass and will
+conflict on any upstream touch: `web.py` (~2100 changed lines),
+`helper.py` (~1000), `opds.py` (~700), and the advsearch deletion in
+`search.py` (~450 lines gone). Budget a session for those. The done-right
+counterexamples: `main.py` (+32 lines, all registrations and seals),
+`constants.py` (one line), `admin.py` (6), `db.py` (36, the two attach
+sites and the enum branch). Rebases onto new upstream tags are deliberate
+events (Carrel spec 3), not routine pulls.
+
+## Things that will bite you
+
+- **calibre-web has two URL shapes.** Overview pages are bare (`/author`,
+  `/series`, `/category`); an individual entity is `/<data>/<sort_param>/<id>`.
+  Getting it wrong used to render entity 1 without a 404 (the id lands in
+  `sort_param` and `book_id` silently defaulted to 1; Stephen King once opened
+  Troy Denning). Since 0.6.42 the entity datas 404 without a real id
+  (`cps/web.py` `_ENTITY_DATAS` + the 0 sentinel in the defaults loop), but
+  the shape rule still holds for anything new you wire up.
+- **Only leaf tags are assigned in this library.** `Fic.Fantasy.Epic.Gods`
+  exists; `Fic.Fantasy` does not. Anything walking the taxonomy has to
+  synthesise the intermediate nodes from path prefixes.
+- **`index.html`'s sort header builds `web.books_list` URLs.** Any custom page
+  reusing that template must be excluded from the header, or it 500s on a
+  `BuildError`. Wings and categories both hit this.
+- **Jinja macros do not see the template context** unless imported
+  `with context`. The category tree failed silently this way: no error, nothing
+  expanded.
+- **Specificity, repeatedly.** Stock `style.css` and Bootstrap both carry
+  selectors longer than the obvious override (`.container-fluid .book .cover
+  span img` is 0-3-2, `.btn-primary.active` is 0-2-0, `.navbar-brand` uses
+  `!important`). Source order does not save you.
+- **The library cannot know how long a series is.** Calibre's highest index is
+  what is held, not the length. Never render it as "of N".
+- **flask-login is vendored as `cps.cw_login`.** The upstream package name does
+  not resolve in this venv.
+
+## Running and testing
+
+```sh
+# run (no login; -i binds the LAN deliberately, see spec 11.3)
+CALIBRE_DBPATH=~/.calibre-web ~/.local/share/carrel/venv/bin/python cps.py -i 0.0.0.0
+# or: just serve   (from the Carrel repo)
+
+~/.local/share/carrel/venv/bin/python -m unittest discover -s tests
+```
+
+The test harness mirrors `main()`'s blueprint registration and **must be kept
+in sync with it**. It has drifted twice: once when `seal_browse_surfaces` was
+added to `main.py` but not the harness, so the Phase 8 route cuts were never
+actually exercised. Since 0.6.40 a committed ast parity test fails the suite
+in both directions if the two lists diverge; still, if you register something
+in `main.py`, register it there too.
+
+The harness does not log in. Every assertion therefore doubles as a regression
+guard on `single_user.py`; commenting the shim out fails most of the suite.
+
+## Screenshots
+
+`docs/screenshots/` feeds the README. Regenerate after visual changes: warm the
+cover cache first (the grid lazy-loads, so a cold headless shot photographs
+empty tiles) and disable `dom.image-lazy-loading.enabled` in the capture
+profile.
+
+## Release flow
+
+Commit and push verified work on `smallscope` (the standing push grant in
+the global file; force-pushes still need approval), wait for CI to go
+green, then tag when the change warrants a fork version: annotated tag at
+the release commit, message = the `patchnotes.md` entry verbatim
+(`--cleanup=verbatim`; the full tag procedure lives in
+`~/.zcode/AGENTS.md`). Fork versions live in the patchnotes headings; there
+is no VERSION file.
