@@ -67,6 +67,4 @@ def _shelf():
 
 @reading_shelf.app_context_processor
 def inject_reading_shelf():
-    from .reader_state import continue_reading
-
-    return {"carrel_reading": _shelf(), "carrel_continue": continue_reading()}
+    return {"carrel_reading": _shelf()}

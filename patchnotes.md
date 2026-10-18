@@ -1,4 +1,29 @@
 # Patchnotes (Carrel-calibre-web)
+## The Continue Reading row retires (2026-10-17, 0.6.45)
+
+The front page's Continue Reading row read Calibre's
+`last_read_positions`, and every row in that table names one device:
+`calibre-desktop-viewer`. The desktop viewer records a position
+whenever a book is opened in it, glance included, so the row was a
+ranked list of recent preview opens, not of reading; twelve books at
+0.1-10% is what that looks like on a library that reads on a Kindle.
+
+- **The row and its builder are gone.** `continue_reading()` and its
+  cache leave `reader_state.py`, the context processor injects only
+  the Currently Reading shelf, and the front page block is removed.
+  The genuine reading signal this library has is the curated
+  `reading_status` column, which the Currently Reading shelf above it
+  already shows; the two never overlapped.
+- **The table's other two consumers stay.** The detail page's
+  progress line and the browser reader's position seed
+  (`latest_position`) keep reading `last_read_positions`: per book,
+  both are truthful, and the seed is what lets a desktop-viewer
+  position carry into the web reader.
+- **The row can come back.** If a real device position source ever
+  appears (KOReader's Calibre wireless sync is the candidate), the
+  0.6.42 entry records the row's shape and the retirement test in
+  test_smallscope.py marks the spot.
+
 ## The sealing lane's tail and the upstream security wave (2026-10-07, 0.6.44)
 
 Both Size-M lanes from roadmap.md, the two Size-S cleanups riding behind

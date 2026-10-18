@@ -12,10 +12,8 @@
 # series_info pattern: the template asks, this module either answers or says
 # None, and a broken extractor degrades to "no state shown" instead of a 500.
 
-from cquarry.helpers import unpipe_author
-
 from . import logger
-from .library_cache import LibraryCache, library_path, quarry
+from .library_cache import LibraryCache, library_path
 
 log = logger.create()
 
@@ -98,60 +96,3 @@ def latest_position(book_id, book_format=None):
     matching = [r for r in positions if (r.get("format") or "").upper() == fmt]
     pool = matching or positions
     return max(pool, key=lambda r: r.get("epoch") or 0).get("cfi") or None
-
-
-_CONTINUE_LIMIT = 12
-
-
-def _continue_rebuild():
-    """[{id, title, author, href, percent, device}] for every book with a
-    device-recorded position, most recent first. One bulk positions query
-    against the cached engine; titles join from the cached cquarry rows."""
-    try:
-        positions = _quarry().get_last_read_positions()
-    except Exception as ex:
-        log.error("Reading positions unavailable: %s", ex)
-        return []
-    latest = {}
-    for row in positions:
-        book = row.get("book")
-        if book is None:
-            continue
-        current = latest.get(book)
-        if current is None or (row.get("epoch") or 0) > (current.get("epoch") or 0):
-            latest[book] = row
-    books = {b["id"]: b for b in quarry().get_all_books()}
-    out = []
-    for book, row in sorted(
-        latest.items(), key=lambda kv: kv[1].get("epoch") or 0, reverse=True
-    ):
-        info = books.get(book)
-        if info is None:
-            continue
-        frac = row.get("pos_frac")
-        out.append(
-            {
-                "id": book,
-                "title": info["title"],
-                "author": info.get("author_sort")
-                or unpipe_author((info["authors"] or [""])[0]),
-                "href": "/book/%d" % book,
-                "percent": int(round(float(frac) * 100)) if frac is not None else 0,
-                "device": row.get("device"),
-            }
-        )
-        if len(out) >= _CONTINUE_LIMIT:
-            break
-    return out
-
-
-_continue_cache = LibraryCache(_continue_rebuild)
-
-
-def continue_reading():
-    """The continue-reading rows, [] when the library is unreachable."""
-    try:
-        return _continue_cache.get()
-    except Exception as ex:
-        log.error("Continue-reading list unavailable: %s", ex)
-        return []

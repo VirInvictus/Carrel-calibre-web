@@ -54,7 +54,7 @@ construction.
 
 **Calibre-exact wing layout.** The sidebar follows the ordering stored in Calibre's own preferences (`virt_libs_order`) and hides what Calibre hides (`virt_libs_hidden`), so the web room arranges wings exactly as the desktop does.
 
-**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`); both read through cquarry's extractors, never guessed. The browser reader opens at the device-recorded position when it has no bookmark of its own, and the front page carries a Continue Reading row driven by the same positions.
+**Reader state.** The detail page shows where you are in a book (latest-device progress from `last_read_positions`) and how many highlights it holds (from `annotations`); both read through cquarry's extractors, never guessed. The browser reader opens at the device-recorded position when it has no bookmark of its own.
 
 **A category browser over the dot taxonomy.** Only leaf tags are assigned in
 this library (`Fic.Fantasy.Epic.Gods` exists; `Fic.Fantasy` does not), so every

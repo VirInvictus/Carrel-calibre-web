@@ -44,7 +44,7 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 | `cps/page_count.py` | cached native page counts for the detail page |
 | `cps/wings.py` | Calibre virtual libraries as browse sections |
 | `cps/saved_searches.py` | Calibre saved searches as browse sections (cquarry `search:"Name"` interpolation) |
-| `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors; since 0.6.42 also the reader's position sync (`latest_position`) and the front page's Continue Reading rows |
+| `cps/reader_state.py` | detail-page progress + highlights via cquarry extractors; also the reader's position sync (`latest_position`). The front page's Continue Reading row (0.6.42) retired in 0.6.45: `last_read_positions` only ever held desktop-viewer preview opens here |
 | `cps/categories.py` | the dot taxonomy as a tree, with descendant roll-up |
 | `cps/palette.py` | the Ctrl-K index, emitted as JS |
 | `cps/quarry_grid.py` | the cquarry-backed grid: entry adapters + pagination shim over `list_books()`; also backs the /search results page (SEARCH_SORTS maps the sort header) and the /basic fallback search |

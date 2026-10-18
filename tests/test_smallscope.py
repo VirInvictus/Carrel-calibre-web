@@ -763,7 +763,7 @@ class SmallscopeTestCase(_ClientCase):
                 ).delete()
                 ub_mod.session.commit()
 
-    # --- reading-position sync + continue row (0.6.42) -----------------------
+    # --- reading-position sync (0.6.42; the continue row retired 0.6.45) -----
 
     def test_latest_position_prefers_format_then_recency(self):
         from cps.reader_state import latest_position
@@ -783,17 +783,16 @@ class SmallscopeTestCase(_ClientCase):
         page = self.client.get("/read/3/epub").get_data(as_text=True)
         self.assertIn('libraryCfi: ""', page)
 
-    def test_continue_reading_row_renders_recent_first(self):
-        from cps.reader_state import continue_reading
+    def test_continue_reading_row_is_retired(self):
+        # last_read_positions' only writer in this library is the desktop
+        # viewer, whose rows are preview opens, not reading; the row they
+        # fed ranked those. The browser reader's position seed
+        # (latest_position) is the one consumer that keeps the table.
+        from cps import reader_state
 
-        rows = continue_reading()
-        self.assertEqual([r["id"] for r in rows], [1])
-        self.assertEqual(rows[0]["percent"], 90)
-        self.assertEqual(rows[0]["device"], "phone")
+        self.assertFalse(hasattr(reader_state, "continue_reading"))
         page = self.client.get("/").get_data(as_text=True)
-        self.assertIn("Continue reading", page)
-        self.assertIn("Ancillary Justice", page)
-        self.assertIn("90%", page)
+        self.assertNotIn("Continue reading", page)
 
     def test_basic_page_searches_through_the_cquarry_grammar(self):
         # The /basic fallback now speaks the one grammar (spec 13): a
