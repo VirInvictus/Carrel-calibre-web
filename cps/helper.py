@@ -943,9 +943,12 @@ def get_book_cover_internal(book, resolution=None):
                 return get_cover_on_failure()
 
         # Send the book cover from the Calibre directory. Resolution goes
-        # through cquarry's get_cover_path() (Phase 7 swap): jpg primary,
-        # png fallback, existence verified — a png-only catalogued cover
-        # serves its real art now instead of degrading to the generic.
+        # through cquarry's get_cover_path() (Phase 7 swap): cover.jpg only
+        # since cquarry 1.28.3 (upstream reads COVER_FILE_NAME and no other
+        # name), existence verified. A legacy png-only catalogued cover
+        # (cquarry <= 1.28.2 writes) degrades to the generic cover, the
+        # GUI's own answer; the heal is one cquarry set_cover on the
+        # library side, never a fork read path.
         else:
             from .library_cache import quarry
 

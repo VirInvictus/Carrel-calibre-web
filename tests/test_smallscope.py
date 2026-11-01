@@ -478,11 +478,16 @@ class SmallscopeTestCase(_ClientCase):
             [("2024", 4)],
         )
 
-    def test_cover_route_serves_png_primary_covers(self):
-        # cquarry's get_cover_path resolution: jpg primary, png fallback.
+    def test_cover_route_degrades_png_only_covers_to_generic(self):
+        # cquarry 1.28.3 resolves cover.jpg ONLY (upstream Calibre reads
+        # COVER_FILE_NAME and no other name), so a legacy png-only cover,
+        # possible only from cquarry <= 1.28.2 writes, reads as coverless
+        # over HTTP and the route serves the generic cover: exactly what
+        # Calibre's own GUI shows for such a book. The heal is one cquarry
+        # set_cover call on the library side; this fork never performs it.
         # The fixture covers are all has_cover=0 and file-less, so give
         # book 2 a png-only cover and flip its flag, then ask for it.
-        import sqlite3
+        from cps.constants import STATIC_DIR
 
         con = sqlite3.connect(LIB + "/metadata.db")
         try:
@@ -497,8 +502,11 @@ class SmallscopeTestCase(_ClientCase):
             app.config["TESTING"] = True  # propagate the error if it 500s
             resp = self.client.get("/cover/2")
             self.assertEqual(resp.status_code, 200)
-            self.assertIn("image/png", resp.headers["Content-Type"])
-            self.assertIn(b"PNG", resp.data)
+            self.assertIn("image/jpeg", resp.headers["Content-Type"])
+            self.assertEqual(
+                resp.data,
+                (pathlib.Path(STATIC_DIR) / "generic_cover.jpg").read_bytes(),
+            )
         finally:
             app.config["TESTING"] = False
             (pathlib.Path(LIB) / "a" / "b (2)" / "cover.png").unlink()
