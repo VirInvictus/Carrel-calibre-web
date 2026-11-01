@@ -115,6 +115,23 @@ program").
       fork adopts whichever a surface needs (the Calibre-Companion endpoint wants
       the first; the serve_book/cover swap could use the third). No adoption is
       committed by itself; the endpoint stays waived (below).
+- [ ] **cquarry 1.28.3 cover.jpg-only adoption** (logged 2026-11-01, from the
+      VirInvictus/cquarry#10 downstream sweep): cquarry's cover surface now
+      matches Calibre exactly -- `set_cover`/`add_book` always write
+      `cover.jpg` (verbatim bytes, PNG included) and the reads
+      (`get_cover_path`/`get_cover_bytes`/`get_cover_last_modified`) resolve
+      `cover.jpg` ONLY, the pre-1.28.3 `cover.png` fallback removed. Three
+      fork items ride the next CI-pin bump (currently `v1.26.0`,
+      `.github/workflows/ci.yml:68`, so nothing breaks today):
+      `tests/test_smallscope.py:481`
+      (`test_cover_route_serves_png_primary_covers`) fails against >= 1.28.3
+      and should assert the generic-cover fallthrough instead; the
+      "jpg primary, png fallback" rationale comment at `cps/helper.py:945-948`
+      documents the removed fallback; and png-only books (only possible from
+      cquarry <= 1.28.2 writes) degrade from real art to the generic cover
+      over HTTP, which matches Calibre's own GUI and is the point. Carrel's
+      own cover-upload path (`cps/helper.py:1129-1161`) already converts to
+      JPEG and writes `cover.jpg` directly; unaffected. Size S.
 
 ## Declined (the D-lane record; reversal needs a new recorded decision)
 
