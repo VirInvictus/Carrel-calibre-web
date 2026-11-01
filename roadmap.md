@@ -6,7 +6,7 @@ Waves 17-18) plus the fork's patchnotes and project.done; it now lives here. The
 contract still lives in `~/.gitrepos/Carrel/` (spec.md authoritative: §6.3 the
 cquarry data layer, §8.5 reader state, §11 single-user, §12.3 the stats boundary,
 §13 search parity); this file records open work only. Fork point 0.6.26; branch
-`smallscope`; fork version 0.6.44 (`cps/constants.py`); suite 103 tests.
+`smallscope`; fork version 0.6.46 (`cps/constants.py`); suite 103 tests.
 
 **Parity lane (2026-09-29):** the web reading room, against Calibre's own Content
 Server (`src/calibre/srv` in the reference clone). The read paths are
@@ -115,7 +115,7 @@ program").
       fork adopts whichever a surface needs (the Calibre-Companion endpoint wants
       the first; the serve_book/cover swap could use the third). No adoption is
       committed by itself; the endpoint stays waived (below).
-- [ ] **cquarry 1.28.3 cover.jpg-only adoption** (logged 2026-11-01, from the
+- [x] **cquarry 1.28.3 cover.jpg-only adoption** (logged 2026-11-01, from the
       VirInvictus/cquarry#10 downstream sweep): cquarry's cover surface now
       matches Calibre exactly -- `set_cover`/`add_book` always write
       `cover.jpg` (verbatim bytes, PNG included) and the reads
@@ -132,6 +132,13 @@ program").
       over HTTP, which matches Calibre's own GUI and is the point. Carrel's
       own cover-upload path (`cps/helper.py:1129-1161`) already converts to
       JPEG and writes `cover.jpg` directly; unaffected. Size S.
+      **Shipped 0.6.46**: the pin moved v1.26.0 -> v1.28.3; the test is now
+      `test_cover_route_degrades_png_only_covers_to_generic` (generic-cover
+      fallthrough asserted byte-for-byte against `generic_cover.jpg`), and
+      the helper comment documents the jpg-only resolution. Nothing else
+      moved, as the row predicted. The release also corrected the version
+      carrier's drift (`cps/constants.py` still said 0.6.44 after the
+      0.6.45 tag).
 
 ## Declined (the D-lane record; reversal needs a new recorded decision)
 
@@ -155,8 +162,8 @@ program").
   CLAUDE.md); templates, CSS, and our own new modules edit normally.
 - Entity URLs are `/<data>/<sort_param>/<id>` while overview pages are bare; a
   missing id silently defaults book_id to 1 (`web.py:939-957`).
-- The cquarry three-version skew (venv dist-info 1.8.0, editable tree 1.23.2, CI
-  pin v1.21.0) is recorded in Carrel's roadmap with its fix shapes.
+- The cquarry version skew (venv dist-info 1.8.0, editable tree 1.28.3, CI
+  pin v1.28.3) is recorded in Carrel's roadmap with its fix shapes.
 - The stats-metrics tripwire lives in Carrel spec 12.3 (a fourth library-metrics
   consumer triggers the headless-layer conversation).
 - The 1.0.0 gates are the five sign-off boxes in Carrel's roadmap; this file adds

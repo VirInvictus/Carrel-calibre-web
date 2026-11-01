@@ -1,4 +1,36 @@
 # Patchnotes (Carrel-calibre-web)
+## The cquarry 1.28.3 cover.jpg-only adoption (2026-11-01, 0.6.46)
+
+cquarry 1.28.3 closed its issue #10 by matching Calibre's cover surface
+exactly: every write names the file `cover.jpg` (verbatim bytes, PNG
+included), and the readers (`get_cover_path`, `get_cover_bytes`,
+`get_cover_last_modified`) resolve `cover.jpg` only; the pre-1.28.3
+`cover.png` read fallback is gone, and it was that fallback that masked
+the divergence. The fork's CI pin moves v1.26.0 -> v1.28.3 and the three
+adoption items from the roadmap row land with it:
+
+- **The png-cover test flips to the honest behavior.**
+  `test_cover_route_serves_png_primary_covers` pinned the removed
+  fallback and failed against 1.28.3; it is now
+  `test_cover_route_degrades_png_only_covers_to_generic`: a png-only
+  catalogued cover (possible only from cquarry <= 1.28.2 writes) serves
+  the generic cover over HTTP, asserted byte-for-byte against
+  `generic_cover.jpg`, which is what Calibre's own GUI shows for that
+  book. The heal is one cquarry `set_cover` call on the library side
+  (it rewrites the bytes at `cover.jpg`); this read-only fork never
+  performs it.
+- **The helper comment tells the truth again.** The "jpg primary, png
+  fallback" rationale over the `get_cover_path` call in
+  `get_book_cover` documented the removed fallback; it now documents
+  the jpg-only resolution and the degradation.
+- **Everything else was already jpg-shaped.** The fork's cover-upload
+  path converts to JPEG and writes `cover.jpg` directly (the roadmap
+  row's own finding, so unaffected), and the series cover pick plus
+  every other cover consumer flow through the one `get_cover_path`
+  call the test pins. One non-cover item rides along: the version
+  carrier had drifted, with `cps/constants.py` still saying 0.6.44
+  after the 0.6.45 tag; corrected to 0.6.46 here.
+
 ## The Continue Reading row retires (2026-10-17, 0.6.45)
 
 The front page's Continue Reading row read Calibre's
