@@ -43,9 +43,16 @@ def _open_quarry():
     return CalibreDB(library_path())
 
 
-# The superseded connection is closed only once its replacement exists, so a
-# failed rebuild leaves the working engine in place rather than a closed one.
-_cache = LibraryCache(_open_quarry, dispose=lambda quarry: quarry.close())
+# The superseded connection is closed only once its replacement has been in
+# service for a full generation (the LibraryCache retire-one-generation
+# disposal), so a failed rebuild leaves the working engine in place rather
+# than a closed one, and a request that took the old engine keeps it usable.
+# background=False: the cached value is the engine handle itself, and a
+# sqlite3 connection may not cross threads (library_cache docstring);
+# constructing CalibreDB is cheap enough to rebuild inline.
+_cache = LibraryCache(
+    _open_quarry, dispose=lambda quarry: quarry.close(), background=False
+)
 
 
 def _quarry():

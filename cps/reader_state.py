@@ -36,7 +36,7 @@ def _dispose(quarry):
     quarry.close()
 
 
-_cache = LibraryCache(_rebuild, dispose=_dispose)
+_cache = LibraryCache(_rebuild, dispose=_dispose, background=False)
 
 
 def _quarry():

@@ -1,4 +1,63 @@
 # Patchnotes (Carrel-calibre-web)
+## The stale-while-revalidate cache and the cover pipeline fixes (2026-11-04, 0.6.47)
+
+Two user-visible defects shared one root. Calibre desktop holds
+metadata.db open and touches its mtime every few seconds, and every Carrel
+cache keyed its rebuild on that mtime, so nothing was ever warm: each
+request re-derived everything (resolving the 33 virtual libraries alone
+was ~10s of CPU on this library), measured at 10-12s per page and per
+search. And because a rebuild is CPU-bound, it froze the whole server
+loop while it ran; cover requests queued behind the freeze sat unpainted
+for 40+ seconds. That freeze plus the missing thumbnails is what made
+the newest books' covers look broken. All fixes verified against the
+live library (10,277 books): front page 10.6s to 0.09s warm, search
+12.6s to 0.09-1.0s, covers to 80KB thumbnails at ~44ms.
+
+- **The cache rule delivers stale-while-revalidate (spec 6 amended in
+  the companion repo).** The first build is inline and locked as before;
+  a moved (mtime, uuid) signature now serves the last good value
+  instantly and re-derives in a single background thread, throttled: a
+  rebuild starts only once the signature has held steady for ~10s (the
+  writer settled) or the served value passes ~120s of age regardless of
+  churn. Calibre's perpetual writes can neither pin the surfaces stale
+  forever nor be chased rebuild-for-rebuild. `LibraryCache.flush()` is
+  the synchronous escape hatch (the invalidation tests pin through it);
+  `invalidate()` discards the value for a cold next build; `.built_at`
+  exposes the in-service build's wall clock. Superseded values are kept
+  one generation before disposal, and the two cover routes guard their
+  handle use, so a background swap can no longer close a handle out from
+  under a request and 500 the tile.
+- **The palette buster keys on the index build, not the library.**
+  `/palette-data.js`'s `?c=` version was metadata.db's mtime, so the
+  browser refetched and reparsed the whole index on nearly every page
+  view; it now moves only when the index actually rebuilds
+  (`LibraryCache.built_at`).
+- **Thumbnail generation is enabled in the deployment (config flip, no
+  code).** `schedule_generate_book_covers` was 0, so the grid's sm/md/lg
+  srcset variants never had thumbnails and every tile shipped its
+  full-size original: ~35MB per page, one cover 3.2MB on its own. The
+  nightly 04:00 batch fills the library over time; the existing
+  serve-original fallback covers new books until their batch runs.
+  Verified end-to-end: one book's md thumbnail serves at 80KB / 44ms.
+- **The library's cover-byte divergence is healed (library side,
+  file-level, no DB write).** Seven books carried PNG bytes inside
+  cover.jpg: the six 2026-11-02 rewrites plus legacy 9268, whose 11-01
+  heal had renamed the file rather than re-encoded the bytes. All seven
+  re-encoded to true JPEG in place (rollback copies in the library's
+  backups directory, cover-heal-2026-11-04), and the 45 leftover
+  cover.png files from the cquarry 1.19.0-1.28.2 write window (79MB) are
+  removed. validate_library.py stays clean; /cover serves JPEG magic for
+  every sampled id. This fork's code needed no change for it: 0.6.46's
+  read path was already correct, the divergence was always data-side.
+- Tests: +4 (stale-serving, palette-version stability, cover-route
+  guard, and a regression test that drives a real background refresh
+  with the throttle zeroed, pinning the threading contract); the
+  wings-mtime and library-identity tests pin through flush() now.
+  107 green; ruff clean on the Carrel-owned set. Verified live against
+  a throwaway library copy under simulated write churn: the palette
+  buster moved mid-churn, so the bounded-staleness refresh fires and
+  installs off the request path.
+
 ## The cquarry 1.28.3 cover.jpg-only adoption (2026-11-01, 0.6.46)
 
 cquarry 1.28.3 closed its issue #10 by matching Calibre's cover surface

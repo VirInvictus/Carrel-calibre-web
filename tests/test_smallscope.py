@@ -517,6 +517,31 @@ class SmallscopeTestCase(_ClientCase):
             finally:
                 con.close()
 
+    def test_cover_route_survives_a_dying_library_handle(self):
+        """A background revalidation swapping the shared handle mid-query
+        must degrade the tile to the generic cover, never a 500 (0.6.47):
+        the same convention the get_cover_path call below it follows."""
+        from cps import library_cache
+        from cps.constants import STATIC_DIR
+
+        def _boom():
+            raise sqlite3.ProgrammingError("Cannot operate on a closed database.")
+
+        orig = library_cache.quarry
+        library_cache.quarry = _boom
+        try:
+            app.config["TESTING"] = True  # propagate the error if it 500s
+            resp = self.client.get("/cover/1")
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("image/jpeg", resp.headers["Content-Type"])
+            self.assertEqual(
+                resp.data,
+                (pathlib.Path(STATIC_DIR) / "generic_cover.jpg").read_bytes(),
+            )
+        finally:
+            library_cache.quarry = orig
+            app.config["TESTING"] = False
+
     def test_opds_new_feed_is_valid_xml_with_full_entries(self):
         # The OPDS swap: the newest feed parses as XML and each entry
         # carries the uuid, content block, and acquisition links KOReader
@@ -911,6 +936,122 @@ class SmallscopeTestCase(_ClientCase):
         # value. Without it, four stale-mtime races meant four builds.
         self.assertEqual(len(calls), 1)
 
+    def test_library_cache_serves_stale_while_revalidating(self):
+        """0.6.47: a moved signature answers from the last good value and
+        re-derives in the background; flush() is the synchronous escape."""
+        import time
+
+        from cps.library_cache import LibraryCache
+
+        calls = {"n": 0}
+
+        def build():
+            calls["n"] += 1
+            return calls["n"]
+
+        cache = LibraryCache(build)
+        self.assertEqual(cache.get(), 1)  # cold: inline build
+
+        os.utime(DBPATH)
+        started = time.monotonic()
+        self.assertEqual(cache.get(), 1)  # stale served, no inline rebuild
+        self.assertLess(time.monotonic() - started, 1.0)
+        self.assertEqual(calls["n"], 1)  # nothing rebuilt yet
+
+        self.assertEqual(cache.flush(), 2)  # synchronous re-derivation
+        self.assertEqual(cache.get(), 2)
+        self.assertEqual(calls["n"], 2)
+
+    def test_palette_version_tracks_the_index_build_not_the_library(self):
+        """0.6.47: the palette URL's buster is the index's build time, not
+        metadata.db's mtime: Calibre desktop touches the library every few
+        seconds, and the old key made the browser refetch the whole index
+        on nearly every page view even though a given URL's content never
+        changes."""
+        from cps import palette as palette_mod
+
+        palette_mod._cache.get()  # ensure an index exists
+        self.assertIsNotNone(palette_mod._cache.built_at)
+        with app.test_request_context("/"):
+            before = palette_mod.inject_palette_version()["palette_version"]
+        self.assertEqual(before, int(palette_mod._cache.built_at))
+
+        os.utime(DBPATH)
+        with app.test_request_context("/"):
+            after = palette_mod.inject_palette_version()["palette_version"]
+        self.assertEqual(after, before)  # no rebuild, no bust
+
+    def test_background_revalidation_never_hands_a_handle_across_threads(self):
+        """0.6.47, code-review finding: sqlite3 connections are bound to the
+        thread that opened them, so a background rebuild must only ever
+        install a plain-data value; the handle caches rebuild inline and
+        stay usable on the request thread. Zeroing the throttle constants
+        makes the refresh fire deterministically: without the inline branch
+        this test's shared-handle use raises ProgrammingError after the
+        first background install."""
+        import time as _time
+
+        from cps import (
+            categories as categories_mod,
+            library_cache,
+            palette as palette_mod,
+            reading_shelf as reading_shelf_mod,
+            saved_searches as saved_searches_mod,
+            stats as stats_mod,
+            wings as wings_mod,
+        )
+
+        saved = (
+            library_cache._REVALIDATE_QUIET_SECONDS,
+            library_cache._REBUILD_MIN_INTERVAL,
+        )
+        library_cache._REVALIDATE_QUIET_SECONDS = 0.0
+        library_cache._REBUILD_MIN_INTERVAL = 0.0
+        try:
+            before = wings_mod._cache.built_at
+            os.utime(DBPATH)
+            # Plain-data caches answer from stale while a background thread
+            # re-derives; the page render must not block or fail.
+            page = self.client.get("/")
+            self.assertEqual(page.status_code, 200)
+            # The shared handle (background=False) rebuilt inline on this
+            # request thread; using it here is the cross-thread regression.
+            quarry_db = library_cache.quarry()
+            self.assertIsNotNone(quarry_db.get_book(1))
+            # The wings refresh lands off-thread. A refresh installs the
+            # signature it STARTED from, so if the library moved again the
+            # next one only spawns on a later get(): keep requesting, like
+            # production traffic does. Poll bounded; no blind sleeps.
+            deadline = _time.monotonic() + 10
+            while _time.monotonic() < deadline:
+                self.client.get("/")
+                if (
+                    wings_mod._cache.built_at != before
+                    and not wings_mod._cache._refreshing
+                ):
+                    break
+                _time.sleep(0.05)
+            self.assertNotEqual(
+                wings_mod._cache.built_at,
+                before,
+                "wings background rebuild never landed",
+            )
+            # Leave no refresh in flight: later tests read these caches.
+            deadline = _time.monotonic() + 10
+            for cache in (
+                wings_mod._cache,
+                saved_searches_mod._cache,
+                categories_mod._cache,
+                stats_mod._cache,
+                palette_mod._cache,
+                reading_shelf_mod._cache,
+            ):
+                while cache._refreshing and _time.monotonic() < deadline:
+                    _time.sleep(0.05)
+        finally:
+            library_cache._REVALIDATE_QUIET_SECONDS = saved[0]
+            library_cache._REBUILD_MIN_INTERVAL = saved[1]
+
     # --- statistics (spec 12) ----------------------------------------------
 
     def test_metrics_are_plain_data(self):
@@ -1230,7 +1371,8 @@ class SmallscopeTestCase(_ClientCase):
             )
             con.commit()
             con.close()
-            os.utime(DBPATH, None)  # the LibraryCache rule: mtime invalidates
+            os.utime(DBPATH, None)  # moved signature: the detail engine
+            # (background=False) rebuilds inline on this request
             page = self.client.get("/book/1").get_data(as_text=True)
             self.assertIn("https://openlibrary.org/isbn/9781841499789", page)
             self.assertIn("Open Library", page)
@@ -1377,6 +1519,12 @@ class SmallscopeTestCase(_ClientCase):
         con.commit()
         con.close()
         os.utime(sqlite3_path)  # ensure the mtime moves even on coarse clocks
+        # SWR (0.6.47): a page request would now serve the stale wings set
+        # and re-derive in the background; flush() is the synchronous
+        # contract this assertion is pinned through.
+        from cps import wings as wings_mod
+
+        wings_mod._cache.flush()
         page = self.client.get("/").get_data(as_text=True)
         self.assertIn("wings/Fantasy", page)
         self.assertIn('Fantasy <span class="badge badge-sm">1', page)
@@ -1657,7 +1805,11 @@ class TestPageCountAndCacheIdentity(unittest.TestCase):
             _shutil.copy(saved, library_path())
             _os.utime(library_path(), (st.st_atime, st.st_mtime))
 
-            self.assertEqual(cache.get(), 2)  # identity change forces rebuild
+            # SWR: get() serves the stale value on a moved signature;
+            # flush() is the synchronous contract the identity rule is
+            # pinned through.
+            self.assertEqual(cache.get(), 1)  # stale served
+            self.assertEqual(cache.flush(), 2)  # identity change forces rebuild
             self.assertEqual(cache.get(), 2)  # stable afterwards
         finally:
             # Leave the shared fixture exactly as we found it.

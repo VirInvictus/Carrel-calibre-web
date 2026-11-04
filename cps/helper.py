@@ -888,7 +888,15 @@ def get_book_cover(book_id, resolution=None):
 
     from .library_cache import quarry
 
-    row = quarry().get_book(book_id)
+    try:
+        row = quarry().get_book(book_id)
+    except Exception as ex:
+        # A background revalidation swapping the shared handle underneath
+        # this query (stale-while-revalidate, 0.6.47) must degrade to the
+        # generic cover, never 500 the tile: the same convention the
+        # get_cover_path call below already follows.
+        log.error_or_exception(ex)
+        row = None
     book = (
         SimpleNamespace(
             id=book_id,
@@ -994,22 +1002,27 @@ def get_series_thumbnail_on_failure(series_id, resolution):
 
     from .library_cache import quarry
 
-    quarry_handle = quarry()
-    name = next(
-        (e["name"] for e in quarry_handle.get_entities("series") if e["id"] == series_id),
-        None,
-    )
     book = None
-    if name is not None:
-        for member_id in sorted(quarry_handle.get_entity_book_ids("series", name)):
-            row = quarry_handle.get_book(member_id)
-            if row and row.get("has_cover"):
-                book = SimpleNamespace(
-                    id=member_id,
-                    has_cover=True,
-                    path=row.get("path"),
-                )
-                break
+    try:
+        quarry_handle = quarry()
+        name = next(
+            (e["name"] for e in quarry_handle.get_entities("series") if e["id"] == series_id),
+            None,
+        )
+        if name is not None:
+            for member_id in sorted(quarry_handle.get_entity_book_ids("series", name)):
+                row = quarry_handle.get_book(member_id)
+                if row and row.get("has_cover"):
+                    book = SimpleNamespace(
+                        id=member_id,
+                        has_cover=True,
+                        path=row.get("path"),
+                    )
+                    break
+    except Exception as ex:
+        # Same handle-swap exposure as get_book_cover above: a background
+        # revalidation must degrade the series tile to the generic cover.
+        log.error_or_exception(ex)
     return get_book_cover_internal(book, resolution=resolution)
 
 

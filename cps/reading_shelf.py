@@ -23,20 +23,29 @@ LIMIT = 12
 
 def _build():
     """[{id, title, author, href}] for the books Calibre marks Reading."""
-    from .library_cache import quarry
+    # The build opens its own handle and closes it: a stale-while-revalidate
+    # background rebuild runs off the request thread, and a sqlite3
+    # connection may not cross threads (the library_cache docstring), so
+    # builds reach the library through nothing shared.
+    from cquarry.db import CalibreDB
+
+    from .library_cache import library_path
 
     try:
-        quarry_db = quarry()
-        statuses = quarry_db.load_custom_column("reading_status")
+        quarry_db = CalibreDB(library_path())
+        try:
+            statuses = quarry_db.load_custom_column("reading_status")
+            reading = [bid for bid, value in statuses.items() if value == SHELF_VALUE]
+            if not reading:
+                return []
+            by_id = {row["id"]: row for row in quarry_db.get_all_books()}
+        finally:
+            quarry_db.close()
     except Exception as ex:
         # An unconfigured column, an unnormalized one, an unreadable
         # library: all degrade to the absent shelf.
         log.info("reading_status column unreadable: %s", ex)
         return []
-    reading = [bid for bid, value in statuses.items() if value == SHELF_VALUE]
-    if not reading:
-        return []
-    by_id = {row["id"]: row for row in quarry_db.get_all_books()}
     # title_sort is the column the SQL this replaced ordered by (b.sort);
     # author is the leading author-sort, the MIN(a.sort) of the old query.
     picked = sorted(

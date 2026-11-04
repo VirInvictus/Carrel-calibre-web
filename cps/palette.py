@@ -24,7 +24,7 @@ from cquarry.helpers import unpipe_author
 from flask import Blueprint, Response
 
 from . import logger
-from .library_cache import LibraryCache, library_mtime, quarry
+from .library_cache import LibraryCache, library_path
 from .usermanagement import login_required_if_no_ano
 
 palette = Blueprint("palette", __name__)
@@ -69,8 +69,19 @@ def _entries():
     # Entities come from cquarry's get_entities() (2026-09-13, the last ORM
     # reads in the fork's Carrel modules): one query per kind, name-sorted,
     # the same source the about-page counts and the OPDS letter feeds use.
-    quarry_db = quarry()
-    for author in quarry_db.get_entities("authors"):
+    # The build opens its own handle and closes it: a stale-while-revalidate
+    # background rebuild runs off the request thread, and a sqlite3
+    # connection may not cross threads (the library_cache docstring).
+    from cquarry.db import CalibreDB
+
+    quarry_db = CalibreDB(library_path())
+    try:
+        authors = quarry_db.get_entities("authors")
+        series = quarry_db.get_entities("series")
+        tags = quarry_db.get_entities("tags")
+    finally:
+        quarry_db.close()
+    for author in authors:
         rows.append(
             {
                 "t": unpipe_author(author["name"]),
@@ -78,7 +89,7 @@ def _entries():
                 "h": "/author/stored/%d" % author["id"],
             }
         )
-    for series in quarry_db.get_entities("series"):
+    for series in series:
         rows.append(
             {
                 "t": series["name"],
@@ -95,7 +106,7 @@ def _entries():
     # intermediate nodes (Fic.Fantasy) stay reachable through the tree and not
     # through Ctrl-K; indexing them too would grow the payload for a set of
     # destinations that are one click away in the sidebar.
-    for tag in quarry_db.get_entities("tags"):
+    for tag in tags:
         rows.append(
             {
                 "t": tag["name"],
@@ -141,6 +152,12 @@ def palette_data():
 
 @palette.app_context_processor
 def inject_palette_version():
-    """Cache-buster for the palette index URL, keyed on the library's mtime."""
-    mtime = library_mtime()
-    return {"palette_version": int(mtime) if mtime is not None else 0}
+    """Cache-buster for the palette index URL, keyed on the index's build.
+
+    It keyed on metadata.db's mtime, which Calibre desktop touches every
+    few seconds, so the browser refetched and reparsed the whole index on
+    nearly every page view even though the URL's content can never change.
+    The build time moves only when the index actually rebuilds.
+    """
+    built_at = _cache.built_at
+    return {"palette_version": int(built_at) if built_at is not None else 0}

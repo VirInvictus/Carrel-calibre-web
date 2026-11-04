@@ -18,7 +18,7 @@ from flask_babel import gettext as _
 
 from . import logger
 from . import quarry_grid
-from .library_cache import LibraryCache, quarry
+from .library_cache import LibraryCache, library_path
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
 
@@ -38,8 +38,15 @@ def _rollup():
     # The Phase 7 swap moved the pairs onto cquarry's cached rows; cquarry
     # 1.25 then promoted the whole implied-prefix rule to
     # CalibreDB.tag_rollup_ids, and the 0.6.43 consumer wave retired this
-    # file's private loop onto it.
-    return quarry().tag_rollup_ids()
+    # file's private loop onto it. The build opens its own handle and
+    # closes it: a stale-while-revalidate background rebuild runs off the
+    # request thread, and a sqlite3 connection may not cross threads (the
+    # library_cache docstring), so builds reach the library through nothing
+    # shared.
+    from cquarry.db import CalibreDB
+
+    with CalibreDB(library_path()) as quarry_db:
+        return quarry_db.tag_rollup_ids()
 
 
 def _tree(names):

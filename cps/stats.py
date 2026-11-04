@@ -14,11 +14,12 @@
 
 from cquarry.helpers import unpipe_author
 
+import sqlite3
+
 from flask import Blueprint, abort
 from flask_babel import gettext as _
-from sqlalchemy import text
 
-from . import calibre_db, logger
+from . import logger
 from .library_cache import LibraryCache
 from .render_template import render_title_template
 from .usermanagement import login_required_if_no_ano
@@ -30,7 +31,20 @@ TOP_N = 12
 
 
 def _rows(sql, **params):
-    return calibre_db.session.execute(text(sql), params).fetchall()
+    # Own short-lived mode=ro connection (not the ORM session): the rebuild
+    # may run on a stale-while-revalidate background thread, and both the
+    # ORM's session and a sqlite3 connection are thread-bound (the
+    # library_cache docstring). One connection per query matches the old
+    # per-execute pattern's cost profile.
+    from cquarry.helpers import db_uri_ro
+
+    from .library_cache import library_path
+
+    con = sqlite3.connect(db_uri_ro(library_path()), uri=True)
+    try:
+        return con.execute(sql, params).fetchall()
+    finally:
+        con.close()
 
 
 def _totals():
@@ -122,10 +136,19 @@ def _custom_column_breakdown(label):
     """[(value, count)] for an enumeration/text custom column, or []."""
     from collections import Counter
 
-    from .library_cache import quarry
+    # Own handle, opened and closed in the build: a stale-while-revalidate
+    # background rebuild runs off the request thread, and a sqlite3
+    # connection may not cross threads (the library_cache docstring).
+    from cquarry.db import CalibreDB
+
+    from .library_cache import library_path
 
     try:
-        values = quarry().load_custom_column(label)
+        quarry_db = CalibreDB(library_path())
+        try:
+            values = quarry_db.load_custom_column(label)
+        finally:
+            quarry_db.close()
     except Exception as ex:
         # Missing column (ValueError) and unreadable library both mean the
         # metric simply has no data.
@@ -155,13 +178,19 @@ def _pace_by_year():
     the derivation is database-shaped, so it lives upstream)."""
     from cquarry.analytics import addition_timeline
 
-    from .library_cache import quarry
+    # Own handle, same contract as _custom_column_breakdown above.
+    from cquarry.db import CalibreDB
 
+    from .library_cache import library_path
+
+    quarry_db = CalibreDB(library_path())
     try:
-        timeline = addition_timeline(quarry(), granularity="year")
+        timeline = addition_timeline(quarry_db, granularity="year")
     except Exception as ex:
         log.info("acquisition pace unavailable: %s", ex)
         return []
+    finally:
+        quarry_db.close()
     return [{"label": str(year), "value": n} for year, n in sorted(timeline.items())]
 
 

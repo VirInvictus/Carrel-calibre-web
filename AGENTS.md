@@ -40,7 +40,7 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 | `cps/single_user.py` | authenticates the owner per request; seals the credential paths (`/login`, `/logout`, `/register`, `/admin/user/new`, `/admin/usertable`) and, since 0.6.40, the admin machinery (`/get_update_status`, `/get_updater_status`, the user AJAX trio, `/ajax/pathchooser`, `/shutdown`, `/reconnect`) |
 | `cps/smallscope.py` | `trim()` disables blueprints; `seal_browse_surfaces()` 404s `/hot`, `/rated`, `/discover`, `/advsearch`, `/table`, `/ajax/listbooks`, `/ajax/table_settings` and, since 0.6.42, the OPDS mirrors `/opds/hot`, `/opds/discover`, `/opds/rated`, by path prefix |
 | `cps/carrel_search.py` | resolves the search bar through cquarry's engine |
-| `cps/library_cache.py` | the one cache rule (mtime + library UUID) every Carrel surface shares, plus the shared cquarry handle |
+| `cps/library_cache.py` | the one cache rule (mtime + library UUID, served stale-while-revalidate since 0.6.47) every Carrel surface shares, plus the shared cquarry handle |
 | `cps/page_count.py` | cached native page counts for the detail page |
 | `cps/wings.py` | Calibre virtual libraries as browse sections |
 | `cps/saved_searches.py` | Calibre saved searches as browse sections (cquarry `search:"Name"` interpolation) |
@@ -55,7 +55,13 @@ Everything Carrel adds lives in its own file, so the upstream diff stays small.
 
 All of them cache on `metadata.db`'s mtime **and the library's UUID**, the
 idiom `wings.py` established and the cquarry 1.3 adoption generalized
-(mtime-only is the documented degraded mode).
+(mtime-only is the documented degraded mode). Since 0.6.47 the delivery is
+stale-while-revalidate: Calibre desktop touches the mtime every few
+seconds, so a moved signature serves the last good value and re-derives in
+a throttled background thread instead of rebuilding inline; `flush()` is
+the synchronous escape hatch and the tests pin through it. The
+503-on-vanish convention is unchanged (an unreadable library raises, never
+serves stale).
 
 ## Rebase posture
 
