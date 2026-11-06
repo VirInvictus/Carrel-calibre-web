@@ -1,4 +1,31 @@
 # Patchnotes (Carrel-calibre-web)
+## The Python 3.15 venv rebuild (2026-11-05, 0.6.48)
+
+The machine's upgrade to Python 3.15 destroyed the runtime venv (built on
+3.14.6; every interpreter-relative path inside it died), taking Carrel
+down with it: `enter-cps` and the `cps` run alias both failed with "no
+such file or directory". Rebuilt in place at the same path
+(`~/.local/share/carrel/venv`), which the aliases resolve, so nothing in
+the shell config moved.
+
+- **Two dependency ceilings predate Python 3.15's wheels**: `lxml<5.4.0`
+  and `regex<2025.3.20` are both C-extension packages whose pinned ranges
+  have no 3.15 wheels, so pip fell back to source builds that cannot
+  succeed without libxml2 headers. The ceilings move to `lxml<7.0.0` and
+  `regex<2026.0.0` (installed: lxml 6.1.3, regex current); everything
+  else in requirements.txt installs unchanged.
+- **cquarry enters the venv at 1.29.0** (from PyPI), replacing the
+  ancient 1.8.0 dist-info the old venv carried: the runtime now serves
+  the 9.18 date-search vocabulary through the search bar (the
+  1.29.0 adoption row in the roadmap).
+- **Verified end to end**: the full test suite passes inside the venv
+  (107 passed), and a loopback launch against a throwaway database
+  served HTTP (the fresh-database setup redirect; the live
+  `~/.calibre-web` was never touched by the verification).
+- The old 3.14 venv is preserved at
+  `~/.local/share/carrel/venv-old-3.14` until one more check confirms
+  nothing custom was inside it, then deleted.
+
 ## The stale-while-revalidate cache and the cover pipeline fixes (2026-11-04, 0.6.47)
 
 Two user-visible defects shared one root. Calibre desktop holds
