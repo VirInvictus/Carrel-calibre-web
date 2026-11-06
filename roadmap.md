@@ -139,6 +139,18 @@ program").
       moved, as the row predicted. The release also corrected the version
       carrier's drift (`cps/constants.py` still said 0.6.44 after the
       0.6.45 tag).
+- [x] **cquarry 1.29.0 date-search vocabulary adoption** (applied 2026-11-05,
+      the third parity-watch escalation, sibling of the #14/#35 consumer
+      issues): cquarry mirrored Calibre 9.18's five new date words
+      (`lastmonth`, `thisyear`, `lastyear`, `N monthsago`, `N yearsago`;
+      month words compare year + month, year words compare year only, the
+      ago forms bound at the first day of the month N months back). The
+      search bar evaluates through the engine (spec 13), so the words are
+      user-reachable the moment the runtime's cquarry crosses 1.29.0.
+      **Applied 2026-11-05**: the CI pin moved `@v1.28.3` -> `@v1.29.0`;
+      the runtime picked 1.29.0 up through the rebuilt user-site (the
+      Python 3.15 upgrade's restore); the suite is green against 1.29.0
+      (1279 passed, 1 skipped, 68 subtests). Size XS.
 
 ## Declined (the D-lane record; reversal needs a new recorded decision)
 
@@ -163,7 +175,11 @@ program").
 - Entity URLs are `/<data>/<sort_param>/<id>` while overview pages are bare; a
   missing id silently defaults book_id to 1 (`web.py:939-957`).
 - The cquarry version skew (venv dist-info 1.8.0, editable tree 1.28.3, CI
-  pin v1.28.3) is recorded in Carrel's roadmap with its fix shapes.
+  pin v1.28.3) is recorded in Carrel's roadmap with its fix shapes. The
+  2026-11-05 Python 3.15 upgrade destroyed the recorded environment: the
+  old venv is gone and the runtime resolves user-site cquarry 1.29.0.
+  Re-verify the three places (venv dist-info, editable tree, CI pin)
+  whenever Carrel's runtime or venv is rebuilt.
 - The stats-metrics tripwire lives in Carrel spec 12.3 (a fourth library-metrics
   consumer triggers the headless-layer conversation).
 - The 1.0.0 gates are the five sign-off boxes in Carrel's roadmap; this file adds
