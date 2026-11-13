@@ -172,8 +172,12 @@ program").
 
 - Patch upstream `.py` via shell heredoc (the rebase-cleanliness rule in
   CLAUDE.md); templates, CSS, and our own new modules edit normally.
-- Entity URLs are `/<data>/<sort_param>/<id>` while overview pages are bare; a
-  missing id silently defaults book_id to 1 (`web.py:939-957`).
+- Entity URLs are `/<data>/<sort_param>/<id>` while overview pages are bare.
+  Since 0.6.42 (commit 26890015) a wrong-shaped entity URL 404s instead of
+  rendering entity 1: the id-less rules default `book_id` to a 0 sentinel and
+  `books_list` aborts for the seven entity datas (`web.py:920-968`); the
+  non-entity datas keep the defaulted id by design (the download page's user
+  id among them). The shape rule still matters for anything new you wire up.
 - The cquarry version skew (venv dist-info 1.8.0, editable tree 1.28.3, CI
   pin v1.28.3) is recorded in Carrel's roadmap with its fix shapes. The
   2026-11-05 Python 3.15 upgrade destroyed the recorded environment: the
